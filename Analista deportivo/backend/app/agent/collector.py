@@ -95,36 +95,15 @@ class MatchDataCollector:
         away_clean = away_team.strip() if away_team else ""
         clean_url = match_url.strip() if match_url and match_url.strip() else None
 
-        # Si se proporciona una URL, extraer equipos y verificar correspondencia con los equipos solicitados
+        # Si se proporciona una URL, la URL es la fuente suprema de verdad para el partido
         if clean_url:
             url_home, url_away = self.scraper.extract_teams_from_url_and_page(clean_url)
             if url_home and url_away:
-                if not home_clean or not away_clean:
-                    # El usuario no ingresó nombres arriba, solo pegó la URL -> Usar nombres de la URL
-                    logger.info(f"Equipos extraídos autónomamente desde la URL: '{url_home}' vs '{url_away}'")
-                    home_clean = url_home
-                    away_clean = url_away
-                else:
-                    # El usuario ingresó nombres arriba. Verificar si la URL corresponde a estos equipos.
-                    import re
-                    h_norm = re.sub(r'[^a-zA-Z0-9]', '', home_clean.lower())
-                    a_norm = re.sub(r'[^a-zA-Z0-9]', '', away_clean.lower())
-                    uh_norm = re.sub(r'[^a-zA-Z0-9]', '', url_home.lower())
-                    ua_norm = re.sub(r'[^a-zA-Z0-9]', '', url_away.lower())
-
-                    matches = (h_norm in uh_norm or uh_norm in h_norm) or (a_norm in ua_norm or ua_norm in a_norm) or \
-                              (h_norm in ua_norm or ua_norm in h_norm) or (a_norm in uh_norm or uh_norm in a_norm)
-
-                    if matches:
-                        logger.info(f"URL confirmada para {home_clean} vs {away_clean}. Nombres oficiales: '{url_home}' vs '{url_away}'")
-                        home_clean = url_home
-                        away_clean = url_away
-                    else:
-                        logger.info(
-                            f"La URL proporcionada ({clean_url}) contiene '{url_home}' vs '{url_away}' pero el usuario solicitó '{home_clean}' vs '{away_clean}'. "
-                            f"Descartando URL ajena para priorizar los equipos solicitados por el usuario."
-                        )
-                        clean_url = None
+                logger.info(f"Equipos extraídos con éxito desde la URL: '{url_home}' vs '{url_away}'")
+                home_clean = url_home
+                away_clean = url_away
+            else:
+                logger.info(f"URL activa: '{clean_url}' con equipos base: '{home_clean}' vs '{away_clean}'")
 
         if not force_refresh and not clean_url and home_clean and away_clean:
             cached_data = self.get_cached_raw_features(home_clean, away_clean)

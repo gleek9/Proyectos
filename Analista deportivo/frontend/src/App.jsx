@@ -107,32 +107,34 @@ export default function App() {
     const activeUrl = customMatchUrl !== undefined ? customMatchUrl : matchUrl;
     let trimmedUrl = activeUrl ? activeUrl.trim() : '';
 
-    const cleanHome = (targetHome || '').trim();
-    const cleanAway = (targetAway || '').trim();
+    let cleanHome = (targetHome || '').trim();
+    let cleanAway = (targetAway || '').trim();
 
-    if ((!cleanHome || !cleanAway) && !trimmedUrl) return;
-
-    // Validación de coherencia: Si el usuario especificó equipos arriba,
-    // comprobar si la URL guardada corresponde a esos mismos equipos.
-    if (cleanHome && cleanAway && trimmedUrl) {
+    // Si hay una URL activa, la URL manda sobre cualquier equipo ingresado previamente
+    if (trimmedUrl) {
       const urlTeams = extractTeamsFromUrl(trimmedUrl);
       if (urlTeams) {
-        const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const nh = norm(cleanHome);
-        const na = norm(cleanAway);
-        const nuh = norm(urlTeams.home);
-        const nua = norm(urlTeams.away);
-        const matches = (nh.includes(nuh) || nuh.includes(nh)) || (na.includes(nua) || nua.includes(na)) ||
-                        (nh.includes(nua) || nua.includes(nh)) || (na.includes(nuh) || nuh.includes(na));
-        if (!matches) {
-          console.warn(`URL anterior (${trimmedUrl}) no coincide con los equipos ingresados (${cleanHome} vs ${cleanAway}). Descartando URL obsoleta.`);
-          trimmedUrl = '';
-          handleClearUrl();
-        }
+        cleanHome = urlTeams.home;
+        cleanAway = urlTeams.away;
+        setHomeTeam(urlTeams.home);
+        setAwayTeam(urlTeams.away);
       }
     }
 
+    if ((!cleanHome || !cleanAway) && !trimmedUrl) return;
+
     const isLive = Boolean(trimmedUrl);
+
+    // Si la URL o los equipos cambiaron respecto al análisis actual, resetear telemetría previa
+    if (predictionData && (
+      (trimmedUrl && trimmedUrl !== predictionData.match?.match_url) ||
+      (!trimmedUrl && (cleanHome !== predictionData.match?.home_team || cleanAway !== predictionData.match?.away_team))
+    )) {
+      setLiveScore(null);
+      setLiveMinute(null);
+      setLiveCorners(null);
+      setPredictionData(null);
+    }
 
     setLoading(true);
     setError(null);
@@ -141,7 +143,7 @@ export default function App() {
       home_team: cleanHome || '',
       away_team: cleanAway || '',
       competition: 'General',
-      force_refresh: force,
+      force_refresh: force || isLive,
       is_live: isLive,
       match_url: trimmedUrl || ''
     };
@@ -255,31 +257,18 @@ export default function App() {
     }
   }, [predictionData, matchUrl]);
 
-  // Ciclo de auto-sincronización continua cada 5 minutos (rastreando match_url online y modelos locales)
+  // Temporizador de cuenta regresiva para Auto-Sync (1 segundo por tick, solo en vivo)
   useEffect(() => {
-    if (!predictionData) {
+    if (!isLiveActive || !predictionData) {
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      setSyncCountdown(SYNC_INTERVAL_SECONDS);
       return;
     }
-
-    setSyncCountdown(SYNC_INTERVAL_SECONDS);
 
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
 
     countdownIntervalRef.current = setInterval(() => {
-      setSyncCountdown((prev) => {
-        if (prev <= 1) {
-          console.log('⏰ Auto-Sync: 5 minutos cumplidos. Refrescando datos online con match_url y modelos locales...');
-          runAnalysis(
-            predictionData.match.home_team,
-            predictionData.match.away_team,
-            true,
-            matchUrl
-          );
-          return SYNC_INTERVAL_SECONDS;
-        }
-        return prev - 1;
-      });
+      setSyncCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
     return () => {
@@ -287,11 +276,22 @@ export default function App() {
         clearInterval(countdownIntervalRef.current);
       }
     };
-  }, [predictionData?.match?.home_team, predictionData?.match?.away_team, matchUrl]);
+  }, [isLiveActive, predictionData]);
+
+  // Disparar sincronización automática cuando el contador llega a 0 (solo en vivo)
+  const homeCurrent = predictionData?.match?.home_team;
+  const awayCurrent = predictionData?.match?.away_team;
+  useEffect(() => {
+    if (syncCountdown === 0 && isLiveActive && homeCurrent && awayCurrent && !loading) {
+      console.log('⏰ Auto-Sync: 5 minutos cumplidos. Refrescando datos en vivo desde la URL online...');
+      setSyncCountdown(SYNC_INTERVAL_SECONDS);
+      runAnalysis(homeCurrent, awayCurrent, true, matchUrl);
+    }
+  }, [syncCountdown, isLiveActive, homeCurrent, awayCurrent, loading, matchUrl]);
 
   return (
     <div className="app-container" style={{ position: 'relative' }}>
-      {/* 1. Header con Controles tipo IDE Limpio e Indicador Katakuri v3.3 */}
+      {/* 1. Header con Controles tipo IDE Limpio e Indicador Katakuri v3.5 */}
       <HeaderBar
         homeTeam={homeTeam}
         setHomeTeam={setHomeTeam}
@@ -318,7 +318,7 @@ export default function App() {
       {loading && (
         <div className="state-box">
           <div className="terminal-spinner"></div>
-          <div className="state-title">Pipeline predictivo Katakuri v3.3</div>
+          <div className="state-title">Pipeline predictivo Katakuri v3.5</div>
           <div className="state-sub">
             {isLiveActive
               ? 'Rastreando datos en vivo desde la URL online, extrayendo telemetría y ejecutando Red Neuronal LSTM...'

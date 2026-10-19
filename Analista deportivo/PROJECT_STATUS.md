@@ -1,4 +1,4 @@
-# PROJECT_STATUS.md — Estado de Avance del Proyecto (Katakuri v3.3)
+# PROJECT_STATUS.md — Estado de Avance del Proyecto (Katakuri v3.5)
 
 > **Propósito de este archivo**: Este documento es el punto de control, especificación técnica y seguimiento para desarrolladores y agentes de IA. Cualquier nuevo chat o sesión debe leer este archivo primero para conocer con exactitud la arquitectura, el estado operativo, las credenciales, los modelos predictivos y el funcionamiento de la interfaz.
 
@@ -6,8 +6,8 @@
 
 ## 1. Resumen Ejecutivo
 
-- **Proyecto**: **Katakuri v3.3** (Plataforma Autónoma de Predicción Deportiva con IA)
-- **Regla de Versiones**: Cada solicitud de cambios incrementa la versión en +0.1 (ej. v1.2 ➔ ... ➔ v3.0 ➔ v3.1 ➔ v3.2 ➔ v3.3).
+- **Proyecto**: **Katakuri v3.5** (Plataforma Autónoma de Predicción Deportiva con IA)
+- **Regla de Versiones**: Cada solicitud de cambios incrementa la versión en +0.1 (ej. v1.2 ➔ ... ➔ v3.3 ➔ v3.4 ➔ v3.5).
 - **Idioma de la Plataforma**: **100% Español** (interfaz, telemetría, veredictos humanos y logs de estado).
 - **Objetivo**: A partir de los nombres de dos equipos o una URL de partido online, recopila datos reales en tiempo real mediante **Gemini (Flash Lite) + LangChain + Sofascore API + Flashscore Ninja Feeds** y ejecuta un ensamble **100% local** compuesto por:
   1. **Poisson Bivariado Calibrado con corrección Dixon-Coles ($\tau$), Normalización Estricta por Torneo, Localía Simétrica ($\sqrt{h}$), Elasticidad ($\gamma=0.52$), Sobredispersión Binomial Negativa en Córners/Tarjetas y Dinámica In-Play de Estado de Marcador (Game State Effect)**
@@ -15,12 +15,48 @@
   3. **PyTorch LSTM** (Red neuronal recurrente para series temporales y momentum relativo)
   4. **Meta-Ensamble con Matriz Bivariada de Consenso Unificado, Coalescencia Estricta, Ponderación Bayesiana Dinámica, Marcadores Concordantes y Mercados Derivados (1X, X2, 12, DNB)**
   5. **Módulo Formal de Validación Empírica y Backtesting Automatizado (`backend/app/analytics/backtest.py`) con métricas RPS (Ranked Probability Score), Brier Score, Log-Loss y MAE/RMSE**
-- **Versión Actual**: **v3.3**
-- **Estado General**: **100% Operativo, Matriz Bivariada de Consenso Unificado, Binomial Negativa Calibrada, Dinámica Game State y Suite Completa de Backtesting**
+- **Versión Actual**: **v3.5**
+- **Estado General**: **100% Operativo, Resolución Jerárquica de URLs en Vivo, Servidor Resiliente con Auto-Recuperación, Barra Superior Espaciosa y Responsive sin Login Bloqueante**
 
 ---
 
-## 2. Novedades y Mejoras en la Versión v3.3 (Auditoría Predictiva: Puntos 5, 6, 8 y 3 Implementados)
+## 2. Novedades y Mejoras en la Versión v3.5 (Resolución Jerárquica de URLs y Estabilización de Servidores)
+
+1. **Jerarquía Soberana de la URL y Erradicación del Bucle de Partido Previo (`collector.py`, `App.jsx`)**:
+   - **Causa Raíz Resuelta**: Al ingresar una nueva URL después de haber analizado un partido, tanto el frontend (`App.jsx`) como el backend (`collector.py`) comparaban los equipos extraídos de la URL con los equipos que habían quedado en el formulario del análisis anterior. Al no coincidir, una condición de coherencia invertida descartaba la nueva URL (`clean_url = None`), vaciaba el input y consultaba la base de datos local SQLite, **provocando que el sistema recargara erróneamente el partido anterior**.
+   - **Solución Implementada**:
+     * En `backend/app/agent/collector.py`: La URL pasa a ser la **fuente de verdad absoluta**. Si `extract_teams_from_url_and_page` extrae equipos de la URL, se asignan directamente como `home_clean = url_home` y `away_clean = url_away`, y bajo ninguna circunstancia se anula `clean_url`. Al estar presente `clean_url`, se desactiva la lectura de registros en caché de otros partidos.
+     * En `frontend/src/App.jsx`: Se eliminó el bloque que vaciaba la URL (`trimmedUrl = ''`, `handleClearUrl()`). Se actualizan de inmediato los equipos locales y se resetea la telemetría previa (`liveScore`, `liveMinute`, `liveCorners`, `predictionData`) para evitar mezclar datos del encuentro anterior durante la carga.
+
+2. **Estabilidad Continua y Eliminación de Reinicios Espurios (`run_app.py`, `App.jsx`)**:
+   - **Causa Raíz Resuelta**: La aplicación se detenía súbitamente o se reiniciaba tras cierto tiempo de ejecución. Esto se debía a que `run_app.py` ejecutaba Uvicorn con `--reload --reload-dir backend`. En Windows, el file watcher disparaba recargas involuntarias al detectar cambios en `__pycache__` o archivos temporales, interrumpiendo requests en curso de scraping. Al terminar el subproceso, el supervisor de `run_app.py` ejecutaba un `taskkill` y apagaba todo. Asimismo, en `App.jsx`, el temporizador de auto-sincronización invocaba `runAnalysis` de forma síncrona dentro del updater de estado `setSyncCountdown`.
+   - **Solución Implementada**:
+     * En `run_app.py`: Se removió el flag `--reload` para el entorno de ejecución del usuario y se implementó un bucle supervisor con **auto-recuperación y tolerancia a fallos** (hasta 3 reintentos) que mantiene la aplicación viva y estable.
+     * En `App.jsx`: Se desacopló el temporizador de 5 minutos, corriendo únicamente en partidos con modo en vivo (`isLiveActive`) y disparando el refresco de forma asíncrona y segura mediante `useEffect`.
+     * Se eliminó el archivo huérfano `backend/analista.db` que interfería en el sistema de archivos.
+
+---
+
+## 3. Novedades y Mejoras en la Versión v3.4 (Reorganización Espaciosa de Barra Superior, Acceso Directo y Depuración de Historial)
+
+1. **Eliminación del Paso de Autenticación y Desbloqueo Inmediato (`App.jsx`, `HeaderBar.jsx`)**:
+   - **Causa Raíz Resuelta**: El modal bloqueante de usuario y contraseña consumía tiempo de entrada y ocupaba un espacio valioso en la barra de navegación con un widget de usuario y botón de cierre de sesión.
+   - **Solución Implementada**: Se eliminó el gate de autenticación obligatoria; la aplicación ahora inicia de forma instantánea y directa. Se removieron los componentes de usuario y logout de la barra superior.
+
+2. **Reorganización Espaciosa y Responsiva de la Barra Superior (`HeaderBar.jsx`, `ide-theme.css`)**:
+   - **Causa Raíz Resuelta**: Los elementos de la barra de navegación (`.ide-navbar`) se apretujaban o saltaban de forma desordenada en resoluciones estándar debido a anchos rígidos (`165px`) y la distribución en 3 nodos flex sueltos.
+   - **Solución Implementada**:
+     * Agrupación izquierda (`.navbar-brand-group`): Marca `Katakuri v3.5`, divisor vertical sutil, temporizador de 5 min y botón de calibración.
+     * Formulario derecho (`.ide-inputs-form`): Inputs con `min-width: 120px` y `width: 155px`, insignias `Local` y `Visitante` protegidas contra cortes (`white-space: nowrap`) y separador `vs` estilizado.
+     * Reglas `@media (max-width: 1140px)` y `@media (max-width: 700px)` que centran o apilan fluidamente los elementos sin colisiones visuales.
+
+3. **Remoción de la Barra de Historial y Sugeridos (`RecentMatchesBar.jsx`, `App.jsx`, `ide-theme.css`)**:
+   - **Auditoría Predictiva**: Se verificó rigurosamente que la barra de historial y accesos rápidos no tenía ninguna injerencia en los modelos de Poisson, Dixon-Coles, XGBoost o LSTM.
+   - **Solución Implementada**: Se eliminó el componente `RecentMatchesBar.jsx`, el estado `recentList`, la función `loadRecentMatches` y los estilos CSS obsoletos (`.recent-bar`, `.recent-chip`), logrando una interfaz mucho más limpia y despejada.
+
+---
+
+## 4. Novedades y Mejoras en la Versión v3.3 (Auditoría Predictiva: Puntos 5, 6, 8 y 3 Implementados)
 
 1. **Matriz Bivariada de Consenso en Meta-Ensamble (Punto 5 — `ensemble.py`, `poisson.py`)**:
    - **Causa Raíz Resuelta**: Anteriormente, el ensamble combinaba de forma desacoplada la probabilidad de Over 2.5 (`over_2_5_combined = p_over * wp + xgb_over * wx`), mientras que la distribución de goles discretos (0 a 5+ goles) y los top marcadores se extraían directamente de Poisson. Esto generaba inconsistencias donde la suma acumulada de 3, 4 y 5+ goles no coincidía exactamente con el porcentaje de Over 2.5 mostrado en pantalla.
@@ -518,12 +554,14 @@
 | **v3.1** | Calibración de Precisión: Balanza territorial de córners, elasticidad gamma=0.52, mitigación de bloque bajo y concordancia de marcadores | ✅ Completado |
 | **v3.2** | Auditoría Predictiva Puntos 1 y 2: Normalización por liga, localía simétrica, parsing robusto de minutos y H2H no colapsado | ✅ Completado |
 | **v3.3** | Auditoría Predictiva Puntos 5, 6, 8 y 3: Matriz Bivariada de Consenso Unificado, Binomial Negativa (córners/tarjetas), Dinámica Game State y Suite de Backtesting (RPS/Brier/Log-Loss/MAE) | ✅ Completado |
+| **v3.4** | Rediseño de barra superior espaciosa (`navbar-brand-group`, `ide-inputs-form`), acceso directo a la plataforma sin login bloqueante y remoción total de historial y partidos sugeridos. | ✅ Completado |
+| **v3.5** | Resolución Jerárquica de URLs (URL soberana sobre inputs anteriores), erradicación de recarga de partido previo, estabilización de Uvicorn (sin reload intempestivo en run_app.py) y auto-recuperación de servidor. | ✅ Completado |
 
 ---
 
 ## 6. Endpoints y Contrato de la API
 
-- `POST /api/login`: Autenticación con credenciales del entorno.
+- `POST /api/login`: Autenticación con credenciales del entorno (Opcional en v3.4+, acceso directo activado sin bloqueo de login).
   - **Usuario por defecto**: `Gleek`
   - **Contraseña por defecto**: `Contra123` (configuradas en [.env](file:///c:/Users/uriel/Vide%20coding/Proyectos/Analista%20deportivo/.env))
 - `POST /api/predict`: Endpoint principal de predicción.

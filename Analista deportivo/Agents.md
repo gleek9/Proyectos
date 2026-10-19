@@ -1,6 +1,6 @@
 # AGENTS.md — Katakuri AI (Analista Deportivo)
 
-Spec técnica de referencia. El estado vivo del proyecto (fases, versiones, credenciales operativas) está en `PROJECT_STATUS.md` — leerlo primero en cada sesión nueva. Versión actual: **v3.3**, idioma de toda la UI/telemetría: **español**.
+Spec técnica de referencia. El estado vivo del proyecto (fases, versiones, credenciales operativas) está en `PROJECT_STATUS.md` — leerlo primero en cada sesión nueva. Versión actual: **v3.5**, idioma de toda la UI/telemetría: **español**.
 
 ## Comandos (Windows, PowerShell)
 

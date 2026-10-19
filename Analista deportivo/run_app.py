@@ -28,9 +28,7 @@ def main():
         "-m", "uvicorn",
         "backend.app.main:app",
         "--host", "127.0.0.1",
-        "--port", "8000",
-        "--reload",
-        "--reload-dir", "backend"
+        "--port", "8000"
     ]
     
     # Iniciar backend
@@ -52,10 +50,6 @@ def main():
     print("  SERVIDORES ACTIVOS:")
     print("  • Backend API  : http://localhost:8000/docs")
     print("  • Frontend UI  : http://localhost:5173")
-    print()
-    print("  CREDENCIALES DE ACCESO:")
-    print("  • Usuario      : Gleek")
-    print("  • Contraseña   : Contra123")
     print("=" * 70)
     print()
     print("[3/3] Sincronizando y verificando disponibilidad del Backend FastAPI...")
@@ -83,13 +77,21 @@ def main():
 
     print("\nPresiona CTRL+C en esta consola para detener ambos servidores.\n")
 
+    backend_restarts = 0
     try:
         while True:
             time.sleep(1)
-            # Si alguno de los dos procesos termina inesperadamente
+            # Si el backend se detiene inesperadamente, intentar recuperarlo
             if backend_proc.poll() is not None:
-                print("\n[AVISO] El servidor Backend se ha detenido.")
-                break
+                if backend_restarts < 3:
+                    backend_restarts += 1
+                    print(f"\n[AVISO] El servidor Backend se detuvo. Auto-recuperando (intento {backend_restarts}/3)...")
+                    backend_proc = subprocess.Popen(backend_cmd, cwd=root_dir)
+                    time.sleep(2)
+                    continue
+                else:
+                    print("\n[ERROR] El servidor Backend se ha detenido repetidamente.")
+                    break
             if frontend_proc.poll() is not None:
                 print("\n[AVISO] El servidor Frontend se ha detenido.")
                 break
