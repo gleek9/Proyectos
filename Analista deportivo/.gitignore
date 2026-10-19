@@ -1,0 +1,109 @@
+# ==============================================================================
+# SEGURIDAD Y DATOS SENSIBLES (CRÍTICO)
+# ==============================================================================
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.cert
+credentials.json
+token.json
+
+# ==============================================================================
+# PYTHON Y ENTORNOS VIRTUALES
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing y Cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# ==============================================================================
+# PESOS DE MODELOS DE MACHINE LEARNING Y DEEP LEARNING (PESADOS / LOCALES)
+# ==============================================================================
+weights/
+backend/weights/
+*.h5
+*.keras
+*.pt
+*.pth
+*.onnx
+*.pkl
+*.joblib
+*.bin
+*.model
+huggingface_cache/
+.cache/
+hf_models/
+
+# ==============================================================================
+# BASES DE DATOS LOCALES Y CACHÉ
+# ==============================================================================
+*.db
+*.sqlite
+*.sqlite3
+cache/
+.cache/
+
+# ==============================================================================
+# NODE / JAVASCRIPT / FRONTEND
+# ==============================================================================
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.vite/
+
+# ==============================================================================
+# SISTEMA OPERATIVO Y EDITORES
+# ==============================================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Logs
+*.log
+logs/

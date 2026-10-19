@@ -1,0 +1,34 @@
+# ==============================================================================
+# BACKEND DEPENDENCIES — KATAKURI AI
+# ==============================================================================
+
+# API Framework y Servidor
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.8.0
+pydantic-settings>=2.4.0
+python-dotenv>=1.0.0
+sqlalchemy>=2.0.0
+aiosqlite>=0.20.0
+
+# Orquestación de IA y Búsqueda
+langchain>=0.3.0
+langchain-google-genai>=2.0.0
+google-genai>=0.1.0
+duckduckgo-search>=6.2.0
+beautifulsoup4>=4.12.0
+requests>=2.32.0
+
+# Motor Predictivo y ML Tabular
+scikit-learn>=1.5.0
+xgboost>=2.1.0
+lightgbm>=4.5.0
+scipy>=1.14.0
+numpy>=1.26.0,<2.2.0
+pandas>=2.2.0
+
+# Deep Learning Local y Redes Neuronales (Hugging Face / Keras)
+huggingface-hub>=0.24.0
+safetensors>=0.4.0
+# torch o tensorflow para inferencia local LSTM
+torch>=2.2.0

@@ -1,0 +1,1141 @@
+/* ==============================================================================
+   KATAKURI AI — DARK IDE THEME (MINIMALISTA TÉCNICO)
+   ============================================================================== */
+
+:root {
+  /* Paleta Base Dark IDE */
+  --bg-base: #0e0e11;
+  --bg-panel: #16161a;
+  --bg-panel-hover: #1c1c23;
+  --bg-card: #131317;
+  --bg-input: #101014;
+
+  /* Bordes y Líneas de Guía */
+  --border-dim: #26262e;
+  --border-focus: #3b3b47;
+  --border-highlight: #4a4a5a;
+
+  /* Tipografías */
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Colores de Acento Funcionales */
+  --cyan: #38bdf8;
+  --cyan-glow: rgba(56, 189, 248, 0.15);
+  --purple: #a855f7;
+  --purple-glow: rgba(168, 85, 247, 0.15);
+  --slate: #94a3b8;
+  --slate-dark: #334155;
+  --lime: #a3e635;
+  --lime-glow: rgba(163, 230, 53, 0.15);
+  --amber: #f59e0b;
+  --red: #ef4444;
+
+  /* Textos */
+  --text-main: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-dim: #64748b;
+  --text-muted: #475569;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Scrollbars minimalistas */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-dim);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-focus);
+}
+
+/* Estilos de Contenedor General */
+.app-container {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Top IDE Command Bar */
+.ide-navbar {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.ide-brand-clickable {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  cursor: default;
+  user-select: none;
+  transition: all 0.2s ease-in-out;
+  background: var(--bg-card);
+}
+
+.ide-brand-clickable.not-live {
+  border: 1.5px solid var(--cyan);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
+}
+
+.ide-brand-clickable.is-live {
+  border: 1.5px solid var(--red);
+  background: rgba(239, 68, 68, 0.08);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
+  animation: live-border-pulse 4s infinite ease-in-out;
+}
+
+@keyframes live-border-pulse {
+  0%, 100% {
+    border-color: #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    border-color: #f87171;
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.6);
+  }
+}
+
+.brand-title {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--cyan);
+}
+
+.brand-sub {
+  color: var(--text-dim);
+  font-weight: 400;
+  font-size: 0.82rem;
+}
+
+.brand-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.35rem;
+}
+
+.live-pill-text {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--red);
+  letter-spacing: 0.04em;
+}
+
+.live-pill-score {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--lime);
+  background: rgba(163, 230, 53, 0.12);
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  border: 1px solid rgba(163, 230, 53, 0.3);
+}
+
+.live-pill-min {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.15);
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+}
+
+/* Command Inputs */
+.ide-inputs-form {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1;
+  min-width: 320px;
+  justify-content: flex-end;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border-dim);
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  gap: 0.5rem;
+  transition: all 0.15s ease-in-out;
+}
+
+.input-group:focus-within {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px var(--cyan);
+}
+
+.input-label-tag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+.input-label-tag.home {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--cyan);
+}
+
+.input-label-tag.away {
+  background: rgba(168, 85, 247, 0.15);
+  color: var(--purple);
+}
+
+.input-field {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  width: 140px;
+}
+
+.input-field::placeholder {
+  color: var(--text-muted);
+}
+
+.btn-run {
+  background: var(--cyan);
+  color: #050508;
+  border: none;
+  border-radius: 6px;
+  padding: 0.55rem 1.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.02em;
+}
+
+.btn-run:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.35);
+}
+
+.btn-run:disabled:not(.is-loading) {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.btn-run.is-loading {
+  background: var(--cyan);
+  color: #050508;
+  opacity: 1 !important;
+  cursor: wait;
+  filter: none !important;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.45);
+}
+
+.spin-icon {
+  animation: spin 0.8s linear infinite;
+}
+
+/* Quick Bar: Partidos Recientes / Sugerencias */
+.recent-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  overflow-x: auto;
+  padding: 0.25rem 0;
+}
+
+.recent-label {
+  color: var(--text-dim);
+  font-weight: 600;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.recent-chip {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  color: var(--text-secondary);
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.recent-chip:hover {
+  border-color: var(--border-focus);
+  color: var(--text-main);
+  background: var(--bg-panel-hover);
+}
+
+.recent-chip.active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+/* Status / Telemetría */
+.telemetry-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.dot-status {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lime);
+  box-shadow: 0 0 6px var(--lime);
+}
+
+.dot-status.busy {
+  background: var(--amber);
+  box-shadow: 0 0 6px var(--amber);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Tarjeta Principal de Ganador (1X2) */
+.winner-section {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.winner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.match-title {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.team-name.home {
+  color: var(--cyan);
+}
+
+.team-name.away {
+  color: var(--purple);
+}
+
+.vs-badge {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.live-score-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+  animation: pulse-border 2s infinite ease-in-out;
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.45); box-shadow: 0 0 12px rgba(239, 68, 68, 0.25); }
+  50% { border-color: rgba(239, 68, 68, 0.8); box-shadow: 0 0 18px rgba(239, 68, 68, 0.45); }
+}
+
+.live-score-num {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.live-score-sep {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--red);
+}
+
+.live-score-min {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.3);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  margin-left: 0.25rem;
+}
+
+.human-verdict-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-focus);
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.human-verdict-box strong {
+  color: var(--lime);
+}
+
+/* 1X2 Probabilities Bar */
+.probs-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.probs-segmented-bar {
+  height: 14px;
+  background: #1a1a20;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  border: 1px solid var(--border-dim);
+}
+
+.seg-home {
+  background: var(--cyan);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.seg-draw {
+  background: var(--slate-dark);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.seg-away {
+  background: var(--purple);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.probs-labels-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.prob-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.prob-title {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.prob-value {
+  font-family: var(--font-mono);
+  font-size: 1.45rem;
+  font-weight: 700;
+}
+
+.prob-value.home { color: var(--cyan); }
+.prob-value.draw { color: var(--slate); }
+.prob-value.away { color: var(--purple); }
+
+/* Grid de Métricas (Goles, Córners, Tarjetas) */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 1.25rem;
+}
+
+.metric-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-dim);
+  padding-bottom: 0.65rem;
+}
+
+.panel-title {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-main);
+}
+
+.panel-main-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.stat-number {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.stat-desc {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.submetrics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.submetric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-card);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.submetric-key {
+  color: var(--text-secondary);
+}
+
+.submetric-val {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.submetric-val.highlight {
+  color: var(--lime);
+}
+
+.metric-verdict {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  border-left: 2px solid var(--lime);
+  padding-left: 0.65rem;
+  margin-top: auto;
+}
+
+/* Gráficas y Factores Clave Layout */
+.analysis-bottom-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 992px) {
+  .analysis-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 230px;
+  width: 100%;
+}
+
+/* Top Scores Grid */
+.top-scores-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.score-chip {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: 6px;
+  padding: 0.4rem 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.score-name {
+  font-weight: 700;
+  color: var(--cyan);
+}
+
+.score-prob {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+
+/* Key Factors Terminal Panel */
+.factors-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.factors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.factor-item {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  display: flex;
+  gap: 0.5rem;
+  background: var(--bg-card);
+  padding: 0.55rem 0.75rem;
+  border-radius: 4px;
+  border-left: 2px solid var(--cyan);
+}
+
+.factor-bullet {
+  color: var(--cyan);
+  font-weight: 700;
+}
+
+/* Loading & Empty States */
+.state-box {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  padding: 3.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1rem;
+}
+
+.terminal-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border-dim);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.state-title {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.state-sub {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  max-width: 480px;
+}
+
+.error-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--red);
+  color: #fca5a5;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ==============================================================================
+   ESTILOS EN VIVO & SINCRONIZACIÓN CADA 5 MINUTOS
+   ============================================================================== */
+
+.pulse-icon {
+  animation: live-pulse-animation 1.4s ease-in-out infinite;
+}
+
+@keyframes live-pulse-animation {
+  0% { transform: scale(0.92); opacity: 0.7; }
+  50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.8)); }
+  100% { transform: scale(0.92); opacity: 0.7; }
+}
+
+.live-badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  color: #f87171;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+}
+
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-focus);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.sync-badge.live {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
+}
+
+.sync-badge button {
+  background: transparent;
+  border: none;
+  color: var(--cyan);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-left: 0.25rem;
+  padding: 0.1rem;
+}
+
+.sync-badge button:hover {
+  filter: brightness(1.2);
+  transform: rotate(45deg);
+}
+
+/* ==============================================================================
+   INDICADOR AUTO-SYNC COMPACTO (TELEMETRÍA 5 MINUTOS)
+   ============================================================================== */
+.sync-timer-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  padding: 0.25rem 0.5rem;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+
+.sync-timer-compact:hover {
+  border-color: var(--border-focus);
+}
+
+.sync-compact-label {
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.68rem;
+}
+
+.sync-compact-time {
+  color: var(--cyan);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 0.76rem;
+}
+
+.sync-compact-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0.1rem;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.sync-compact-btn:hover {
+  color: var(--cyan);
+  background: rgba(56, 189, 248, 0.12);
+  transform: rotate(45deg);
+}
+
+/* ==============================================================================
+   SECCIÓN EN VIVO HORIZONTAL: RED NEURONAL LSTM & ENSAMBLE (KATAKURI v1.9)
+   ============================================================================== */
+.live-neural-horizontal-panel {
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.07) 0%, rgba(22, 22, 26, 0.95) 100%);
+  border: 1.5px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  padding: 0.95rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), 0 0 12px rgba(239, 68, 68, 0.1);
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+.live-neural-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.55rem;
+}
+
+.live-neural-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--red);
+  letter-spacing: 0.03em;
+}
+
+.live-neural-chips {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.neural-chip {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  color: var(--text-secondary);
+}
+
+.neural-chip.accent {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  font-weight: 700;
+}
+
+.neural-chip.lime {
+  background: rgba(163, 230, 53, 0.12);
+  border-color: rgba(163, 230, 53, 0.3);
+  color: var(--lime);
+  font-weight: 700;
+}
+
+.neural-chip.cyan {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.3);
+  color: var(--cyan);
+  font-weight: 700;
+}
+
+.live-neural-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.neural-card-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: 6px;
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.45rem;
+  transition: all 0.2s ease;
+}
+
+.neural-card-item:hover {
+  border-color: var(--border-focus);
+  background: var(--bg-panel-hover);
+}
+
+.neural-card-title {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  letter-spacing: 0.02em;
+}
+
+.neural-card-val {
+  font-family: var(--font-mono);
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.neural-card-val.amber { color: var(--amber); }
+.neural-card-val.lime { color: var(--lime); }
+.neural-card-val.cyan { color: var(--cyan); }
+
+.neural-card-sub {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.neural-lines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.1rem;
+}
+
+.neural-line-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.15rem 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+.neural-line-row:last-child {
+  border-bottom: none;
+}
+
+.live-neural-footer {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  border-left: 3px solid var(--red);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-sans);
+}
+
+/* ==============================================================================
+   PANEL DE URL EN VIVO & RED NEURONAL (KATAKURI v2.1)
+   ============================================================================== */
+.neural-url-panel {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.45) 0%, rgba(15, 23, 42, 0.75) 100%);
+  border: 1.5px solid var(--border-dim);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+.neural-url-panel.live-active {
+  border-color: rgba(239, 68, 68, 0.55);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, rgba(22, 22, 26, 0.95) 100%);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.18);
+}
+
+.neural-url-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.neural-url-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.03em;
+}
+
+.neural-url-title.is-live {
+  color: var(--red);
+}
+
+.neural-url-title.not-live {
+  color: var(--cyan);
+}
+
+.neural-url-input-container {
+  display: flex;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-dim);
+  border-radius: 6px;
+  padding: 0.45rem 0.8rem;
+  gap: 0.65rem;
+  transition: all 0.2s ease;
+}
+
+.neural-url-input-container:focus-within {
+  border-color: var(--cyan);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+.neural-url-panel.live-active .neural-url-input-container:focus-within {
+  border-color: var(--red);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.neural-url-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  outline: none;
+}
+
+.neural-url-input::placeholder {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.neural-url-clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.neural-url-clear-btn:hover {
+  color: var(--red);
+}
+
+.neural-url-hint {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  line-height: 1.4;
+}
+
