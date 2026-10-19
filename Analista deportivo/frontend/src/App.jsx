@@ -2,14 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import './styles/ide-theme.css';
 
 import HeaderBar from './components/HeaderBar';
-import RecentMatchesBar from './components/RecentMatchesBar';
 import WinnerCard from './components/WinnerCard';
 import LiveNeuralSection from './components/LiveNeuralSection';
 import NeuralUrlCard from './components/NeuralUrlCard';
 import MetricCards from './components/MetricCards';
 import DistributionChart from './components/DistributionChart';
 import KeyFactorsPanel from './components/KeyFactorsPanel';
-import LoginModal from './components/LoginModal';
 import BacktestModal from './components/BacktestModal';
 
 import { Terminal, AlertCircle } from 'lucide-react';
@@ -20,7 +18,6 @@ const API_BASE = '';
 const SYNC_INTERVAL_SECONDS = 300; // 5 minutos exactos
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(() => localStorage.getItem('katakuri_user'));
   const [homeTeam, setHomeTeam] = useState('');
   const [awayTeam, setAwayTeam] = useState('');
 
@@ -32,7 +29,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [predictionData, setPredictionData] = useState(null);
-  const [recentList, setRecentList] = useState([]);
   const [syncCountdown, setSyncCountdown] = useState(SYNC_INTERVAL_SECONDS);
   const [liveScore, setLiveScore] = useState(null);
   const [liveMinute, setLiveMinute] = useState(null);
@@ -100,38 +96,6 @@ export default function App() {
     setLiveScore(null);
     setLiveMinute(null);
     setLiveCorners(null);
-  };
-
-  const loadRecentMatches = async (retries = 3) => {
-    for (let attempt = 0; attempt < retries; attempt++) {
-      try {
-        let res = await fetch(`${API_BASE}/api/predictions/recent?limit=8`);
-        if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504)) {
-          res = await fetch('http://127.0.0.1:8000/api/predictions/recent?limit=8').catch(() => res);
-        }
-        if (res.ok) {
-          const data = await res.json();
-          setRecentList(data.predictions || []);
-          return;
-        }
-      } catch (err) {
-        console.warn(`Intento ${attempt + 1} de cargar historial:`, err);
-      }
-      if (attempt < retries - 1) {
-        await new Promise(r => setTimeout(r, 1500));
-      }
-    }
-  };
-
-  const handleLoginSuccess = (username) => {
-    setCurrentUser(username);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('katakuri_token');
-    localStorage.removeItem('katakuri_user');
-    setCurrentUser(null);
-    setPredictionData(null);
   };
 
   const runAnalysis = async (
@@ -257,8 +221,6 @@ export default function App() {
           setLiveCorners(data.prediction.corners.current_corners);
         }
       }
-
-      loadRecentMatches();
     } catch (err) {
       if (err.message === 'Failed to fetch') {
         setError('No se pudo establecer conexión con el servidor backend (http://127.0.0.1:8000). Comprueba que el servidor esté activo.');
@@ -292,13 +254,6 @@ export default function App() {
       }
     }
   }, [predictionData, matchUrl]);
-
-  // Cargar historial reciente de la base de datos SQLite solo una vez al iniciar sesión
-  useEffect(() => {
-    if (currentUser) {
-      loadRecentMatches();
-    }
-  }, [currentUser]);
 
   // Ciclo de auto-sincronización continua cada 5 minutos (rastreando match_url online y modelos locales)
   useEffect(() => {
@@ -334,24 +289,6 @@ export default function App() {
     };
   }, [predictionData?.match?.home_team, predictionData?.match?.away_team, matchUrl]);
 
-  const handleSelectPreset = (h, a, comp, liveStatus = false, score = null, url = null) => {
-    setHomeTeam(h);
-    setAwayTeam(a);
-    if (url && url.trim()) {
-      handleUrlChange(url.trim());
-      if (score) setLiveScore(score);
-      runAnalysis(h, a, false, url.trim());
-    } else {
-      handleClearUrl();
-      runAnalysis(h, a, false, '');
-    }
-  };
-
-  // Si no está autenticado, mostrar la pantalla de Login con usuario y contraseña
-  if (!currentUser) {
-    return <LoginModal onLoginSuccess={handleLoginSuccess} />;
-  }
-
   return (
     <div className="app-container" style={{ position: 'relative' }}>
       {/* 1. Header con Controles tipo IDE Limpio e Indicador Katakuri v3.3 */}
@@ -362,8 +299,6 @@ export default function App() {
         setAwayTeam={setAwayTeam}
         onRunAnalysis={() => runAnalysis(homeTeam, awayTeam, true)}
         loading={loading}
-        currentUser={currentUser}
-        onLogout={handleLogout}
         isLive={isLiveActive}
         syncCountdown={predictionData ? syncCountdown : null}
         matchUrl={matchUrl}
@@ -371,14 +306,7 @@ export default function App() {
         onOpenBacktest={() => setIsBacktestOpen(true)}
       />
 
-      {/* 2. Barra de Accesos Rápidos y Partidos Recientes */}
-      <RecentMatchesBar
-        recentList={recentList}
-        onSelectMatch={handleSelectPreset}
-        currentMatch={predictionData?.match}
-      />
-
-      {/* 3. Banner de Error si ocurre */}
+      {/* 2. Banner de Error si ocurre */}
       {error && (
         <div className="error-banner">
           <AlertCircle size={18} color="var(--red)" />
@@ -465,7 +393,7 @@ export default function App() {
             <Terminal size={32} color="var(--cyan)" />
             <div className="state-title">Katakuri · Analista Deportivo en espera</div>
             <div className="state-sub">
-              Ingresa dos equipos en la barra superior o pulsa cualquiera de los partidos sugeridos. Para activar el <strong>modo en vivo</strong>, pega la URL del partido en la casilla de arriba y presiona <strong>Analizar</strong>.
+              Ingresa dos equipos en la barra superior para iniciar el análisis. Para activar el <strong>modo en vivo</strong>, pega la URL del partido en la casilla de arriba y presiona <strong>Analizar</strong>.
             </div>
           </div>
         </div>

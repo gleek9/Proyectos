@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Loader2, User, LogOut } from 'lucide-react';
+import { Play, Loader2 } from 'lucide-react';
 
 export default function HeaderBar({
   homeTeam,
@@ -8,8 +8,6 @@ export default function HeaderBar({
   setAwayTeam,
   onRunAnalysis,
   loading,
-  currentUser,
-  onLogout,
   isLive,
   syncCountdown,
   matchUrl,
@@ -54,45 +52,49 @@ export default function HeaderBar({
 
   return (
     <header className="ide-navbar">
-      {/* Indicador Katakuri v3.3 con estado en vivo y pre-partido */}
-      <div
-        id="katakuri-brand-indicator"
-        className={`ide-brand-clickable ${isLive ? 'is-live' : 'not-live'}`}
-        style={{ cursor: 'default', userSelect: 'none' }}
-        title={
-          isLive
-            ? 'Modo en vivo activo: rastreando URL online y auto-sincronizando cada 5 minutos'
-            : 'Modo pre-partido estándar: agrega una URL para activar telemetría en vivo'
-        }
-      >
-        <span className="brand-title">Katakuri v3.3</span>
-        <span className="brand-sub"> · Analista Deportivo</span>
-      </div>
-
-      <div className="telemetry-status" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-        {/* Indicador de Auto-Sincronización Cada 5 Minutos */}
+      {/* Grupo izquierdo: Identidad de Marca y Telemetría de Modelo */}
+      <div className="navbar-brand-group">
         <div
-          className="sync-timer-compact"
-          title="Sincronización automática cada 5 min (Búsqueda web con IA + Modelos predictivos locales Dixon-Coles, XGBoost y LSTM)"
+          id="katakuri-brand-indicator"
+          className={`ide-brand-clickable ${isLive ? 'is-live' : 'not-live'}`}
+          title={
+            isLive
+              ? 'Modo en vivo activo: rastreando URL online y auto-sincronizando cada 5 minutos'
+              : 'Modo pre-partido estándar: agrega una URL para activar telemetría en vivo'
+          }
         >
-          <span className={`dot-status ${loading ? 'busy' : ''}`}></span>
-          <span className="sync-compact-time">{formatCountdown(syncCountdown)}</span>
+          <span className="brand-title">Katakuri v3.3</span>
+          <span className="brand-sub"> · Analista Deportivo</span>
         </div>
 
-        {/* Botón de Calibración / Backtest */}
-        {onOpenBacktest && (
-          <button
-            type="button"
-            className="btn-backtest-trigger"
-            onClick={onOpenBacktest}
-            title="Abrir panel de validación empírica y calibración de modelos (RPS, Brier, Log-Loss)"
+        <div className="navbar-divider" />
+
+        <div className="telemetry-status">
+          {/* Indicador de Auto-Sincronización Cada 5 Minutos */}
+          <div
+            className="sync-timer-compact"
+            title="Sincronización automática cada 5 min (Búsqueda web con IA + Modelos predictivos Dixon-Coles, XGBoost y LSTM)"
           >
-            <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--emerald)' }}></span>
-            <span>Calibración</span>
-          </button>
-        )}
+            <span className={`dot-status ${loading ? 'busy' : ''}`}></span>
+            <span className="sync-compact-time">{formatCountdown(syncCountdown)}</span>
+          </div>
+
+          {/* Botón de Calibración / Backtest */}
+          {onOpenBacktest && (
+            <button
+              type="button"
+              className="btn-backtest-trigger"
+              onClick={onOpenBacktest}
+              title="Abrir panel de validación empírica y calibración de modelos (RPS, Brier, Log-Loss)"
+            >
+              <span className="dot-backtest-pill"></span>
+              <span>Calibración</span>
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* Grupo derecho: Formulario de comandos y análisis */}
       <form className="ide-inputs-form" onSubmit={handleSubmit}>
         <div className="input-group">
           <span className="input-label-tag home">Local</span>
@@ -104,11 +106,10 @@ export default function HeaderBar({
             value={homeTeam}
             onChange={handleTeamChange}
             disabled={loading}
-            style={{ width: '165px' }}
           />
         </div>
 
-        <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>vs</span>
+        <span className="vs-badge">vs</span>
 
         <div className="input-group">
           <span className="input-label-tag away">Visitante</span>
@@ -123,7 +124,6 @@ export default function HeaderBar({
               setAwayTeam(e.target.value);
             }}
             disabled={loading}
-            style={{ width: '165px' }}
           />
         </div>
 
@@ -146,45 +146,6 @@ export default function HeaderBar({
             </>
           )}
         </button>
-
-        {currentUser && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.45rem',
-            marginLeft: '0.4rem',
-            paddingLeft: '0.55rem',
-            borderLeft: '1px solid var(--border-dim)'
-          }}>
-            <span style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.75rem',
-              color: 'var(--text-secondary)'
-            }}>
-              <User size={13} color="var(--cyan)" />
-              {currentUser}
-            </span>
-            <button
-              type="button"
-              onClick={onLogout}
-              title="Cerrar sesión"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-dim)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0.2rem'
-              }}
-            >
-              <LogOut size={13} />
-            </button>
-          </div>
-        )}
       </form>
     </header>
   );
