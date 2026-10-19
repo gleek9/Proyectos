@@ -2,23 +2,11 @@
 
 
 
-[![Philosophy](https://img.shields.io/badge/Philosophy-Vibe%20Coding-8A2BE2?style=flat-square)]()
-
-[![Architecture](https://img.shields.io/badge/Architecture-AI--Native-00A67E?style=flat-square)]()
-
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-
-[![React](https://img.shields.io/badge/React-19%2B-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
-
-[![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-
-[![Maintainer](https://img.shields.io/badge/Maintainer-gleek9-181717?style=flat-square&logo=github)](https://github.com/gleek9)
+[![Philosophy](https://img.shields.io/badge/Philosophy-Vibe%20Coding-8A2BE2?style=flat-square)]() [![Architecture](https://img.shields.io/badge/Architecture-AI--Native-00A67E?style=flat-square)]() [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/) [![React](https://img.shields.io/badge/React-19%2B-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/) [![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/) [![Maintainer](https://img.shields.io/badge/Maintainer-gleek9-181717?style=flat-square&logo=github)](https://github.com/gleek9)
 
 
 
-> **Repositorio central de ingeniería de software asistida por Inteligencia Artificial.**  
-
-> Cada directorio dentro de este monorepo representa una aplicación completa diseñada para **resolver una problemática real**, combinando dirección arquitectónica humana, *Vibe Coding* de alta velocidad y modelos de IA (LLMs, Machine Learning y agentes autónomos).
+> **Repositorio central de ingeniería de software asistida por Inteligencia Artificial.** Cada directorio dentro de este monorepo representa una aplicación completa diseñada para **resolver una problemática real**, combinando dirección arquitectónica humana, *Vibe Coding* de alta velocidad y modelos de IA (LLMs, Machine Learning y agentes autónomos).
 
 
 
@@ -62,7 +50,7 @@ Cada proyecto alojado aquí cumple con tres pilares:
 
 
 
-1. **Problemática Real**: No son simples *"Hola Mundo"*; atacan problemas complejos de datos, automatización, predicción o experiencia de usuario.
+1. **Problemática Real**: No son simples ejemplos básicos; atacan problemas complejos de datos, automatización, predicción o experiencia de usuario.
 
 2. **IA como Motor y como Herramienta**: Se utiliza IA tanto para construir el software (orquestación agéntica y desarrollo asistido) como dentro del núcleo de las aplicaciones (Agentes LangChain, PyTorch, XGBoost, inferencia con Gemini).
 
@@ -78,41 +66,13 @@ Cada proyecto alojado aquí cumple con tres pilares:
 
 
 
-```text
+1. **Identificación de Problemática Real**: Análisis del dominio, detección de cuellos de botella o asimetrías de información y definición de métricas de éxito.
 
-   [ Identificación de Problemática Real ]
+2. **Diseño de Arquitectura y Orquestación**: Definición de reglas de negocio, formulación de modelos matemáticos, especificación de roles en `Agents.md` e iteración rápida mediante *Vibe Coding*.
 
-                      │
+3. **Desarrollo Full-Stack y Motor de IA**: Implementación de backend asíncrono, motores de inferencia local o vía API y construcción de interfaces modernas de alta usabilidad.
 
-                      ▼
-
-   [ Diseño de Arquitectura y Prompting ]
-
-     ├─ Definición de reglas de negocio y modelos matemáticos
-
-     ├─ Orquestación de Agentes (Agents.md)
-
-     └─ Iteración rápida con IA (Vibe Coding)
-
-                      │
-
-                      ▼
-
-   [ Desarrollo Full-Stack & Motor de IA ]
-
-     ├─ Backend Asíncrono / Inferencia Local o API
-
-     ├─ Frontend Moderno de Alta Usabilidad
-
-     └─ Suite de Pruebas, Auditoría y Backtesting
-
-                      │
-
-                      ▼
-
-   [ Solución Desplegada en el Monorepo ]
-
-```
+4. **Auditoría, Pruebas y Despliegue**: Validación rigurosa mediante suites de pruebas unitarias, *backtesting* cuantitativo y publicación documentada dentro del monorepo.
 
 
 
@@ -124,13 +84,29 @@ Cada proyecto alojado aquí cumple con tres pilares:
 
 
 
-| # | Proyecto | Problemática que Resuelve | Stack Principal | Estado | Directorio |
+### 01. [Katakuri v3.5 (Analista Deportivo)](./Analista%20deportivo)
 
-| :-: | :--- | :--- | :--- | :-: | :--- |
 
-| **01** | **Katakuri v3.5**<br>*(Analista Deportivo)* | Asimetría de información y sesgo humano en el análisis deportivo. Automatiza la recolección de datos en tiempo real y ejecuta inferencia probabilística multi-modelo (1X2, Goles, Córners, Tarjetas). | `Python` `FastAPI` `React 19` `PyTorch` `XGBoost` `Gemini 3.5` | **Activo (v3.5)** | [`./Analista deportivo`](./Analista%20deportivo) |
 
-| **02** | *Próximo Proyecto...* | *En fase de conceptualización y diseño de arquitectura.* | `TBD` | *En desarrollo* | *Próximamente* |
+- **Estado**: Activo (v3.5)
+
+- **Directorio**: [`./Analista deportivo`](./Analista%20deportivo)
+
+- **Problemática que Resuelve**: Asimetría de información y sesgo humano en el análisis deportivo. Automatiza la recolección de datos en tiempo real y ejecuta inferencia probabilística multi-modelo (1X2, Goles, Córners, Tarjetas).
+
+- **Stack Principal**: `Python 3.10+` · `FastAPI` · `React 19` · `Vite 8` · `PyTorch` · `XGBoost` · `Gemini 3.5 Flash Lite`
+
+
+
+### 02. Próximo Proyecto (En Desarrollo)
+
+
+
+- **Estado**: En fase de conceptualización y diseño de arquitectura
+
+- **Directorio**: *Próximamente*
+
+- **Problemática que Resuelve**: Nueva aplicación basada en agentes autónomos e inteligencia artificial aplicada.
 
 
 
@@ -147,6 +123,8 @@ Ubicado en [`./Analista deportivo`](./Analista%20deportivo), **Katakuri v3.5** e
 
 
 ### ¿Cómo resuelve el problema?
+
+
 
 A partir de los nombres de dos equipos o una URL directa (Sofascore / Flashscore), despliega un agente con **Google Gemini 3.5 Flash Lite** que extrae telemetría en vivo o pre-partido, procesa *Feature Engineering* avanzado y alimenta un **meta-ensamble matemático 100% local**:
 
@@ -176,6 +154,8 @@ A partir de los nombres de dos equipos o una URL directa (Sofascore / Flashscore
 
 ### Inteligencia Artificial & Data Science
 
+
+
 - **LLMs & Orquestación**: Google Gemini, LangChain, Agentes Autónomos de Extracción.
 
 - **Machine Learning & Deep Learning**: PyTorch (LSTM), XGBoost, LightGBM, Scikit-Learn.
@@ -185,6 +165,8 @@ A partir de los nombres de dos equipos o una URL directa (Sofascore / Flashscore
 
 
 ### Desarrollo Full-Stack
+
+
 
 - **Backend**: Python 3.10+, FastAPI, Uvicorn, SQLAlchemy, Pydantic, SQLite.
 
@@ -200,33 +182,19 @@ A partir de los nombres de dos equipos o una URL directa (Sofascore / Flashscore
 
 
 
-```text
+- **`README.md`**: Portada general del portafolio y catálogo central de proyectos.
 
-Proyectos/
+- **[`Analista deportivo/`](./Analista%20deportivo)**: Proyecto 01 — Plataforma Katakuri v3.5.
 
-├── README.md                        # Portada general del portafolio (Este archivo)
+- **`Analista deportivo/Agents.md`**: Especificación de roles y orquestación de agentes de IA.
 
-│
+- **`Analista deportivo/PROJECT_STATUS.md`**: Bitácora detallada de versiones, hitos y auditorías.
 
-├── Analista deportivo/              # Proyecto 01: Katakuri v3.5 (Predicción Deportiva IA)
+- **`Analista deportivo/run_app.py`**: Supervisor unificado para arranque automático en un clic.
 
-│   ├── Agents.md                    # Especificación de roles de agentes de IA
+- **`Analista deportivo/backend/`**: API REST en FastAPI y motores predictivos (Poisson, XGBoost, PyTorch LSTM).
 
-│   ├── PROJECT_STATUS.md            # Bitácora de versiones y auditorías
-
-│   ├── README.md                    # Documentación técnica del proyecto
-
-│   ├── run_app.py                   # Orquestador de arranque en 1 clic
-
-│   ├── backend/                     # API FastAPI + Motores PyTorch/XGBoost/Poisson
-
-│   └── frontend/                    # Interfaz Dark IDE en React 19 + Vite 8
-
-│
-
-└── [Futuros-Proyectos]/             # Nuevas aplicaciones basadas en IA
-
-```
+- **`Analista deportivo/frontend/`**: Interfaz de usuario estilo Dark IDE en React 19 y Vite 8.
 
 
 
@@ -238,35 +206,17 @@ Proyectos/
 
 
 
-Dado que este repositorio funciona como un **monorepo**, cada proyecto es autónomo y posee sus propias dependencias, variables de entorno y scripts de ejecución.
+Dado que este repositorio funciona como un **monorepo**, cada proyecto es autónomo y posee sus propias dependencias, variables de entorno y scripts de ejecución:
 
 
 
-1. **Clonar el repositorio completo**:
+1. **Clonar el repositorio completo**: `git clone https://github.com/gleek9/Proyectos.git`
 
-   ```bash
+2. **Entrar a la carpeta raíz**: `cd Proyectos`
 
-   git clone https://github.com/gleek9/Proyectos.git
+3. **Acceder al proyecto deseado**: `cd "Analista deportivo"`
 
-   cd Proyectos
-
-   ```
-
-
-
-2. **Entrar al proyecto que deseas ejecutar** (por ejemplo, *Analista deportivo*):
-
-   ```bash
-
-   cd "Analista deportivo"
-
-   ```
-
-
-
-3. **Seguir las instrucciones específicas del proyecto**:
-
-   Cada carpeta cuenta con su propio `README.md` detallado, plantilla `.env.example` y lanzadores automáticos (`run_app.py` o `iniciar_app.bat`).
+4. **Iniciar la aplicación**: Seguir la guía del `README.md` interno del proyecto o ejecutar directamente `python run_app.py`.
 
 
 
@@ -278,6 +228,4 @@ Dado que este repositorio funciona como un **monorepo**, cada proyecto es autón
 
 
 
-Desarrollado y mantenido por **[gleek9](https://github.com/gleek9)**.  
-
-Los proyectos contenidos en este repositorio están destinados a demostrar capacidades de arquitectura de software, ciencia de datos e integración de Inteligencia Artificial aplicada a problemas reales.
+Desarrollado y mantenido por **[gleek9](https://github.com/gleek9)**. Los proyectos contenidos en este repositorio están destinados a demostrar capacidades de arquitectura de software, ciencia de datos e integración de Inteligencia Artificial aplicada a problemas reales.
