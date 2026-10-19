@@ -266,6 +266,32 @@ async def get_recent_predictions(
         })
     return {"total": len(results), "predictions": results}
 
+@app.get("/api/backtest/benchmark")
+async def run_benchmark_backtest():
+    """
+    Ejecuta el ciclo de backtesting automatizado sobre el dataset histórico benchmark
+    calculando RPS (Ranked Probability Score), Brier Score, Log-Loss, MAE y precisión.
+    """
+    from backend.app.analytics.backtest import run_backtest, get_benchmark_dataset
+    dataset = get_benchmark_dataset()
+    results = run_backtest(dataset)
+    return results
+
+@app.post("/api/backtest/run")
+async def run_custom_backtest(items: List[dict]):
+    """
+    Permite evaluar un lote personalizado de partidos con resultados verificados.
+    """
+    from backend.app.analytics.backtest import run_backtest, HistoricalEvaluationItem
+    try:
+        parsed_items = [HistoricalEvaluationItem(**item) for item in items]
+        results = run_backtest(parsed_items)
+        return results
+    except Exception as e:
+        logger.error(f"Error procesando backtest personalizado: {e}")
+        raise HTTPException(status_code=400, detail=f"Error en formato de datos de evaluación: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.app.main:app", host="0.0.0.0", port=settings.PORT, reload=True, reload_dirs=["backend"])
+

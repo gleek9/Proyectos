@@ -10,6 +10,7 @@ import MetricCards from './components/MetricCards';
 import DistributionChart from './components/DistributionChart';
 import KeyFactorsPanel from './components/KeyFactorsPanel';
 import LoginModal from './components/LoginModal';
+import BacktestModal from './components/BacktestModal';
 
 import { Terminal, AlertCircle } from 'lucide-react';
 
@@ -36,6 +37,7 @@ export default function App() {
   const [liveScore, setLiveScore] = useState(null);
   const [liveMinute, setLiveMinute] = useState(null);
   const [liveCorners, setLiveCorners] = useState(null);
+  const [isBacktestOpen, setIsBacktestOpen] = useState(false);
 
   const countdownIntervalRef = useRef(null);
 
@@ -43,8 +45,8 @@ export default function App() {
     if (!url) return null;
     try {
       const clean = url.trim().toLowerCase();
-      const slugMatch = clean.match(/(?:partido|match)\/([a-z0-9\-]+?)(?:\/|$|\?)/i) ||
-                        clean.match(/sofascore\.com\/(?:[a-z]{2}\/)?([a-z0-9\-]+?)(?:\/[a-zA-Z0-9]+|\/|$)/i);
+      const slugMatch = clean.match(/(?:partido|match)\/([a-z0-9-]+?)(?:\/|$|\?)/i) ||
+                        clean.match(/sofascore\.com\/(?:[a-z]{2}\/)?([a-z0-9-]+?)(?:\/[a-zA-Z0-9]+|\/|$)/i);
       const slug = slugMatch ? slugMatch[1] : '';
       if (slug && slug.includes('-')) {
         let parts = [];
@@ -99,70 +101,6 @@ export default function App() {
     setLiveMinute(null);
     setLiveCorners(null);
   };
-
-  // Sincronizar telemetría y nombres oficiales devueltos por el backend
-  useEffect(() => {
-    if (predictionData?.match) {
-      if (predictionData.match.home_team) {
-        setHomeTeam(predictionData.match.home_team);
-      }
-      if (predictionData.match.away_team) {
-        setAwayTeam(predictionData.match.away_team);
-      }
-      if (predictionData.match.match_url && !matchUrl) {
-        setMatchUrl(predictionData.match.match_url);
-        localStorage.setItem('katakuri_match_url', predictionData.match.match_url);
-      }
-      if (predictionData.match.live_score) setLiveScore(predictionData.match.live_score);
-      if (predictionData.match.live_minute) setLiveMinute(predictionData.match.live_minute);
-      if (predictionData.match.live_corners !== undefined && predictionData.match.live_corners !== null) {
-        setLiveCorners(predictionData.match.live_corners);
-      } else if (predictionData.prediction?.corners?.current_corners !== undefined) {
-        setLiveCorners(predictionData.prediction.corners.current_corners);
-      }
-    }
-  }, [predictionData]);
-
-  // Cargar historial reciente de la base de datos SQLite solo una vez al iniciar sesión
-  useEffect(() => {
-    if (currentUser) {
-      loadRecentMatches();
-    }
-  }, [currentUser]);
-
-  // Ciclo de auto-sincronización continua cada 5 minutos (rastreando match_url online y modelos locales)
-  useEffect(() => {
-    if (!predictionData) {
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-      return;
-    }
-
-    setSyncCountdown(SYNC_INTERVAL_SECONDS);
-
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-
-    countdownIntervalRef.current = setInterval(() => {
-      setSyncCountdown((prev) => {
-        if (prev <= 1) {
-          console.log('⏰ Auto-Sync: 5 minutos cumplidos. Refrescando datos online con match_url y modelos locales...');
-          runAnalysis(
-            predictionData.match.home_team,
-            predictionData.match.away_team,
-            true,
-            matchUrl
-          );
-          return SYNC_INTERVAL_SECONDS;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
-    };
-  }, [predictionData?.match?.home_team, predictionData?.match?.away_team, matchUrl]);
 
   const loadRecentMatches = async (retries = 3) => {
     for (let attempt = 0; attempt < retries; attempt++) {
@@ -260,7 +198,7 @@ export default function App() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-      } catch (netErr) {
+      } catch {
         // Fallback a conexión directa si falla la petición proxy de red
         res = await fetch('http://127.0.0.1:8000/api/predict', {
           method: 'POST',
@@ -332,6 +270,70 @@ export default function App() {
     }
   };
 
+  // Sincronizar telemetría y nombres oficiales devueltos por el backend
+  useEffect(() => {
+    if (predictionData?.match) {
+      if (predictionData.match.home_team) {
+        setHomeTeam(predictionData.match.home_team);
+      }
+      if (predictionData.match.away_team) {
+        setAwayTeam(predictionData.match.away_team);
+      }
+      if (predictionData.match.match_url && !matchUrl) {
+        setMatchUrl(predictionData.match.match_url);
+        localStorage.setItem('katakuri_match_url', predictionData.match.match_url);
+      }
+      if (predictionData.match.live_score) setLiveScore(predictionData.match.live_score);
+      if (predictionData.match.live_minute) setLiveMinute(predictionData.match.live_minute);
+      if (predictionData.match.live_corners !== undefined && predictionData.match.live_corners !== null) {
+        setLiveCorners(predictionData.match.live_corners);
+      } else if (predictionData.prediction?.corners?.current_corners !== undefined) {
+        setLiveCorners(predictionData.prediction.corners.current_corners);
+      }
+    }
+  }, [predictionData, matchUrl]);
+
+  // Cargar historial reciente de la base de datos SQLite solo una vez al iniciar sesión
+  useEffect(() => {
+    if (currentUser) {
+      loadRecentMatches();
+    }
+  }, [currentUser]);
+
+  // Ciclo de auto-sincronización continua cada 5 minutos (rastreando match_url online y modelos locales)
+  useEffect(() => {
+    if (!predictionData) {
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      return;
+    }
+
+    setSyncCountdown(SYNC_INTERVAL_SECONDS);
+
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+    countdownIntervalRef.current = setInterval(() => {
+      setSyncCountdown((prev) => {
+        if (prev <= 1) {
+          console.log('⏰ Auto-Sync: 5 minutos cumplidos. Refrescando datos online con match_url y modelos locales...');
+          runAnalysis(
+            predictionData.match.home_team,
+            predictionData.match.away_team,
+            true,
+            matchUrl
+          );
+          return SYNC_INTERVAL_SECONDS;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, [predictionData?.match?.home_team, predictionData?.match?.away_team, matchUrl]);
+
   const handleSelectPreset = (h, a, comp, liveStatus = false, score = null, url = null) => {
     setHomeTeam(h);
     setAwayTeam(a);
@@ -352,7 +354,7 @@ export default function App() {
 
   return (
     <div className="app-container" style={{ position: 'relative' }}>
-      {/* 1. Header con Controles tipo IDE Limpio e Indicador Katakuri v3.0 */}
+      {/* 1. Header con Controles tipo IDE Limpio e Indicador Katakuri v3.3 */}
       <HeaderBar
         homeTeam={homeTeam}
         setHomeTeam={setHomeTeam}
@@ -366,6 +368,7 @@ export default function App() {
         syncCountdown={predictionData ? syncCountdown : null}
         matchUrl={matchUrl}
         onClearUrl={handleClearUrl}
+        onOpenBacktest={() => setIsBacktestOpen(true)}
       />
 
       {/* 2. Barra de Accesos Rápidos y Partidos Recientes */}
@@ -379,7 +382,7 @@ export default function App() {
       {error && (
         <div className="error-banner">
           <AlertCircle size={18} color="var(--red)" />
-          <span>[ERROR DE EJECUCIÓN]: {error}</span>
+          <span>[Error de ejecución]: {error}</span>
         </div>
       )}
 
@@ -387,7 +390,7 @@ export default function App() {
       {loading && (
         <div className="state-box">
           <div className="terminal-spinner"></div>
-          <div className="state-title">EJECUTANDO PIPELINE PREDICTIVO KATAKURI v3.0</div>
+          <div className="state-title">Pipeline predictivo Katakuri v3.3</div>
           <div className="state-sub">
             {isLiveActive
               ? 'Rastreando datos en vivo desde la URL online, extrayendo telemetría y ejecutando Red Neuronal LSTM...'
@@ -460,13 +463,19 @@ export default function App() {
 
           <div className="state-box">
             <Terminal size={32} color="var(--cyan)" />
-            <div className="state-title">KATAKURI // ANALISTA DEPORTIVO EN ESPERA</div>
+            <div className="state-title">Katakuri · Analista Deportivo en espera</div>
             <div className="state-sub">
-              Ingresa dos equipos en la barra superior o pulsa cualquiera de los partidos sugeridos. Para activar el <strong>Modo En Vivo</strong>, pega la URL del partido en la casilla de arriba y presiona <strong>ANALIZAR</strong>.
+              Ingresa dos equipos en la barra superior o pulsa cualquiera de los partidos sugeridos. Para activar el <strong>modo en vivo</strong>, pega la URL del partido en la casilla de arriba y presiona <strong>Analizar</strong>.
             </div>
           </div>
         </div>
       )}
+
+      {/* 6. Modal de Validación Empírica y Calibración de Modelos */}
+      <BacktestModal
+        isOpen={isBacktestOpen}
+        onClose={() => setIsBacktestOpen(false)}
+      />
     </div>
   );
 }

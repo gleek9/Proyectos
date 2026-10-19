@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, ShieldCheck, AlertCircle, ArrowRight, User } from 'lucide-react';
+import { Lock, AlertCircle, ArrowRight, User } from 'lucide-react';
 
 export default function LoginModal({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
@@ -28,7 +28,7 @@ export default function LoginModal({ onLoginSuccess }) {
             password: password.trim()
           })
         });
-      } catch (netErr) {
+      } catch {
         res = await fetch('http://127.0.0.1:8000/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -76,50 +76,18 @@ export default function LoginModal({ onLoginSuccess }) {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'var(--bg-base)',
-      padding: '1.5rem'
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '420px',
-        backgroundColor: 'var(--bg-panel)',
-        border: '1px solid var(--border-dim)',
-        borderRadius: '8px',
-        padding: '2rem 1.75rem',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1.5rem'
-      }}>
+    <div className="login-page-backdrop">
+      <div className="login-card">
         {/* Header del Login */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{
-            background: 'rgba(56, 189, 248, 0.1)',
-            border: '1px solid var(--cyan)',
-            padding: '0.5rem',
-            borderRadius: '6px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Lock size={20} color="var(--cyan)" />
+        <div className="login-header-group">
+          <div className="login-brand-icon">
+            <Lock size={20} color="var(--azure)" />
           </div>
           <div>
-            <div style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '1.15rem',
-              fontWeight: 700,
-              color: 'var(--text-main)',
-              letterSpacing: '-0.02em'
-            }}>
-              KATAKURI // ACCESO
+            <div className="login-brand-title">
+              Katakuri · Acceso al sistema
             </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+            <div className="login-brand-sub">
               Autenticación requerida para acceder al analista
             </div>
           </div>
@@ -128,8 +96,8 @@ export default function LoginModal({ onLoginSuccess }) {
         {/* Mensaje de Error */}
         {error && (
           <div style={{
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid var(--red)',
+            background: 'rgba(244, 63, 94, 0.12)',
+            border: '1px solid var(--crimson)',
             color: '#fca5a5',
             padding: '0.65rem 0.85rem',
             borderRadius: '6px',
@@ -139,90 +107,48 @@ export default function LoginModal({ onLoginSuccess }) {
             alignItems: 'center',
             gap: '0.5rem'
           }}>
-            <AlertCircle size={15} color="var(--red)" />
+            <AlertCircle size={15} color="var(--crimson)" />
             <span>{error}</span>
           </div>
         )}
 
         {/* Formulario */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-            <label style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.75rem',
-              color: 'var(--text-secondary)',
-              textTransform: 'uppercase'
-            }}>
+          <div className="login-input-group">
+            <label className="login-input-label">
               Usuario
             </label>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border-dim)',
-              borderRadius: '6px',
-              padding: '0.55rem 0.75rem',
-              gap: '0.5rem'
-            }}>
+            <div className="login-input-box">
               <User size={15} color="var(--text-dim)" />
               <input
                 id="login-username-input"
                 type="text"
+                className="login-input-field"
                 placeholder="Nombre de usuario"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
                 disabled={loading}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: 'var(--text-main)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.85rem',
-                  width: '100%'
-                }}
                 required
               />
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-            <label style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.75rem',
-              color: 'var(--text-secondary)',
-              textTransform: 'uppercase'
-            }}>
+          <div className="login-input-group">
+            <label className="login-input-label">
               Contraseña
             </label>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border-dim)',
-              borderRadius: '6px',
-              padding: '0.55rem 0.75rem',
-              gap: '0.5rem'
-            }}>
+            <div className="login-input-box">
               <Lock size={15} color="var(--text-dim)" />
               <input
                 id="login-password-input"
                 type="password"
+                className="login-input-field"
                 placeholder="••••••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
                 disabled={loading}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: 'var(--text-main)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.85rem',
-                  width: '100%'
-                }}
                 required
               />
             </div>
@@ -231,48 +157,23 @@ export default function LoginModal({ onLoginSuccess }) {
           <button
             id="login-submit-btn"
             type="submit"
+            className="login-submit-btn"
             disabled={loading}
-            style={{
-              background: 'var(--cyan)',
-              color: '#050508',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '0.65rem',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              marginTop: '0.5rem',
-              transition: 'all 0.15s ease'
-            }}
           >
             {loading ? (
-              <span>VERIFICANDO CREDENCIALES...</span>
+              <span>Verificando credenciales...</span>
             ) : (
               <>
-                <span>ACCEDER A LA TERMINAL</span>
+                <span>Iniciar sesión</span>
                 <ArrowRight size={15} />
               </>
             )}
           </button>
         </form>
 
-        <div style={{
-          borderTop: '1px solid var(--border-dim)',
-          paddingTop: '0.75rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.7rem',
-          color: 'var(--text-muted)'
-        }}>
-          <span>ESTADO: ENTORNO PROTEGIDO</span>
-          <span>KATAKURI v3.0</span>
+        <div className="login-footer-meta">
+          <span>Conexión segura JWT</span>
+          <span>Katakuri v3.3</span>
         </div>
       </div>
     </div>

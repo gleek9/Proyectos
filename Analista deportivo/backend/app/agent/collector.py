@@ -121,11 +121,10 @@ class MatchDataCollector:
                         away_clean = url_away
                     else:
                         logger.info(
-                            f"La URL proporcionada ({clean_url}) contiene '{url_home}' vs '{url_away}'. "
-                            f"Adoptando nombres oficiales detectados en el enlace en vivo para mantener sincronización."
+                            f"La URL proporcionada ({clean_url}) contiene '{url_home}' vs '{url_away}' pero el usuario solicitó '{home_clean}' vs '{away_clean}'. "
+                            f"Descartando URL ajena para priorizar los equipos solicitados por el usuario."
                         )
-                        home_clean = url_home
-                        away_clean = url_away
+                        clean_url = None
 
         if not force_refresh and not clean_url and home_clean and away_clean:
             cached_data = self.get_cached_raw_features(home_clean, away_clean)

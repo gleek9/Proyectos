@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Loader2, User, LogOut, Radio } from 'lucide-react';
+import { Play, Loader2, User, LogOut } from 'lucide-react';
 
 export default function HeaderBar({
   homeTeam,
@@ -13,7 +13,8 @@ export default function HeaderBar({
   isLive,
   syncCountdown,
   matchUrl,
-  onClearUrl
+  onClearUrl,
+  onOpenBacktest
 }) {
   const hasTeams = Boolean(homeTeam && awayTeam && homeTeam.trim() && awayTeam.trim());
   const hasUrl = Boolean(matchUrl && matchUrl.trim());
@@ -53,23 +54,23 @@ export default function HeaderBar({
 
   return (
     <header className="ide-navbar">
-      {/* Indicador Katakuri v3.0: Borde Azul (Pre-partido) / Borde Rojo (En vivo con URL). No clickable. */}
+      {/* Indicador Katakuri v3.3 con estado en vivo y pre-partido */}
       <div
         id="katakuri-brand-indicator"
         className={`ide-brand-clickable ${isLive ? 'is-live' : 'not-live'}`}
         style={{ cursor: 'default', userSelect: 'none' }}
         title={
           isLive
-            ? '🔴 MODO EN VIVO ACTIVO (Recuadro Rojo) // Rastreando URL online y auto-sincronizando cada 5 min'
-            : '🔵 MODO PRE-PARTIDO ESTÁNDAR (Recuadro Azul) // Agrega una URL para activar el modo en vivo'
+            ? 'Modo en vivo activo: rastreando URL online y auto-sincronizando cada 5 minutos'
+            : 'Modo pre-partido estándar: agrega una URL para activar telemetría en vivo'
         }
       >
-        <span className="brand-title">Katakuri v3.0</span>
-        <span className="brand-sub"> // ANALISTA DEPORTIVO</span>
+        <span className="brand-title">Katakuri v3.3</span>
+        <span className="brand-sub"> · Analista Deportivo</span>
       </div>
 
-      <div className="telemetry-status">
-        {/* Indicador de Auto-Sincronización Cada 5 Minutos (Solo punto de color y tiempo) */}
+      <div className="telemetry-status" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        {/* Indicador de Auto-Sincronización Cada 5 Minutos */}
         <div
           className="sync-timer-compact"
           title="Sincronización automática cada 5 min (Búsqueda web con IA + Modelos predictivos locales Dixon-Coles, XGBoost y LSTM)"
@@ -77,11 +78,24 @@ export default function HeaderBar({
           <span className={`dot-status ${loading ? 'busy' : ''}`}></span>
           <span className="sync-compact-time">{formatCountdown(syncCountdown)}</span>
         </div>
+
+        {/* Botón de Calibración / Backtest */}
+        {onOpenBacktest && (
+          <button
+            type="button"
+            className="btn-backtest-trigger"
+            onClick={onOpenBacktest}
+            title="Abrir panel de validación empírica y calibración de modelos (RPS, Brier, Log-Loss)"
+          >
+            <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--emerald)' }}></span>
+            <span>Calibración</span>
+          </button>
+        )}
       </div>
 
       <form className="ide-inputs-form" onSubmit={handleSubmit}>
         <div className="input-group">
-          <span className="input-label-tag home">LOCAL</span>
+          <span className="input-label-tag home">Local</span>
           <input
             id="home-team-input"
             className="input-field"
@@ -97,7 +111,7 @@ export default function HeaderBar({
         <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>vs</span>
 
         <div className="input-group">
-          <span className="input-label-tag away">VISITANTE</span>
+          <span className="input-label-tag away">Visitante</span>
           <input
             id="away-team-input"
             className="input-field"
@@ -113,8 +127,6 @@ export default function HeaderBar({
           />
         </div>
 
-
-
         <button
           id="run-analysis-btn"
           type="submit"
@@ -125,12 +137,12 @@ export default function HeaderBar({
           {loading ? (
             <>
               <Loader2 className="spin-icon" size={14} />
-              <span>ANALIZANDO...</span>
+              <span>Analizando...</span>
             </>
           ) : (
             <>
               <Play size={13} fill="currentColor" />
-              <span>ANALIZAR</span>
+              <span>Analizar</span>
             </>
           )}
         </button>

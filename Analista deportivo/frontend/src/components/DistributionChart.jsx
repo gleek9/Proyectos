@@ -27,6 +27,22 @@ export default function DistributionChart({ chartData }) {
 
   const labels = goals_distribution.map(item => item.goals);
   const dataValues = goals_distribution.map(item => item.probability);
+  const maxProbability = Math.max(...dataValues, 1);
+
+  // Aurora UI: El rango modal se ilumina con emerald glow, los adyacentes en azure y las colas en slate
+  const backgroundColors = dataValues.map(val => {
+    if (val === maxProbability) return 'rgba(16, 185, 129, 0.85)';
+    if (val >= maxProbability * 0.65) return 'rgba(14, 165, 233, 0.70)';
+    if (val >= maxProbability * 0.35) return 'rgba(56, 189, 248, 0.45)';
+    return 'rgba(148, 163, 184, 0.30)';
+  });
+
+  const borderColors = dataValues.map(val => {
+    if (val === maxProbability) return '#10b981';
+    if (val >= maxProbability * 0.65) return '#0ea5e9';
+    if (val >= maxProbability * 0.35) return '#38bdf8';
+    return 'rgba(148, 163, 184, 0.55)';
+  });
 
   const data = {
     labels,
@@ -34,24 +50,10 @@ export default function DistributionChart({ chartData }) {
       {
         label: 'Probabilidad (%)',
         data: dataValues,
-        backgroundColor: [
-          'rgba(148, 163, 184, 0.4)',
-          'rgba(56, 189, 248, 0.5)',
-          'rgba(163, 230, 53, 0.7)',
-          'rgba(163, 230, 53, 0.8)',
-          'rgba(56, 189, 248, 0.6)',
-          'rgba(168, 85, 247, 0.5)',
-        ],
-        borderColor: [
-          '#94a3b8',
-          '#38bdf8',
-          '#a3e635',
-          '#a3e635',
-          '#38bdf8',
-          '#a855f7',
-        ],
-        borderWidth: 1,
-        borderRadius: 4,
+        backgroundColor: backgroundColors,
+        borderColor: borderColors,
+        borderWidth: 1.5,
+        borderRadius: 5,
       }
     ]
   };
@@ -64,10 +66,10 @@ export default function DistributionChart({ chartData }) {
         display: false
       },
       tooltip: {
-        backgroundColor: '#16161a',
+        backgroundColor: 'rgba(15, 18, 25, 0.94)',
         titleColor: '#f8fafc',
         bodyColor: '#38bdf8',
-        borderColor: '#26262e',
+        borderColor: 'rgba(255, 255, 255, 0.12)',
         borderWidth: 1,
         padding: 10,
         displayColors: false,
@@ -80,7 +82,7 @@ export default function DistributionChart({ chartData }) {
       x: {
         grid: {
           display: false,
-          color: '#26262e'
+          color: 'rgba(255, 255, 255, 0.05)'
         },
         ticks: {
           color: '#94a3b8',
@@ -92,7 +94,7 @@ export default function DistributionChart({ chartData }) {
       },
       y: {
         grid: {
-          color: '#1a1a22'
+          color: 'rgba(255, 255, 255, 0.04)'
         },
         ticks: {
           color: '#64748b',
@@ -112,10 +114,10 @@ export default function DistributionChart({ chartData }) {
       <div className="panel-header">
         <span className="panel-title">
           <BarChart3 size={15} color="var(--cyan)" />
-          <span>Distribución de Goles (0 a 5+)</span>
+          <span>Distribución de goles (0 a 5+)</span>
         </span>
         <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-          PROBABILIDAD CONJUNTA
+          Probabilidad conjunta
         </span>
       </div>
 
@@ -123,9 +125,9 @@ export default function DistributionChart({ chartData }) {
         <Bar data={data} options={options} />
       </div>
 
-      <div style={{ marginTop: '0.5rem' }}>
+      <div style={{ marginTop: '0.65rem' }}>
         <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-          MARCADORES EXACTOS MÁS PROBABLES:
+          Marcadores más probables:
         </span>
         <div className="top-scores-container">
           {top_scores && top_scores.map((s, idx) => (

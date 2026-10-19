@@ -1,5 +1,5 @@
 import React from 'react';
-import { History, Sparkles } from 'lucide-react';
+import { History } from 'lucide-react';
 
 export default function RecentMatchesBar({ recentList, onSelectMatch, currentMatch }) {
   const defaultPresets = [
@@ -24,8 +24,8 @@ export default function RecentMatchesBar({ recentList, onSelectMatch, currentMat
   return (
     <div className="recent-bar">
       <span className="recent-label">
-        <History size={13} />
-        <span>RECIENTES / SUGERIDOS:</span>
+        <History size={13} color="var(--azure)" />
+        <span>Historial y sugeridos:</span>
       </span>
 
       {items.map((m, idx) => {
@@ -40,9 +40,9 @@ export default function RecentMatchesBar({ recentList, onSelectMatch, currentMat
             className={`recent-chip ${isActive ? 'active' : ''}`}
             onClick={() => onSelectMatch(m.home, m.away, m.comp, m.is_live, m.live_score, m.match_url)}
           >
-            {m.is_live && <span style={{ color: '#ef4444', marginRight: '4px' }}>🔴</span>}
+            {m.is_live && <span className="pulse-dot-red" style={{ marginRight: '6px' }}></span>}
             {m.home} <span style={{ color: 'var(--text-muted)' }}>vs</span> {m.away}
-            {m.live_score && <span style={{ color: '#ef4444', marginLeft: '4px', fontWeight: 600 }}>[{m.live_score}]</span>}
+            {m.live_score && <span style={{ color: 'var(--crimson)', marginLeft: '6px', fontWeight: 700 }}>[{m.live_score}]</span>}
           </button>
         );
       })}

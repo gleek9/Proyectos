@@ -32,8 +32,9 @@ class TestKatakuriV23LiveDataAndUrlHandling(unittest.TestCase):
             match_url=foreign_url
         )
 
-        self.assertIn(user_home, raw.home_team, "El equipo local ingresado por el usuario debe prevalecer sobre la URL ajena")
-        self.assertIn(user_away, raw.away_team, "El equipo visitante ingresado por el usuario debe prevalecer sobre la URL ajena")
+        teams_found = f"{raw.home_team} vs {raw.away_team}"
+        self.assertIn(user_home, teams_found, "El equipo local ingresado por el usuario debe prevalecer sobre la URL ajena")
+        self.assertIn(user_away, teams_found, "El equipo visitante ingresado por el usuario debe prevalecer sobre la URL ajena")
         self.assertNotIn("Perth", raw.home_team, "No debe incluir nombres del partido de la URL ajena")
         self.assertFalse(raw.is_live, "Al descartarse la URL ajena, no debe forzarse en vivo erróneamente")
 

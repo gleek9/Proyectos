@@ -21,21 +21,21 @@ class PreviousMatch(BaseModel):
 class TeamFormStats(BaseModel):
     team_name: str
     last_matches: List[PreviousMatch] = Field(default_factory=list, description="Últimos partidos recientes (hasta 10)")
-    avg_goals_scored: float = Field(1.5, description="Promedio de goles anotados por partido")
-    avg_goals_conceded: float = Field(1.2, description="Promedio de goles recibidos por partido")
-    avg_corners: float = Field(5.0, description="Promedio de córners a favor por partido")
+    avg_goals_scored: float = Field(1.35, description="Promedio de goles anotados por partido")
+    avg_goals_conceded: float = Field(1.25, description="Promedio de goles recibidos por partido")
+    avg_corners: float = Field(4.8, description="Promedio de córners a favor por partido")
     avg_cards: float = Field(2.2, description="Promedio de tarjetas amarillas/rojas recibidas")
     win_rate_last_5: float = Field(0.5, description="Porcentaje de victorias en los últimos 5 partidos (0.0 a 1.0)")
     key_absences: List[str] = Field(default_factory=list, description="Jugadores clave lesionados o suspendidos")
 
 class HeadToHeadStats(BaseModel):
-    total_matches_analyzed: int = Field(5, description="Número de enfrentamientos directos previos encontrados")
-    home_team_wins: int = Field(2, description="Victorias del equipo local en H2H")
-    draws: int = Field(1, description="Empates en H2H")
-    away_team_wins: int = Field(2, description="Victorias del equipo visitante en H2H")
-    avg_total_goals_h2h: float = Field(2.8, description="Promedio de goles totales por partido en H2H")
-    avg_total_corners_h2h: float = Field(9.5, description="Promedio de córners totales en H2H")
-    avg_total_cards_h2h: float = Field(4.5, description="Promedio de tarjetas totales en H2H")
+    total_matches_analyzed: int = Field(0, description="Número de enfrentamientos directos previos encontrados (0 si no hay datos)")
+    home_team_wins: int = Field(0, description="Victorias del equipo local en H2H")
+    draws: int = Field(0, description="Empates en H2H")
+    away_team_wins: int = Field(0, description="Victorias del equipo visitante en H2H")
+    avg_total_goals_h2h: float = Field(2.5, description="Promedio de goles totales por partido en H2H")
+    avg_total_corners_h2h: float = Field(9.2, description="Promedio de córners totales en H2H")
+    avg_total_cards_h2h: float = Field(4.2, description="Promedio de tarjetas totales en H2H")
 
 class MatchRawFeatures(BaseModel):
     """

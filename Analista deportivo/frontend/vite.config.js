@@ -14,7 +14,7 @@ export default defineConfig({
         timeout: 180000,
         proxyTimeout: 180000,
         configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, res) => {
+          proxy.on('error', (err, _req, _res) => {
             console.warn('[Vite Proxy] Advertencia de proxy a 127.0.0.1:8000:', err.message);
           });
         }

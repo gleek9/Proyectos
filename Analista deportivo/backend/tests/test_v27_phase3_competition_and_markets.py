@@ -18,17 +18,18 @@ class TestPhase3CompetitionAndMarkets(unittest.TestCase):
 
     def test_competition_baselines(self):
         """Valida que los baselines por competición modulen adecuadamente los parámetros de liga."""
-        avg_buli, adv_buli = get_competition_parameters("Bundesliga")
+        avg_buli, adv_buli, cn_buli = get_competition_parameters("Bundesliga")
         self.assertGreaterEqual(avg_buli, 1.50)
         self.assertGreaterEqual(adv_buli, 1.10)
+        self.assertGreaterEqual(cn_buli, 9.5)
 
-        avg_seg, adv_seg = get_competition_parameters("LaLiga Hypermotion / Segunda")
+        avg_seg, adv_seg, cn_seg = get_competition_parameters("LaLiga Hypermotion / Segunda")
         self.assertLessEqual(avg_seg, 1.20)
 
-        # General / desconocido debe retornar (1.35, 1.15)
-        avg_gen, adv_gen = get_competition_parameters("Liga Desconocida 99")
-        self.assertEqual(avg_gen, 1.35)
-        self.assertEqual(adv_gen, 1.15)
+        # General / desconocido debe retornar (1.33, 1.14, 9.5)
+        avg_gen, adv_gen, cn_gen = get_competition_parameters("Liga Desconocida 99")
+        self.assertEqual(avg_gen, 1.33)
+        self.assertEqual(adv_gen, 1.14)
 
         # Con mismas estadísticas, Bundesliga debe proyectar más goles esperados que Segunda
         team_h = TeamFormStats(team_name="Bayern", avg_goals_scored=1.5, avg_goals_conceded=1.2, clean_sheets_pct=0.25, win_rate_last_5=0.5)

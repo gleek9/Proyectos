@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Zap, TrendingUp, Globe, X, ExternalLink, Radio } from 'lucide-react';
+import { Zap, TrendingUp, Globe, X, ExternalLink, Radio } from 'lucide-react';
 
 export default function LiveNeuralSection({
   prediction,
@@ -34,7 +34,7 @@ export default function LiveNeuralSection({
       <div className="live-neural-header">
         <div className="live-neural-title-group">
           <Radio size={16} color="var(--red)" />
-          <span>RED NEURONAL LSTM & ENSAMBLE EN VIVO</span>
+          <span>Red Neuronal LSTM y ensamble en vivo</span>
         </div>
 
         <div className="live-neural-chips">
@@ -63,10 +63,10 @@ export default function LiveNeuralSection({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '0.6rem',
-        background: 'rgba(0, 0, 0, 0.3)',
-        padding: '0.4rem 0.75rem',
+        background: 'rgba(0, 0, 0, 0.35)',
+        padding: '0.45rem 0.8rem',
         borderRadius: '6px',
-        border: '1px solid rgba(239, 68, 68, 0.25)'
+        border: '1px solid rgba(244, 63, 94, 0.3)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
           <Globe size={13} color="var(--red)" style={{ flexShrink: 0 }} />
@@ -77,7 +77,7 @@ export default function LiveNeuralSection({
             fontWeight: 700,
             flexShrink: 0
           }}>
-            URL MONITOREADA:
+            URL activa:
           </span>
           <input
             id="live-neural-monitored-url"
@@ -106,7 +106,7 @@ export default function LiveNeuralSection({
               type="button"
               className="neural-url-clear-btn"
               onClick={onClearUrl}
-              title="Quitar URL y volver a Modo Pre-Match (recuadro azul). Pulsa ANALIZAR después."
+              title="Quitar URL y volver a modo pre-partido"
             >
               <X size={14} />
             </button>
@@ -119,7 +119,7 @@ export default function LiveNeuralSection({
         {/* 1. Sin Más Goles */}
         <div className="neural-card-item">
           <div className="neural-card-title">
-            <span>SIN MÁS GOLES (+0)</span>
+            <span>Sin más goles (+0)</span>
             <span style={{ color: 'var(--amber)' }}>●</span>
           </div>
           <div className="neural-card-val amber">
@@ -133,7 +133,7 @@ export default function LiveNeuralSection({
         {/* 2. Más Goles */}
         <div className="neural-card-item">
           <div className="neural-card-title">
-            <span>MÁS GOLES ({currentGoals + 1}+)</span>
+            <span>Más goles ({currentGoals + 1}+)</span>
             <span style={{ color: 'var(--lime)' }}>▲</span>
           </div>
           <div className="neural-card-val lime">
@@ -147,7 +147,7 @@ export default function LiveNeuralSection({
         {/* 3. Desglose de Líneas de Goles */}
         <div className="neural-card-item">
           <div className="neural-card-title">
-            <span>LÍNEAS DINÁMICAS GOLES</span>
+            <span>Líneas dinámicas de goles</span>
             <TrendingUp size={13} color="var(--text-dim)" />
           </div>
           <div className="neural-lines-list">
@@ -171,7 +171,7 @@ export default function LiveNeuralSection({
         {/* 4. Dinámica de Córners en Vivo */}
         <div className="neural-card-item">
           <div className="neural-card-title">
-            <span>CÓRNERS TIEMPO RESTANTE</span>
+            <span>Córners en tiempo restante</span>
             <span style={{ color: 'var(--cyan)' }}>⚡</span>
           </div>
           <div className="neural-lines-list">

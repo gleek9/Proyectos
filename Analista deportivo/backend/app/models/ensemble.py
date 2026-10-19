@@ -22,6 +22,10 @@ from backend.app.models.lstm_net import lstm_predictor
 
 logger = logging.getLogger(__name__)
 
+def _coalesce(value, fallback):
+    """Devuelve `value` salvo que sea None. A diferencia de `value or fallback`, conserva probabilidades 0.0 legítimas."""
+    return fallback if value is None else value
+
 class MetaEnsembleEngine:
     def __init__(
         self,
@@ -263,6 +267,9 @@ class MetaEnsembleEngine:
         # -------------------------------------------------------------
         # Consenso de Goles
         # -------------------------------------------------------------
+        # -------------------------------------------------------------
+        # Consenso de Goles y Matriz Bivariada Unificada
+        # -------------------------------------------------------------
         import re
         curr_gh, curr_ga = 0, 0
         if getattr(raw, "live_score", None):
@@ -276,35 +283,73 @@ class MetaEnsembleEngine:
         tabular_goals = xgb_res["goals_expected"]
         lstm_momentum = lstm_res["momentum_goals"]
 
-        # Expectativa ponderada dinámica
+        # Expectativa ponderada dinámica del total de goles
         if is_live:
             lstm_live_tot = curr_tot_goals + (lstm_res.get("live_expected_remaining_goals") or 0.0)
             exp_goals_combined = round(poisson_goals * wp + tabular_goals * wx + lstm_live_tot * wl, 2)
-            # El total esperado de goles NUNCA puede ser menor a los goles ya ocurridos en vivo
             exp_goals_combined = max(float(curr_tot_goals), exp_goals_combined)
         else:
-            # Poisson bivariado (65%) y Tabular (35%) establecen la base estructural matemática de goles esperados
-            # La red LSTM modula el momentum y rachas recientes como acelerador/freno proporcional (+-7% max)
             lstm_mom = lstm_res.get("momentum_goals", 2.5)
-            mom_ratio = float(np.clip(1.0 + (lstm_mom - 2.5) * 0.035, 0.93, 1.07))
+            mom_ratio = float(np.clip(1.0 + (lstm_mom - 2.5) * 0.025, 0.95, 1.05))
             base_exp_goals = poisson_goals * 0.65 + tabular_goals * 0.35
             exp_goals_combined = round(base_exp_goals * mom_ratio, 2)
 
-        # Over / Under calibrado: Poisson Dixon-Coles aporta el 70% del peso estructural exacto
-        over_2_5_combined = round(p_res["goals"]["over_2_5_pct"] * 0.70 + xgb_res["over_2_5_pct"] * 0.30, 1)
-        over_1_5 = round(p_res["goals"]["over_1_5_pct"], 1)
-        over_3_5 = round(p_res["goals"]["over_3_5_pct"], 1)
-        btts = round(p_res["goals"]["both_teams_to_score_pct"], 1)
+        # Reparto consensual de goles restantes entre local y visitante
+        rem_goals_combined = max(0.08, exp_goals_combined - curr_tot_goals)
+        p_lambda_h = float(p_res.get("lambda_home", 1.30))
+        p_mu_a = float(p_res.get("mu_away", 1.15))
+        tot_p_lambdas = max(0.1, p_lambda_h + p_mu_a)
 
-        if is_live:
-            if curr_tot_goals >= 2:
-                over_1_5 = 100.0
-            if curr_tot_goals >= 3:
-                over_2_5_combined = 100.0
-            if curr_tot_goals >= 4:
-                over_3_5 = 100.0
-            if curr_gh >= 1 and curr_ga >= 1:
-                btts = 100.0
+        h_share_base = p_lambda_h / tot_p_lambdas
+        ens_win_diff = (final_home_p - final_away_p) / 100.0
+        pois_win_diff = (p_res["winner_probs"]["home_win"] - p_res["winner_probs"]["away_win"]) / 100.0
+        h_share = float(np.clip(h_share_base + 0.12 * (ens_win_diff - pois_win_diff), 0.20, 0.80))
+
+        cons_lambda_h = rem_goals_combined * h_share
+        cons_mu_a = rem_goals_combined * (1.0 - h_share)
+
+        # Matriz Bivariada de Consenso Unificado: garantiza coherencia total
+        cons_goals = poisson_model.evaluate_matrix_goals(
+            lambda_home=cons_lambda_h,
+            mu_away=cons_mu_a,
+            curr_gh=curr_gh,
+            curr_ga=curr_ga,
+            is_live=is_live
+        )
+
+        over_1_5 = round(cons_goals["over_1_5_pct"], 1)
+        over_2_5_combined = round(cons_goals["over_2_5_pct"], 1)
+        over_3_5 = round(cons_goals["over_3_5_pct"], 1)
+        btts = round(cons_goals["both_teams_to_score_pct"], 1)
+
+        # Selección de Marcador Más Probable Concordante a partir del ranking real de la matriz
+        top_scores_list = cons_goals.get("top_scores", [])
+        most_likely_score = cons_goals["most_likely_score"]
+
+        try:
+            if final_home_p >= 50.0 or (final_home_p - final_away_p >= 12.0):
+                home_wins_scores = [
+                    s["score"] for s in top_scores_list
+                    if (int(s["score"].split("-")[0].strip()) > int(s["score"].split("-")[1].strip()))
+                ]
+                if home_wins_scores:
+                    most_likely_score = home_wins_scores[0]
+            elif final_away_p >= 50.0 or (final_away_p - final_home_p >= 12.0):
+                away_wins_scores = [
+                    s["score"] for s in top_scores_list
+                    if (int(s["score"].split("-")[1].strip()) > int(s["score"].split("-")[0].strip()))
+                ]
+                if away_wins_scores:
+                    most_likely_score = away_wins_scores[0]
+            elif final_draw_p >= 30.0 or abs(final_home_p - final_away_p) <= 8.0:
+                draw_scores = [
+                    s["score"] for s in top_scores_list
+                    if (int(s["score"].split("-")[0].strip()) == int(s["score"].split("-")[1].strip()))
+                ]
+                if draw_scores:
+                    most_likely_score = draw_scores[0]
+        except Exception:
+            most_likely_score = cons_goals["most_likely_score"]
 
         # Córners en vivo: calibración y prevención estricta de sesgos
         exp_corners_final = p_res["corners"]["expected_total"]
@@ -335,18 +380,18 @@ class MetaEnsembleEngine:
         live_corner_lines = []
 
         if is_live:
-            p_pois_no_more = p_res["goals"].get("no_more_goals_pct") or 45.0
-            p_xgb_no_more = xgb_res.get("live_no_more_goals_pct") or p_pois_no_more
-            p_lstm_no_more = lstm_res.get("live_no_more_goals_pct") or p_pois_no_more
+            p_pois_no_more = _coalesce(p_res["goals"].get("no_more_goals_pct"), 45.0)
+            p_xgb_no_more = _coalesce(xgb_res.get("live_no_more_goals_pct"), p_pois_no_more)
+            p_lstm_no_more = _coalesce(lstm_res.get("live_no_more_goals_pct"), p_pois_no_more)
 
             # Ensamble ponderado dinámico de "Sin más goles" según minuto de juego
             final_no_more_p = round(p_pois_no_more * wp + p_xgb_no_more * wx + p_lstm_no_more * wl, 1)
             final_no_more_p = float(np.clip(final_no_more_p, 1.0, 99.0))
             final_more_p = round(100.0 - final_no_more_p, 1)
 
-            pois_p2 = p_res["goals"].get("plus_2_goals_pct") or (final_more_p * 0.65)
+            pois_p2 = _coalesce(p_res["goals"].get("plus_2_goals_pct"), final_more_p * 0.65)
             final_plus_2_p = round(min(final_more_p * 0.72, pois_p2), 1)
-            pois_p3 = p_res["goals"].get("plus_3_goals_pct") or (final_plus_2_p * 0.55)
+            pois_p3 = _coalesce(p_res["goals"].get("plus_3_goals_pct"), final_plus_2_p * 0.55)
             final_plus_3_p = round(min(final_plus_2_p * 0.60, pois_p3), 1)
 
             import re
@@ -396,7 +441,7 @@ class MetaEnsembleEngine:
             away_pct=final_away_p,
             exp_goals=exp_goals_combined,
             over_2_5_pct=over_2_5_combined,
-            exp_corners=p_res["corners"]["expected_total"],
+            exp_corners=exp_corners_final,
             exp_cards=p_res["cards"]["expected_total"],
             red_card_risk=p_res["cards"]["red_card_risk_pct"],
             is_live=is_live,
@@ -467,7 +512,7 @@ class MetaEnsembleEngine:
                 ),
                 goals=GoalsPrediction(
                     expected_total=exp_goals_combined,
-                    most_likely_score=p_res["goals"]["most_likely_score"],
+                    most_likely_score=most_likely_score,
                     over_1_5_pct=over_1_5,
                     over_2_5_pct=over_2_5_combined,
                     over_3_5_pct=over_3_5,
@@ -506,11 +551,11 @@ class MetaEnsembleEngine:
             chart_data=ChartData(
                 goals_distribution=[
                     GoalDistributionItem(goals=item["goals"], probability=item["probability"])
-                    for item in p_res["goals"]["goals_distribution"]
+                    for item in cons_goals["goals_distribution"]
                 ],
                 top_scores=[
                     TopScoreItem(score=s["score"], probability=s["probability"])
-                    for s in p_res["goals"]["top_scores"]
+                    for s in cons_goals["top_scores"]
                 ]
             ),
             key_factors=key_factors

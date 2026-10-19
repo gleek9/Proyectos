@@ -1,6 +1,6 @@
 # AGENTS.md — Katakuri AI (Analista Deportivo)
 
-Spec técnica de referencia. El estado vivo del proyecto (fases, versiones, credenciales operativas) está en `PROJECT_STATUS.md` — leerlo primero en cada sesión nueva. Versión actual: **v3.0**, idioma de toda la UI/telemetría: **español**.
+Spec técnica de referencia. El estado vivo del proyecto (fases, versiones, credenciales operativas) está en `PROJECT_STATUS.md` — leerlo primero en cada sesión nueva. Versión actual: **v3.3**, idioma de toda la UI/telemetría: **español**.
 
 ## Comandos (Windows, PowerShell)
 
@@ -20,12 +20,13 @@ Spec técnica de referencia. El estado vivo del proyecto (fases, versiones, cred
 
 ## Arquitectura real (verificada contra el código, no contra la spec vieja)
 
-- `backend/app/main.py`: endpoints `GET /api/health`, `POST /api/login`, `POST /api/predict`, `GET /api/predictions/recent`.
+- `backend/app/main.py`: endpoints `GET /api/health`, `POST /api/login`, `POST /api/predict`, `GET /api/predictions/recent`, `GET /api/backtest/benchmark`, `POST /api/backtest/run`.
 - `backend/app/agent/`: `scraper.py` (DuckDuckGo + Sofascore/Flashscore), `parser.py` (Gemini structured output), `collector.py`.
-- `backend/app/models/`: `poisson.py` (Dixon-Coles, elasticidad γ=0.65, shrinkage bayesiano), `tabular_ml.py` (XGBoost/LightGBM, sigmoide calibrada), `lstm_net.py` (**PyTorch**, no TensorFlow — peso en `backend/weights/lstm_momentum.pt`), `ensemble.py` (meta-ensamble bayesiano). Peso tabular: `backend/weights/xgb_1x2.json`.
+- `backend/app/models/`: `poisson.py` (Dixon-Coles, elasticidad γ=0.52, normalización por liga y localía simétrica, sobredispersión binomial negativa en córners/tarjetas, dinámica game state), `tabular_ml.py` (XGBoost/LightGBM, sigmoide calibrada), `lstm_net.py` (**PyTorch**, no TensorFlow — peso en `backend/weights/lstm_momentum.pt`), `ensemble.py` (meta-ensamble bayesiano con matriz bivariada de consenso y coalescencia estricta). Peso tabular: `backend/weights/xgb_1x2.json`.
+- `backend/app/analytics/`: `backtest.py` (RPS, Brier Score, Log-Loss, MAE/RMSE y dataset de benchmark empírico).
 - LLM configurable por `GEMINI_MODEL` en `.env`; el default actual en `config.py` es `gemini-3.5-flash-lite`.
 - Gemini solo busca/estructura datos; toda la inferencia es local. La localía (quién es local) la determina la IA, no el usuario. Si `is_live`, se priorizan datos in-play y refresco cada 5 min.
-- Frontend: React 19 + Vite 8 + Chart.js, tema oscuro IDE (`#0e0e11`, `#16161a`, `#26262e`), números en monospace. Componentes en `frontend/src/components/`.
+- Frontend: React 19 + Vite 8 + Chart.js, tema oscuro IDE (`#090a0f`, `#11131a`, `#151821`), números en monospace. Componentes en `frontend/src/components/` (incluyendo `BacktestModal.jsx` para validación empírica).
 
 ## Convenciones
 

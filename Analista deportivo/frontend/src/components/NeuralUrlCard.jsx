@@ -27,24 +27,26 @@ export default function NeuralUrlCard({
           {isLive ? (
             <>
               <Radio size={15} color="var(--red)" />
-              <span>RED NEURONAL LSTM // MODO EN VIVO ACTIVO</span>
+              <span>Red Neuronal LSTM · Rastreo en directo</span>
             </>
           ) : (
             <>
               <Activity size={15} color="var(--cyan)" />
-              <span>RED NEURONAL // CASILLA PARA MODO EN VIVO</span>
+              <span>Red Neuronal LSTM · Entrada de partido</span>
             </>
           )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
           {isLive ? (
-            <span className="neural-chip accent">
-              🔴 RASTREO ONLINE (5 MIN)
+            <span className="neural-chip accent" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span className="pulse-dot-red"></span>
+              <span>Rastreo online (5 min)</span>
             </span>
           ) : (
-            <span className="neural-chip">
-              🔵 MODO PRE-MATCH
+            <span className="neural-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span className="pulse-dot-green"></span>
+              <span>Modo pre-partido</span>
             </span>
           )}
         </div>
@@ -59,7 +61,7 @@ export default function NeuralUrlCard({
           value={matchUrl}
           onChange={(e) => onUrlChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Pega aquí la URL del partido en vivo (ej: Flashscore, Sofascore) para entrar a Modo En Vivo..."
+          placeholder="Pega aquí la URL del partido (Flashscore, Sofascore) para activar el modo en directo..."
           autoComplete="off"
           spellCheck="false"
         />
@@ -71,7 +73,7 @@ export default function NeuralUrlCard({
               target="_blank"
               rel="noopener noreferrer"
               className="neural-url-clear-btn"
-              title="Abrir enlace en nueva pestaña"
+              title="Abrir enlace en vivo en nueva pestaña"
             >
               <ExternalLink size={13} />
             </a>
@@ -79,7 +81,7 @@ export default function NeuralUrlCard({
               type="button"
               className="neural-url-clear-btn"
               onClick={onClearUrl}
-              title="Limpiar URL y volver a Modo Pre-Match (recuadro azul)"
+              title="Limpiar URL y volver a modo pre-partido"
             >
               <X size={14} />
             </button>
@@ -90,11 +92,11 @@ export default function NeuralUrlCard({
       <div className="neural-url-hint">
         {isLive ? (
           <span>
-            ⚡ <strong>Modo En Vivo activado por URL.</strong> El recuadro Katakuri está en <strong>ROJO</strong>. Presiona <strong>ANALIZAR</strong> arriba para procesar el partido en vivo. Se auto-sincronizará cada 5 minutos.
+            <strong>Modo en vivo activado por URL.</strong> Presiona <strong>Analizar</strong> arriba para procesar la telemetría en tiempo real (auto-sincronización cada 5 min).
           </span>
         ) : (
           <span>
-            ℹ️ El recuadro Katakuri está en <strong>AZUL</strong> (Pre-Match). Al pegar una URL, Katakuri pasará a <strong>MODO EN VIVO</strong> automáticamente y el recuadro cambiará a <strong>ROJO</strong>.
+            <strong>Modo pre-partido activo.</strong> Si ingresas la URL de un partido en disputa, el sistema activará automáticamente el modo en directo y el rastreo neuronal.
           </span>
         )}
       </div>

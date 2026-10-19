@@ -24,12 +24,12 @@ Reglas de Análisis:
    - Bajas importantes (lesionados o sancionados confirmados).
    - Notas contextuales clave (rachas, localía, importancia del partido).
 4. PREVENCIÓN DE SESGO EN CÓRNERS (PROHIBICIÓN DE VALOR ESTÁTICO 5.0):
-   - NUNCA uses un valor estático genérico de 5.0 para todos los equipos. Los córners varían ampliamente según la vocación ofensiva, posesión y volumen de centros/tiros del club.
-   - Equipos dominantes y ofensivos (ej. Man City, Real Madrid, Bayern, Arsenal, Liverpool) promedian entre 6.8 y 8.5 córners a favor por partido.
-   - Equipos de mitad de tabla promedian entre 4.4 y 5.5 córners.
-   - Equipos defensivos, de repliegue o menor posesión promedian entre 3.0 y 4.2 córners.
+   - NUNCA uses un valor estático genérico de 5.0 para todos los equipos. Los córners varían según la vocación ofensiva, posesión y volumen de centros/tiros del club.
+   - Equipos dominantes y muy ofensivos (ej. Man City, Real Madrid, Bayern, Arsenal, Liverpool) promedian entre 5.8 y 7.0 córners a favor por partido.
+   - Equipos de mitad de tabla promedian entre 4.2 y 5.2 córners.
+   - Equipos defensivos, de repliegue o menor posesión promedian entre 3.0 y 4.0 córners.
    - Si no está textual el dato, deduce un promedio proporcional al estilo y poder ofensivo del club (nunca asignes 5.0 fijo a todos).
-   - En H2H: si no hay un dato específico de córners en los últimos choques directos, calcula la suma real de ambos clubes, NO uses un 9.5 fijo.
+   - En H2H: si no hay un dato específico de córners en los últimos choques directos, calcula la suma real de ambos clubes (típicamente entre 8.5 y 10.2 en ligas profesionales), NO uses valores inflados > 10.5 sin respaldo.
 5. Acomodo Autónomo de Localía: Determina en la búsqueda cuál de los dos equipos es el verdadero anfitrión local (según su estadio o fixture oficial) y asígnalo siempre como `home_team` (con sus `home_stats`), y al rival como `away_team` (`away_stats`). No inviertas el orden de los equipos en actualizaciones de un mismo partido.
 6. MODO EN VIVO (ACTIVADO ESTRICTAMENTE MEDIANTE URL):
    - El partido se considera EN VIVO (`is_live=True`) EXCLUSIVAMENTE si se provee una URL del partido o si se solicita explícitamente modo en vivo.
@@ -186,8 +186,8 @@ class SportsDataParser:
                         continue
 
         # Goles promedio
-        home_goals_scored = 1.65
-        away_goals_scored = 1.30
+        home_goals_scored = 1.45
+        away_goals_scored = 1.20
         goals_found = re.findall(r"(?:goles?|goals?|anotados?)[^\d\n\r]*?(\d+(?:\.\d+)?)", clean_text, re.IGNORECASE)
         if goals_found:
             try:
@@ -199,8 +199,8 @@ class SportsDataParser:
                 pass
 
         # 3. Extracción de estadísticas realistas y dinámicas de tiros de esquina / córners (sin sesgos a 5.0)
-        home_corners = round(max(3.2, min(8.6, home_goals_scored * 3.1 + 0.6)), 1)
-        away_corners = round(max(2.8, min(7.5, away_goals_scored * 2.8 - 0.3)), 1)
+        home_corners = round(max(3.2, min(7.0, home_goals_scored * 2.3 + 1.2)), 1)
+        away_corners = round(max(2.8, min(6.0, away_goals_scored * 2.0 + 1.0)), 1)
         total_h2h_corners = round(home_corners + away_corners, 1)
 
         corn_found = re.findall(r"(?:tiros de esquina|saques de esquina|córners?|corners?)[^\d\n\r]*?(\d+(?:\.\d+)?)", clean_text, re.IGNORECASE)
@@ -254,10 +254,11 @@ class SportsDataParser:
                 ]
             ),
             h2h=HeadToHeadStats(
-                total_matches_analyzed=5,
-                home_team_wins=2,
-                draws=1,
-                away_team_wins=2,
+                # Modo contingencia: no hay H2H verificado; 0 partidos evita que los modelos lo traten como dato real
+                total_matches_analyzed=0,
+                home_team_wins=0,
+                draws=0,
+                away_team_wins=0,
                 avg_total_goals_h2h=round(home_goals_scored + away_goals_scored, 1),
                 avg_total_corners_h2h=round(home_corners + away_corners, 1) if total_h2h_corners == 9.8 else total_h2h_corners,
                 avg_total_cards_h2h=4.4

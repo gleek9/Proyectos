@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple
 import xgboost as xgb
 from sklearn.preprocessing import StandardScaler
 from backend.app.schemas.match import MatchRawFeatures
-from backend.app.models.poisson import parse_elapsed_minute, calculate_remaining_goal_ratio
+from backend.app.models.poisson import parse_elapsed_minute, calculate_remaining_goal_ratio, get_competition_parameters
 
 logger = logging.getLogger(__name__)
 
@@ -143,10 +143,17 @@ class TabularPredictor:
         away_diff = a.avg_goals_scored - a.avg_goals_conceded
         delta_diff = home_diff - away_diff
 
-        tot_h2h = max(1, h2h.total_matches_analyzed)
-        h2h_h_ratio = h2h.home_team_wins / tot_h2h
-        h2h_a_ratio = h2h.away_team_wins / tot_h2h
-        h2h_d_ratio = h2h.draws / tot_h2h
+        if h2h.total_matches_analyzed > 0:
+            tot_h2h = h2h.total_matches_analyzed
+            h2h_h_ratio = h2h.home_team_wins / tot_h2h
+            h2h_a_ratio = h2h.away_team_wins / tot_h2h
+            h2h_d_ratio = h2h.draws / tot_h2h
+            h2h_avg_goals = h2h.avg_total_goals_h2h
+        else:
+            # Sin H2H real: valores neutros (medias de la distribución de entrenamiento y media goleadora de la liga)
+            h2h_h_ratio, h2h_a_ratio, h2h_d_ratio = 0.35, 0.35, 0.30
+            league_avg_g, _, _ = get_competition_parameters(getattr(raw, "competition", "General"))
+            h2h_avg_goals = league_avg_g * 2.0
 
         feat = [
             float(h.win_rate_last_5),
@@ -161,7 +168,7 @@ class TabularPredictor:
             float(h2h_h_ratio),
             float(h2h_a_ratio),
             float(h2h_d_ratio),
-            float(h2h.avg_total_goals_h2h),
+            float(h2h_avg_goals),
             float(len(h.key_absences)),
             float(len(a.key_absences)),
             1.15,  # Ventaja de localía
@@ -219,10 +226,14 @@ class TabularPredictor:
         p_draw /= tot
         p_away /= tot
 
-        # Expectativas agregadas de soporte tabular con shrinkage Bayesiano
-        tot_h = 0.72 * ((raw.home_stats.avg_goals_scored + raw.away_stats.avg_goals_conceded) / 2.0) + 0.28 * 1.35
-        tot_a = 0.72 * ((raw.away_stats.avg_goals_scored + raw.home_stats.avg_goals_conceded) / 2.0) + 0.28 * 1.35
-        tot_goals_est = float(tot_h * 1.05 + tot_a * 0.95)  # Ajuste sutil por localía
+        # Expectativas agregadas de soporte tabular con shrinkage Bayesiano ancladas al torneo
+        comp_name = getattr(raw, "competition", "General")
+        league_avg_g, home_adv, _ = get_competition_parameters(comp_name)
+        w_tab = 0.65
+        tot_h = w_tab * ((raw.home_stats.avg_goals_scored + raw.away_stats.avg_goals_conceded) / 2.0) + (1.0 - w_tab) * league_avg_g
+        tot_a = w_tab * ((raw.away_stats.avg_goals_scored + raw.home_stats.avg_goals_conceded) / 2.0) + (1.0 - w_tab) * league_avg_g
+        tot_goals_est = float(tot_h * 1.03 + tot_a * 0.97)  # Ajuste por localía
+        tot_goals_est = float(np.clip(tot_goals_est, 1.80, league_avg_g * 2.0 * 1.20))
 
         is_live = getattr(raw, "is_live", False)
         rem_goals_tabular = None

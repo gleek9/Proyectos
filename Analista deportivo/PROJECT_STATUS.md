@@ -1,4 +1,4 @@
-# PROJECT_STATUS.md — Estado de Avance del Proyecto (Katakuri v3.0)
+# PROJECT_STATUS.md — Estado de Avance del Proyecto (Katakuri v3.3)
 
 > **Propósito de este archivo**: Este documento es el punto de control, especificación técnica y seguimiento para desarrolladores y agentes de IA. Cualquier nuevo chat o sesión debe leer este archivo primero para conocer con exactitud la arquitectura, el estado operativo, las credenciales, los modelos predictivos y el funcionamiento de la interfaz.
 
@@ -6,20 +6,125 @@
 
 ## 1. Resumen Ejecutivo
 
-- **Proyecto**: **Katakuri v3.0** (Plataforma Autónoma de Predicción Deportiva con IA)
-- **Regla de Versiones**: Cada solicitud de cambios incrementa la versión en +0.1 (ej. v1.2 ➔ ... ➔ v2.5 ➔ v2.6 ➔ v2.7 ➔ v2.8 ➔ v2.9 ➔ v3.0).
+- **Proyecto**: **Katakuri v3.3** (Plataforma Autónoma de Predicción Deportiva con IA)
+- **Regla de Versiones**: Cada solicitud de cambios incrementa la versión en +0.1 (ej. v1.2 ➔ ... ➔ v3.0 ➔ v3.1 ➔ v3.2 ➔ v3.3).
 - **Idioma de la Plataforma**: **100% Español** (interfaz, telemetría, veredictos humanos y logs de estado).
 - **Objetivo**: A partir de los nombres de dos equipos o una URL de partido online, recopila datos reales en tiempo real mediante **Gemini (Flash Lite) + LangChain + Sofascore API + Flashscore Ninja Feeds** y ejecuta un ensamble **100% local** compuesto por:
-  1. **Poisson Bivariado Calibrado con corrección Dixon-Coles ($\tau$), Elasticidad Amortiguada ($\gamma=0.65$), Shrinkage Bayesiano y Curva In-Play**
-  2. **XGBoost / LightGBM** (Modelo tabular con 18 features numéricas, sigmoide calibrada y ajuste in-play)
+  1. **Poisson Bivariado Calibrado con corrección Dixon-Coles ($\tau$), Normalización Estricta por Torneo, Localía Simétrica ($\sqrt{h}$), Elasticidad ($\gamma=0.52$), Sobredispersión Binomial Negativa en Córners/Tarjetas y Dinámica In-Play de Estado de Marcador (Game State Effect)**
+  2. **XGBoost / LightGBM** (Modelo tabular con 18 features numéricas, soporte neutral H2H y sigmoide calibrada)
   3. **PyTorch LSTM** (Red neuronal recurrente para series temporales y momentum relativo)
-  4. **Meta-Ensamble Calibrado con Ponderación Bayesiana Dinámica y Mercados Derivados (1X, X2, 12, DNB)**
-- **Versión Actual**: **v3.0**
-- **Estado General**: **100% Operativo, Erradicación del Error HTTP 502 y Sincronización Total de Puertos y Proxy**
+  4. **Meta-Ensamble con Matriz Bivariada de Consenso Unificado, Coalescencia Estricta, Ponderación Bayesiana Dinámica, Marcadores Concordantes y Mercados Derivados (1X, X2, 12, DNB)**
+  5. **Módulo Formal de Validación Empírica y Backtesting Automatizado (`backend/app/analytics/backtest.py`) con métricas RPS (Ranked Probability Score), Brier Score, Log-Loss y MAE/RMSE**
+- **Versión Actual**: **v3.3**
+- **Estado General**: **100% Operativo, Matriz Bivariada de Consenso Unificado, Binomial Negativa Calibrada, Dinámica Game State y Suite Completa de Backtesting**
 
 ---
 
-## 2. Novedades y Mejoras en la Versión v3.0 (Erradicación del Error HTTP 502 Bad Gateway y Resiliencia Fullstack)
+## 2. Novedades y Mejoras en la Versión v3.3 (Auditoría Predictiva: Puntos 5, 6, 8 y 3 Implementados)
+
+1. **Matriz Bivariada de Consenso en Meta-Ensamble (Punto 5 — `ensemble.py`, `poisson.py`)**:
+   - **Causa Raíz Resuelta**: Anteriormente, el ensamble combinaba de forma desacoplada la probabilidad de Over 2.5 (`over_2_5_combined = p_over * wp + xgb_over * wx`), mientras que la distribución de goles discretos (0 a 5+ goles) y los top marcadores se extraían directamente de Poisson. Esto generaba inconsistencias donde la suma acumulada de 3, 4 y 5+ goles no coincidía exactamente con el porcentaje de Over 2.5 mostrado en pantalla.
+   - **Solución Implementada**:
+     * A partir de la expectativa combinada consensual de goles y las cuotas de dominio local/visitante, se evalúa una **Matriz Bivariada de Consenso Unificado** (`evaluate_matrix_goals`).
+     * Coherencia matemática del 100%: $P(\text{Over 2.5}) \equiv \sum_{k \ge 3} P(k \text{ goles})$.
+     * Monotonía garantizada: $\text{Over 1.5} \ge \text{Over 2.5} \ge \text{Over 3.5}$.
+     * En partidos en directo, la distribución arranca estrictamente desde los goles ya anotados (ej. con marcador 2-1, las probabilidades de 0, 1 y 2 goles son estrictamente 0.0%).
+
+2. **Distribución Binomial Negativa para Córners y Tarjetas (Punto 6 — `poisson.py`)**:
+   - **Causa Raíz Resuelta**: La distribución de Poisson simple asume que la varianza es igual a la media ($\sigma^2 = \mu$). En el fútbol real, los saques de esquina y las tarjetas presentan sobredispersión empírica por asedios continuos y tarjetas encadenadas por faltas tácticas, provocando que la Poisson pura subestimara las probabilidades de colas largas.
+   - **Solución Implementada**:
+     * Funciones estadísticas `nbinom_survival` y `nbinom_pmf` parametrizadas por sobredispersión $\alpha$: $p = 1 / \alpha$, $n = \mu / (\alpha - 1)$, garantizando media $\mu$ y varianza $\alpha \cdot \mu$.
+     * Calibración de córners: sobredispersión $\alpha = 1.20$ conforme a la literatura empírica de córners (McHale & Scarf).
+     * Calibración de tarjetas: sobredispersión $\alpha = 1.40$ para modelar la fricción y escalamiento de amonestaciones.
+
+3. **Dinámica de Estado de Marcador en Directo / Game State Effect (Punto 8 — `poisson.py`)**:
+   - **Causa Raíz Resuelta**: En vivo, el ritmo goleador y las probabilidades restantes no dependen únicamente del tiempo transcurrido, sino del diferencial de goles. Un equipo perdiendo por 1 gol a partir del minuto 50 arriesga al ataque, mientras que una goleada abultada ($\ge 3$ goles) al minuto 70 desacelera el ritmo de juego.
+   - **Solución Implementada**:
+     * **Factor de Urgencia**: A partir del minuto 50, si la diferencia es de 1 gol (`score_diff == 1` o `-1`), el equipo en desventaja intensifica su parámetro ofensivo hasta en un +15% a +18%, abriendo a su vez espacios de contraataque.
+     * **Factor de Enfriamiento (Blowout Cooling)**: Si la ventaja es $\ge 3$ goles al minuto 70 en adelante, la expectativa de goles restantes se atenúa suavemente hasta un -15%, evitando proyecciones de goles fantasmas en tiempo de trámite.
+
+4. **Framework Formal de Validación Empírica y Backtesting (Punto 3 — `backend/app/analytics/backtest.py`)**:
+   - **Causa Raíz Resuelta**: Ausencia de herramientas automatizadas para auditar matemáticamente la calibración de las predicciones del sistema contra marcadores reales mediante métricas probabilísticas de referencia.
+   - **Solución Implementada**:
+     * **RPS (Ranked Probability Score)** para el mercado 1X2 conforme a la metodología Constantinou & Fenton (penaliza distancias ordinales entre Local, Empate y Visitante).
+     * **Brier Score** para mercados binarios (Over 2.5 y Ambos Anotan - BTTS).
+     * **Log-Loss (Cross-Entropy Loss)** para calibración de confianza.
+     * **MAE y RMSE** para goles totales y tiros de esquina.
+     * Dataset curado de benchmark de partidos históricos representativos (`get_benchmark_dataset()`).
+     * Endpoints REST en FastAPI: `GET /api/backtest/benchmark` y `POST /api/backtest/run`.
+
+5. **Rediseño del Sistema de Interfaz Visual (Aurora UI & Glow — `frontend-design`)**:
+   - **Causa Raíz Resuelta**: Eliminación de tropos y clichés visuales genéricos de IA (sombras grises difusas, exceso de mayúsculas sostenidas, etiquetas en all-caps, dobles barras `//` y falta de integración directa con la validación de modelos).
+   - **Solución Implementada**:
+     * **Estilo Aurora UI & Glow (`ide-theme.css`)**: Fondo atmosférico con gradientes radiales sutiles (cian, esmeralda y violeta tenue en base obsidian `#08090e`), paneles de cristal con `backdrop-filter: blur(14px)`, bordes hairline luminosos y halos de resplandor contextual (`--emerald-glow`, `--azure-glow`, `--crimson-glow`).
+     * **Paleta Semántica en Gráfica de Distribución (`DistributionChart.jsx`)**: Sustitución de colores arcoíris aleatorios por un gradiente de densidad analítico que destaca el rango modal con esmeralda luminoso (`#10b981`), probabilidades intermedias en azul celeste (`#0ea5e9` / `#38bdf8`) y colas en gris acero neutro. Micro-interacción con resplandor en hover para chips de marcadores.
+     * **Migración de Estilos Inline a Clases CSS Semánticas (`LoginModal.jsx`, `WinnerCard.jsx`, `MetricCards.jsx`)**: Eliminación de más de 120 líneas de estilos inline en LoginModal; creación de clases modulares `.derived-market-card`, `.derived-stat-pill`, `.live-telemetry-pill` y sustitución de emojis por dots pulsantes nativos (`.pulse-dot-red`, `.pulse-dot-green`).
+     * **Tipografía Limpia en Sentence Case**: Sustitución de all-caps en `NeuralUrlCard`, `LiveNeuralSection`, `RecentMatchesBar`, `DistributionChart` y `LoginModal` (`"Historial y sugerencias"`, `"Red Neuronal LSTM · Rastreo en directo"`, `"Córners en tiempo restante"`, etc.).
+     * **Modal Interactivo de Calibración (`BacktestModal.jsx`)**: Conectado directamente con el nuevo endpoint de benchmark empírico (`/api/backtest/benchmark`). Muestra KPIs cuantitativos (RPS, Brier Score Over 2.5, Brier BTTS, MAE Goles, RMSE) y desglose partido a partido con etiquetas semánticas de resultado y predicción.
+     * **Compilación y Linter Perfectos**: `oxlint` pasando con 0 errores y `vite build` completado con éxito (`dist/` generado en 847 ms).
+
+---
+
+## 3. Novedades y Mejoras en la Versión v3.2 (Auditoría Predictiva: Puntos 1 y 2 Implementados)
+
+1. **Normalización Estricta por Torneo y Localía Simétrica en Poisson (`poisson.py`)**:
+   - **Causa Raíz del Sesgo Resuelto (Punto 2.1)**: Los ratios de ataque y defensa se normalizaban contra un promedio universal estático de 1.35 goles, pero luego se multiplicaban por la media real de la competición (ej: 1.54 en Bundesliga). En ligas de alto goleo, un equipo promedio aparecía con ratio artificial de 1.14 (fuerte) y la localía (`* 1.11`) solo inflaba al anfitrión sin contraer al visitante, proyectando 3.56 goles en partidos donde la media era 3.08 (**+15.6% de inflación**).
+   - **Solución Implementada**:
+     * La referencia de shrinkage y adimensionalización se ancla a la media real del torneo (`league_ref = league_avg_goals`). Dos equipos estándar de Bundesliga dan exactamente 3.08 goles (< 0.2% de diferencia).
+     * Localía simétrica: el local se modula por $\sqrt{\text{home\_adv}}$ y el visitante por $1/\sqrt{\text{home\_adv}}$, conservando la ratio exacta de ventaja local sin inflar el volumen global de goles del partido.
+     * Eliminación de regla discontinua de bloque bajo (`mu_away *= 0.88`), que colapsaba la discriminación de favoritos y duplicaba factores de defensa.
+
+2. **Escalado de Volumen en H2H sin Aplanar hacia la Paridad (`poisson.py`)**:
+   - **Causa Raíz Resuelta**: El ajuste histórico previo mezclaba ambos lambdas hacia una tasa común (`h2h_shrunk_rate * 1.04` vs `0.96`), comprimiendo duelos desiguales (ej. Bayern vs Bochum) hacia la paridad.
+   - **Solución Implementada**: El H2H modula proporcionalmente el volumen total esperado del encuentro (`h2h_scale`), manteniendo inalterada la proporción relativa $\lambda_{\text{home}} / \mu_{\text{away}}$.
+
+3. **Coalescencia Estricta en Meta-Ensamble (`_coalesce` en `ensemble.py`)**:
+   - **Causa Raíz Resuelta (Punto 2.3)**: El operador `or` en expresiones como `pois_p2 = p_res.get("plus_2_goals_pct") or (final_more_p * 0.65)` trataba las probabilidades legítimas de `0.0%` (comunes en los minutos 80'-90') como ausentes, inyectando fallbacks inflados de más del 5% en líneas de goles imposibles.
+   - **Solución Implementada**: Función `_coalesce(val, fallback)` que preserva ceros exactos y solo activa el respaldo si el valor es estrictamente `None`.
+
+4. **Parsing Robusto de Minutos de Juego (`parse_elapsed_minute` en `poisson.py`)**:
+   - **Causa Raíz Resuelta (Punto 2.2)**: Cadenas como `"1st half 30"` eran detectadas erróneamente como segundo tiempo debido a la subcadena `"ST"`, retornando minuto 46 en vez de 30. Asimismo, formatos como `"2T 68'"` extraían el primer dígito (2) en lugar del minuto real.
+   - **Solución Implementada**: Expresiones regulares con límites de palabra (`\b(1T|1ST|PT)\b`), evaluación estricta de primer tiempo antes que segundo tiempo y remoción de prefijos de periodo previa a la extracción numérica.
+
+5. **Defaults Neutrales de Enfrentamientos Directos (`match.py`, `parser.py`, `tabular_ml.py`)**:
+   - **Causa Raíz Resuelta (Punto 2.4)**: Los defaults del schema contenían 5 partidos ficticios con 2 victorias locales, 1 empate y 2 visitantes. Si Gemini no encontraba historial, los motores trataban este valor como historial verificado.
+   - **Solución Implementada**: Defaults limpios en 0 partidos (`total_matches_analyzed = 0`), fallback de contingencia en parser regularizado y tratamiento neutral en XGBoost (`h2h_h_ratio = 0.35`, `avg_goals = league_total`).
+
+---
+
+## 3. Novedades y Mejoras en la Versión v3.1 (Calibración de Precisión: Erradicación de Goles y Córners Inflados y Concordancia de Marcador)
+
+1. **Modelo de Córners con Balanza Territorial y Suma Equilibrada (`poisson.py`)**:
+   - **Causa Raíz de la Inflación**: Anteriormente se sumaban linealmente los córners individuales del local y visitante (`h_corners + a_corners`) aplicándole un multiplicador adicional del 10% (`* 1.10`) y un factor ofensivo al favorito. Cuando dos clubes ofensivos se enfrentaban, el modelo proyectaba marcadores astronómicos de 12 a 14 córners (con Over 9.5 al 80%+).
+   - **Solución Implementada**:
+     * **Suma de Posesión Cuasi-Constante**: El fútbol es un deporte territorial de 90 minutos con suma constante. Si un equipo grande domina con 65% de posesión y genera 7-8 córners, el rival encerrado suele generar solo 1 o 2, no 4.5.
+     * **Baselines por Competición**: Se incorporaron baselines empíricos de córners por torneo (Premier: 10.1, Bundesliga: 9.7, LaLiga: 9.2, Serie A: 9.5).
+     * **Elasticidad Amortiguada del Ritmo de Partido ($0.40$)**: La suma total del partido se ancla firmemente a la media de la liga, modulándose sutilmente por el exceso/déficit conjunto de los clubes.
+     * **Reparto por Cuota Territorial**: Los córners totales se distribuyen en base a la balanza de presión territorial de cada equipo (`home_share` vs `away_share`), acotando los partidos entre 8.5 y 10.6 córners totales.
+     * **En Vivo (Ritmo Observado Mixto)**: Se pondera bayesianamente el ritmo real de córners disputados ($\text{córners reales} / \text{minuto transcurrido}$) con la base teórica restante, evitando que partidos lentos en directo proyecten ráfagas irreales de córners al final.
+
+2. **Amortiguamiento de Goles y Moderación Táctica de Bloque Bajo (`poisson.py`, `tabular_ml.py`)**:
+   - **Causa Raíz de la Inflación**: La multiplicación cuadrática de ratios de ataque y defensa en torneos como Premier o Bundesliga inflaba $\lambda_{\text{home}} + \mu_{\text{away}}$ por encima de 3.6 goles en partidos estándar.
+   - **Solución Implementada**:
+     * **Elasticidad de Precisión ($\gamma = 0.52$)**: Atenúa colas extremas de rachas goleadoras cortas sin perder la discriminación entre favoritos y rivales débiles.
+     * **Modelado Táctico de Bloque Bajo (Low-Block)**: Cuando un favorito tiene amplia ventaja de calidad, se modela el repliegue defensivo del rival menor, contrayendo sus llegadas de gol (`mu_away *= 0.88`).
+     * **Techo Dinámico de Competición**: La expectativa de goles esperados pre-match se modula para que los partidos promedio de liga oscilen de forma natural entre **2.40 y 2.90 goles**.
+     * **Tabular ML con baselines de torneo**: Expectativas de soporte tabular ancladas a los parámetros del torneo en curso en vez de una constante estática de 1.35.
+
+3. **Concordancia Estricta del Marcador Más Probable (`most_likely_score` en `ensemble.py`)**:
+   - **Causa Raíz del Problema**: En partidos donde el local tenía 78% de probabilidad de ganar (ej. Real Madrid vs Osasuna), la celda marginal no condicionada de Poisson para 1-1 tenía una probabilidad individual de 11.2% frente a 10.8% del 2-0 o 2-1. El sistema mostraba un marcador más probable de empate (1-1) cuando el veredicto era favorito 78% local, generando una contradicción severa para el usuario.
+   - **Solución Implementada**:
+     * Cuando el ensamble determina un favorito claro ($\ge 50\%$ de probabilidad o ventaja $\ge 12\%$), el marcador más probable se selecciona estrictamente de los marcadores concordantes con la victoria del equipo favorecido (`gh > ga` si es local, `ga > gh` si es visitante).
+     * Los empates (1-1, 0-0) se reservan para partidos de auténtica paridad o alta probabilidad de empate ($\ge 30\%$).
+
+4. **Calibración de Schemas y Prompts del Parser (`match.py`, `parser.py`)**:
+   - En `schemas/match.py`, se regularizaron los defaults a valores de fútbol profesional (goles H2H 2.5 en vez de 2.8, córners H2H 9.2 en vez de 9.5).
+   - En el prompt de Gemini, se ajustaron los rangos típicos para evitar que la IA asigne promedios inflados de 8.5 córners individuales.
+   - En `collector.py`, se blindó el descarte de URLs ajenas cuando el usuario ingresa equipos distintos en la barra superior.
+
+---
+
+## 4. Novedades y Mejoras en la Versión v3.0 (Estabilidad y Erradicación de HTTP 502 Bad Gateway)
 
 1. **Sincronización Total del Puerto del Backend (`PORT=8000`)**:
    - **Causa Raíz del 502**: En el archivo `.env` se encontraba configurado `PORT=3000` y en `backend/app/config.py` el valor por defecto era `3000`. Si el backend era iniciado mediante `backend/app/main.py` o scripts directos de Python, Uvicorn escuchaba en el puerto 3000. Mientras tanto, el proxy de Vite en `vite.config.js` y `run_app.py` apuntaban exclusivamente al puerto 8000. Al no existir ningún servicio respondiendo en el puerto 8000, Vite recibía `ECONNREFUSED` y retornaba `HTTP 502 Bad Gateway`.
@@ -409,6 +514,10 @@
 | **v2.7** | Fase 3: Calibración Pre-Match por ligas, ponderación posicional de ausencias y mercados derivados avanzados (Doble Oportunidad 1X/X2/12 y Draw No Bet DNB) | ✅ Completado |
 | **v2.8** | Erradicación de Sobreestimación de Goles: Shrinkage Bayesiano, elasticidad amortiguada gamma=0.65, sigmoide de Over 2.5 y momentum relativo LSTM | ✅ Completado |
 | **v2.9** | Blindaje contra Failed to fetch: Proxy Vite /api, resolución IPv4 unificada y acotamiento de reload-dir | ✅ Completado |
+| **v3.0** | Erradicación de HTTP 502 Bad Gateway: Sincronización PORT=8000, bucle de arranque en run_app.py y timeouts 180s | ✅ Completado |
+| **v3.1** | Calibración de Precisión: Balanza territorial de córners, elasticidad gamma=0.52, mitigación de bloque bajo y concordancia de marcadores | ✅ Completado |
+| **v3.2** | Auditoría Predictiva Puntos 1 y 2: Normalización por liga, localía simétrica, parsing robusto de minutos y H2H no colapsado | ✅ Completado |
+| **v3.3** | Auditoría Predictiva Puntos 5, 6, 8 y 3: Matriz Bivariada de Consenso Unificado, Binomial Negativa (córners/tarjetas), Dinámica Game State y Suite de Backtesting (RPS/Brier/Log-Loss/MAE) | ✅ Completado |
 
 ---
 
@@ -421,6 +530,8 @@
   - **Parámetros**: `home_team`, `away_team`, `competition` (opcional), `force_refresh` (bool), `is_live` (bool opcional), `live_score` (opcional), `live_minute` (opcional), `live_corners` (opcional).
 - `GET /api/predictions/recent`: Lista de últimos análisis guardados en SQLite.
 - `GET /api/health`: Estado de salud de los modelos y base de datos.
+- `GET /api/backtest/benchmark`: Ejecuta backtesting sobre el dataset curado de partidos históricos (RPS, Brier, Log-Loss, MAE).
+- `POST /api/backtest/run`: Ejecuta backtesting sobre un lote personalizado de partidos con resultados verificados.
 
 ---
 
@@ -431,19 +542,22 @@
   - O en Windows: `iniciar_app.bat` o `iniciar_app.ps1`
 - **Iniciar Backend de forma individual**:
   - `.venv\Scripts\activate`
-  - `uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload`
+  - `uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir backend`
 - **Iniciar Frontend de forma individual**:
   - `cd frontend`
   - `npm run dev` (abre en `http://localhost:5173`)
 - **Compilar Frontend para producción**:
   - `cd frontend`
   - `npm run build`
-- **Ejecutar Tests de Integración**:
-  - `python backend/tests/test_live_and_sync.py`
-  - `python backend/tests/test_v18_dynamic_live.py`
-  - `python backend/tests/test_v19_live_corners_and_score.py`
-  - `python backend/tests/test_live_corners_and_sync_stability.py`
-  - `python backend/tests/test_v25_phase1_live_math_enhancements.py`
-  - `python backend/tests/test_v26_phase2_telemetry_and_red_cards.py`
-  - `python backend/tests/test_v27_phase3_competition_and_markets.py`
+- **Ejecutar Tests de Integración y Calibración**:
+  - `python backend/tests/test_v33_consensus_nbinom_gamestate.py`
+  - `python backend/tests/test_v33_backtest_framework.py`
+  - `python backend/tests/test_v32_audit_fixes_points_1_and_2.py`
+  - `python backend/tests/test_v31_calibration_corners_and_goals.py`
+
   - `python backend/tests/test_v28_goal_overestimation_calibration.py`
+  - `python backend/tests/test_v27_phase3_competition_and_markets.py`
+  - `python backend/tests/test_v26_phase2_telemetry_and_red_cards.py`
+  - `python backend/tests/test_v25_phase1_live_math_enhancements.py`
+  - `python backend/tests/test_live_corners_and_sync_stability.py`
+  - `python backend/tests/test_fase3_engine.py`

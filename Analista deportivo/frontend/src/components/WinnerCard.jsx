@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, CheckCircle, ShieldAlert } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 
 export default function WinnerCard({ match, winner, isLive }) {
   if (!match || !winner) return null;
@@ -29,17 +29,18 @@ export default function WinnerCard({ match, winner, isLive }) {
             [{match.competition || 'General'}]
           </span>
           {showLive && (
-            <span className="live-badge-tag">
-              <span className="pulse-icon">🔴</span> EN VIVO {match.live_score ? `[${match.live_score}]` : ''}
-              <span style={{ fontSize: '0.65rem', background: 'rgba(239, 68, 68, 0.25)', padding: '0.1rem 0.35rem', borderRadius: '3px', marginLeft: '0.2rem' }}>
-                PRIORIDAD ACTIVA
+            <span className="live-badge-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span className="pulse-dot-red"></span>
+              <span>En vivo {match.live_score ? `[${match.live_score}]` : ''}</span>
+              <span style={{ fontSize: '0.65rem', background: 'rgba(244, 63, 94, 0.22)', padding: '0.1rem 0.35rem', borderRadius: '3px', marginLeft: '0.2rem' }}>
+                Prioridad activa
               </span>
             </span>
           )}
         </div>
 
         <div className="human-verdict-box">
-          <Trophy size={16} color="var(--lime)" />
+          <Trophy size={16} color="var(--emerald)" />
           <span>Veredicto: <strong>{human_verdict}</strong></span>
         </div>
       </div>
@@ -66,21 +67,21 @@ export default function WinnerCard({ match, winner, isLive }) {
         <div className="probs-labels-grid">
           <div className="prob-item">
             <span className="prob-title" title={`Victoria de ${match.home_team}`}>
-              1. {match.home_team ? match.home_team.toUpperCase() : 'LOCAL'}
+              1. {match.home_team || 'Local'}
             </span>
             <span className="prob-value home">{home_win_pct}%</span>
           </div>
 
           <div className="prob-item" style={{ textAlign: 'center' }}>
             <span className="prob-title" title="Empate">
-              X. EMPATE
+              X. Empate
             </span>
             <span className="prob-value draw">{draw_pct}%</span>
           </div>
 
           <div className="prob-item" style={{ textAlign: 'right' }}>
             <span className="prob-title" title={`Victoria de ${match.away_team}`}>
-              2. {match.away_team ? match.away_team.toUpperCase() : 'VISITANTE'}
+              2. {match.away_team || 'Visitante'}
             </span>
             <span className="prob-value away">{away_win_pct}%</span>
           </div>
@@ -88,37 +89,28 @@ export default function WinnerCard({ match, winner, isLive }) {
       </div>
 
       {(winner.double_chance || winner.draw_no_bet) && (
-        <div className="derived-markets-container" style={{
-          marginTop: '1rem',
-          paddingTop: '0.85rem',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '0.75rem',
-          fontSize: '0.8rem',
-          fontFamily: 'var(--font-mono)'
-        }}>
+        <div className="derived-markets-container">
           {winner.double_chance && (
-            <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.5rem 0.75rem', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-              <div style={{ color: 'var(--text-dim)', fontSize: '0.7rem', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Doble Oportunidad (1X / X2 / 12)
+            <div className="derived-market-card">
+              <div className="derived-market-title">
+                Doble oportunidad (1X / X2 / 12)
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
-                <span>1X: <strong style={{ color: 'var(--cyan)' }}>{winner.double_chance.home_or_draw_pct}%</strong></span>
-                <span>X2: <strong style={{ color: 'var(--purple)' }}>{winner.double_chance.draw_or_away_pct}%</strong></span>
-                <span>12: <strong style={{ color: 'var(--lime)' }}>{winner.double_chance.home_or_away_pct}%</strong></span>
+              <div className="derived-market-row">
+                <span className="derived-stat-pill">1X: <strong style={{ color: 'var(--cyan)' }}>{winner.double_chance.home_or_draw_pct}%</strong></span>
+                <span className="derived-stat-pill">X2: <strong style={{ color: 'var(--purple)' }}>{winner.double_chance.draw_or_away_pct}%</strong></span>
+                <span className="derived-stat-pill">12: <strong style={{ color: 'var(--lime)' }}>{winner.double_chance.home_or_away_pct}%</strong></span>
               </div>
             </div>
           )}
 
           {winner.draw_no_bet && (
-            <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.5rem 0.75rem', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-              <div style={{ color: 'var(--text-dim)', fontSize: '0.7rem', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Empate Apuesta No Válida (DNB)
+            <div className="derived-market-card">
+              <div className="derived-market-title">
+                Empate apuesta no válida (DNB)
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
-                <span>Local DNB: <strong style={{ color: 'var(--cyan)' }}>{winner.draw_no_bet.home_dnb_pct}%</strong></span>
-                <span>Visitante DNB: <strong style={{ color: 'var(--purple)' }}>{winner.draw_no_bet.away_dnb_pct}%</strong></span>
+              <div className="derived-market-row">
+                <span className="derived-stat-pill">Local DNB: <strong style={{ color: 'var(--cyan)' }}>{winner.draw_no_bet.home_dnb_pct}%</strong></span>
+                <span className="derived-stat-pill">Visitante DNB: <strong style={{ color: 'var(--purple)' }}>{winner.draw_no_bet.away_dnb_pct}%</strong></span>
               </div>
             </div>
           )}

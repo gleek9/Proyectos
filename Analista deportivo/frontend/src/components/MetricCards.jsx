@@ -11,34 +11,35 @@ export default function MetricCards({ prediction, match, isLive }) {
       <div className="metric-panel">
         <div className="panel-header">
           <span className="panel-title">
-            <Target size={15} color="var(--lime)" />
-            <span>Proyección de Goles</span>
+            <Target size={15} color="var(--emerald)" />
+            <span>Proyección de goles</span>
           </span>
           <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-            {effectiveLive ? 'MODELO EN VIVO DINÁMICO' : 'MODELO POISSON + ML'}
+            {effectiveLive ? 'En vivo dinámico' : 'Consenso bivariado'}
           </span>
         </div>
 
         <div className="panel-main-stat">
           <div>
-            <div className="stat-number" style={{ color: 'var(--lime)' }}>
+            <div className="stat-number" style={{ color: 'var(--emerald)' }}>
               {goals.expected_total}
             </div>
             <div className="stat-desc">
-              {effectiveLive ? 'Goles Totales Acumulados Proyectados' : 'Goles Totales Esperados'}
+              {effectiveLive ? 'Goles totales acumulados proyectados' : 'Goles totales esperados'}
             </div>
           </div>
           <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
             {effectiveLive && match?.live_score && (
               <div>
-                <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--red)', fontWeight: 700, background: 'rgba(239, 68, 68, 0.12)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-                  🔴 ACTUAL: {match.live_score} {match.live_minute ? `(${match.live_minute})` : ''}
+                <span className="live-telemetry-pill">
+                  <span className="pulse-dot-red"></span>
+                  <span>Actual: {match.live_score} {match.live_minute ? `(${match.live_minute})` : ''}</span>
                 </span>
               </div>
             )}
             <div>
               <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-                {effectiveLive ? 'PROYECCIÓN FINAL' : 'MARCADOR PROBABLE'}
+                {effectiveLive ? 'Proyección final' : 'Marcador probable'}
               </span>
               <div style={{ fontSize: '1.25rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-main)' }}>
                 {goals.most_likely_score}
@@ -49,19 +50,19 @@ export default function MetricCards({ prediction, match, isLive }) {
 
         <div className="submetrics-list">
           <div className="submetric-row">
-            <span className="submetric-key">Más de 1.5 Goles:</span>
+            <span className="submetric-key">Más de 1.5 goles:</span>
             <span className="submetric-val">{goals.over_1_5_pct}%</span>
           </div>
           <div className="submetric-row">
-            <span className="submetric-key">Más de 2.5 Goles:</span>
+            <span className="submetric-key">Más de 2.5 goles:</span>
             <span className="submetric-val highlight">{goals.over_2_5_pct}%</span>
           </div>
           <div className="submetric-row">
-            <span className="submetric-key">Más de 3.5 Goles:</span>
+            <span className="submetric-key">Más de 3.5 goles:</span>
             <span className="submetric-val">{goals.over_3_5_pct}%</span>
           </div>
           <div className="submetric-row">
-            <span className="submetric-key">Ambos Equipos Anotan (Sí):</span>
+            <span className="submetric-key">Ambos equipos anotan (Sí):</span>
             <span className="submetric-val highlight">{goals.both_teams_to_score_pct}%</span>
           </div>
         </div>
@@ -75,29 +76,29 @@ export default function MetricCards({ prediction, match, isLive }) {
       <div className="metric-panel">
         <div className="panel-header">
           <span className="panel-title">
-            <Flag size={15} color="var(--cyan)" />
-            <span>Tiros de Esquina</span>
+            <Flag size={15} color="var(--azure)" />
+            <span>Tiros de esquina</span>
           </span>
           <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-            {effectiveLive ? 'DINÁMICA CÓRNERS EN VIVO' : 'PROYECCIÓN CÓRNERS'}
+            {effectiveLive ? 'Dinámica en vivo' : 'Binomial negativa'}
           </span>
         </div>
 
         <div className="panel-main-stat">
           <div>
-            <div className="stat-number" style={{ color: 'var(--cyan)' }}>
+            <div className="stat-number" style={{ color: 'var(--azure)' }}>
               {corners.expected_total}
             </div>
             <div className="stat-desc">
-              {effectiveLive ? 'Córners Totales Proyectados' : 'Córners Estimados'}
+              {effectiveLive ? 'Córners totales proyectados' : 'Córners estimados'}
             </div>
           </div>
           {effectiveLive && (
             <div style={{ textAlign: 'right' }}>
               <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-                CÓRNERS EN DIRECTO
+                Córners en directo
               </span>
-              <div style={{ fontSize: '1.25rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--cyan)' }}>
+              <div style={{ fontSize: '1.25rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--azure)' }}>
                 {corners.current_corners !== null && corners.current_corners !== undefined
                   ? corners.current_corners
                   : (match?.live_corners !== null && match?.live_corners !== undefined ? match.live_corners : '--')}
@@ -108,20 +109,20 @@ export default function MetricCards({ prediction, match, isLive }) {
 
         <div className="submetrics-list">
           <div className="submetric-row">
-            <span className="submetric-key">Más de 8.5 Córners:</span>
+            <span className="submetric-key">Más de 8.5 córners:</span>
             <span className="submetric-val">{corners.over_8_5_pct}%</span>
           </div>
           <div className="submetric-row">
-            <span className="submetric-key">Más de 9.5 Córners:</span>
+            <span className="submetric-key">Más de 9.5 córners:</span>
             <span className="submetric-val highlight">{corners.over_9_5_pct}%</span>
           </div>
           <div className="submetric-row">
-            <span className="submetric-key">Más de 10.5 Córners:</span>
+            <span className="submetric-key">Más de 10.5 córners:</span>
             <span className="submetric-val">{corners.over_10_5_pct}%</span>
           </div>
         </div>
 
-        <div className="metric-verdict" style={{ borderColor: 'var(--cyan)' }}>
+        <div className="metric-verdict" style={{ borderColor: 'var(--azure)' }}>
           {corners.human_verdict}
         </div>
       </div>
@@ -131,10 +132,10 @@ export default function MetricCards({ prediction, match, isLive }) {
         <div className="panel-header">
           <span className="panel-title">
             <AlertTriangle size={15} color="var(--amber)" />
-            <span>Disciplina y Tarjetas</span>
+            <span>Disciplina y amonestaciones</span>
           </span>
           <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-            ANÁLISIS DISCIPLINARIO
+            Sobredispersión &alpha;=1.40
           </span>
         </div>
 
@@ -143,11 +144,11 @@ export default function MetricCards({ prediction, match, isLive }) {
             <div className="stat-number" style={{ color: 'var(--amber)' }}>
               {cards.expected_total}
             </div>
-            <div className="stat-desc">Tarjetas Esperadas</div>
+            <div className="stat-desc">Tarjetas esperadas</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-              RIESGO TARJETA ROJA
+              Riesgo de roja
             </span>
             <div style={{ fontSize: '1.25rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--red)' }}>
               {cards.red_card_risk_pct}%
@@ -157,11 +158,11 @@ export default function MetricCards({ prediction, match, isLive }) {
 
         <div className="submetrics-list">
           <div className="submetric-row">
-            <span className="submetric-key">Más de 3.5 Tarjetas:</span>
+            <span className="submetric-key">Más de 3.5 tarjetas:</span>
             <span className="submetric-val highlight">{cards.over_3_5_pct}%</span>
           </div>
           <div className="submetric-row">
-            <span className="submetric-key">Más de 4.5 Tarjetas:</span>
+            <span className="submetric-key">Más de 4.5 tarjetas:</span>
             <span className="submetric-val">{cards.over_4_5_pct}%</span>
           </div>
         </div>
