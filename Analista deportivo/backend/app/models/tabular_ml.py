@@ -10,7 +10,10 @@ from typing import Dict, List, Tuple
 import xgboost as xgb
 from sklearn.preprocessing import StandardScaler
 from backend.app.schemas.match import MatchRawFeatures
-from backend.app.models.poisson import parse_elapsed_minute, calculate_remaining_goal_ratio, get_competition_parameters
+from backend.app.models.poisson import (
+    parse_elapsed_minute, calculate_remaining_goal_ratio, get_competition_parameters,
+    parse_live_score, condition_1x2_on_live_state,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -155,9 +158,23 @@ class TabularPredictor:
             league_avg_g, _, _ = get_competition_parameters(getattr(raw, "competition", "General"))
             h2h_avg_goals = league_avg_g * 2.0
 
+        # Normalización defensiva de win_rate_last_5 (fracciones vs porcentajes)
+        h_wr = float(h.win_rate_last_5)
+        if h_wr > 1.0:
+            h_wr /= 100.0
+        h_wr = float(np.clip(h_wr, 0.0, 1.0))
+
+        a_wr = float(a.win_rate_last_5)
+        if a_wr > 1.0:
+            a_wr /= 100.0
+        a_wr = float(np.clip(a_wr, 0.0, 1.0))
+
+        # Ventaja de localía calibrada al torneo específico
+        _, comp_home_adv, _ = get_competition_parameters(getattr(raw, "competition", "General"))
+
         feat = [
-            float(h.win_rate_last_5),
-            float(a.win_rate_last_5),
+            h_wr,
+            a_wr,
             float(home_diff),
             float(away_diff),
             float(delta_diff),
@@ -171,7 +188,7 @@ class TabularPredictor:
             float(h2h_avg_goals),
             float(len(h.key_absences)),
             float(len(a.key_absences)),
-            1.15,  # Ventaja de localía
+            float(comp_home_adv),  # Ventaja de localía por torneo
             float(h.avg_corners + a.avg_corners),
             float(h.avg_cards + a.avg_cards)
         ]
@@ -187,46 +204,7 @@ class TabularPredictor:
         p_draw = float(preds[1])
         p_away = float(preds[2])
 
-        # Si el partido es EN VIVO, ajustar con prioridad al marcador y tiempo
-        if getattr(raw, "is_live", False) and getattr(raw, "live_score", None):
-            import re
-            score_match = re.search(r"(\d+)\s*[-:]\s*(\d+)", str(raw.live_score))
-            if score_match:
-                gh = int(score_match.group(1))
-                ga = int(score_match.group(2))
-                goal_diff = gh - ga
-                if goal_diff > 0:
-                    # Ventaja local en vivo
-                    boost = min(0.35, goal_diff * 0.18)
-                    p_home += boost
-                    p_away = max(0.02, p_away - boost * 0.7)
-                    p_draw = max(0.05, p_draw - boost * 0.3)
-                elif goal_diff < 0:
-                    # Ventaja visitante en vivo
-                    boost = min(0.35, abs(goal_diff) * 0.18)
-                    p_away += boost
-                    p_home = max(0.02, p_home - boost * 0.7)
-                    p_draw = max(0.05, p_draw - boost * 0.3)
-
-            # Impacto de inferioridad numérica por tarjetas rojas
-            reds_h = int(getattr(raw, "live_red_cards_home", 0) or 0)
-            reds_a = int(getattr(raw, "live_red_cards_away", 0) or 0)
-            if reds_h > reds_a:
-                card_delta = reds_h - reds_a
-                p_away += min(0.25, card_delta * 0.15)
-                p_home = max(0.02, p_home - min(0.20, card_delta * 0.12))
-            elif reds_a > reds_h:
-                card_delta = reds_a - reds_h
-                p_home += min(0.25, card_delta * 0.15)
-                p_away = max(0.02, p_away - min(0.20, card_delta * 0.12))
-
-        # Asegurar suma = 1.0
-        tot = p_home + p_draw + p_away
-        p_home /= tot
-        p_draw /= tot
-        p_away /= tot
-
-        # Expectativas agregadas de soporte tabular con shrinkage Bayesiano ancladas al torneo
+        # Expectativas agregadas de soporte tabular con shrinkage Bayesiano ancladas al torneo (volumen de 90')
         comp_name = getattr(raw, "competition", "General")
         league_avg_g, home_adv, _ = get_competition_parameters(comp_name)
         w_tab = 0.65
@@ -240,19 +218,55 @@ class TabularPredictor:
         no_more_p_tab = None
         more_p_tab = None
 
-        if is_live and getattr(raw, "live_score", None):
-            import re
+        if is_live:
+            # Condicionamiento temporal in-play: el 1X2 converge al marcador real a medida que se agota el tiempo
             elapsed_min = parse_elapsed_minute(getattr(raw, "live_minute", None))
             time_rem_ratio = calculate_remaining_goal_ratio(elapsed_min)
+            gh, ga = parse_live_score(getattr(raw, "live_score", None))
+            reds_h = int(getattr(raw, "live_red_cards_home", 0) or 0)
+            reds_a = int(getattr(raw, "live_red_cards_away", 0) or 0)
 
-            score_match = re.search(r"(\d+)\s*[-:]\s*(\d+)", str(raw.live_score))
-            if score_match:
-                current_total = int(score_match.group(1)) + int(score_match.group(2))
-                rem_goals_tabular = float(tot_goals_est * time_rem_ratio * 0.95)
-                tot_goals_est = max(float(current_total), current_total + rem_goals_tabular)
-                no_more_p_tab = float(np.exp(-rem_goals_tabular))
-                no_more_p_tab = float(np.clip(no_more_p_tab, 0.02, 0.95))
-                more_p_tab = float(1.0 - no_more_p_tab)
+            p_home, p_draw, p_away = condition_1x2_on_live_state(
+                p_home, p_draw, p_away,
+                total_goals_90=tot_goals_est,
+                curr_gh=gh, curr_ga=ga,
+                time_rem_ratio=time_rem_ratio,
+                reds_h=reds_h, reds_a=reds_a,
+            )
+
+            current_total = gh + ga
+            rem_goals_tabular = float(tot_goals_est * time_rem_ratio * 0.95)
+            tot_goals_est = max(float(current_total), current_total + rem_goals_tabular)
+            if time_rem_ratio > 0:
+                no_more_p_tab = float(np.clip(np.exp(-rem_goals_tabular), 0.02, 0.95))
+            else:
+                no_more_p_tab = 1.0  # Partido finalizado
+            more_p_tab = float(1.0 - no_more_p_tab)
+
+        # Asegurar suma = 1.0
+        tot = p_home + p_draw + p_away
+        p_home /= tot
+        p_draw /= tot
+        p_away /= tot
+
+        if not is_live:
+            # Calibración de temperatura para regularizar polarización excesiva en rachas asimétricas
+            T = 1.35
+            log_p = np.log(np.clip([p_home, p_draw, p_away], 1e-6, 1.0)) / T
+            e_p = np.exp(log_p - np.max(log_p))
+            e_sum = np.sum(e_p)
+            p_home, p_draw, p_away = float(e_p[0] / e_sum), float(e_p[1] / e_sum), float(e_p[2] / e_sum)
+            if p_draw < 0.10:
+                deficit = 0.10 - p_draw
+                p_draw = 0.10
+                if p_home >= p_away:
+                    p_home = max(0.04, p_home - deficit)
+                else:
+                    p_away = max(0.04, p_away - deficit)
+                tot = p_home + p_draw + p_away
+                p_home /= tot
+                p_draw /= tot
+                p_away /= tot
 
         # Probabilidad de Over 2.5 calculada mediante función logística sigmoide calibrada al volumen real
         over_2_5_pct = float(1.0 / (1.0 + np.exp(-1.60 * (tot_goals_est - 2.50))) * 100.0)

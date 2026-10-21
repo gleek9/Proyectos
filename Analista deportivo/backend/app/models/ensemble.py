@@ -4,6 +4,7 @@ Combina Poisson Bivariado Dixon-Coles (40%), XGBoost (35%) y LSTM Secuencial (25
 Garantiza coherencia probabilística (suma 100%) y genera veredictos legibles para personas.
 """
 import logging
+import re
 from typing import Dict, List
 import numpy as np
 from datetime import datetime, timezone
@@ -16,7 +17,9 @@ from backend.app.schemas.prediction import (
     LiveGoalLine, LiveCornerLine,
     DoubleChancePrediction, DrawNoBetPrediction
 )
-from backend.app.models.poisson import poisson_model, parse_elapsed_minute
+from backend.app.models.poisson import (
+    poisson_model, parse_elapsed_minute, calculate_remaining_goal_ratio, parse_live_score
+)
 from backend.app.models.tabular_ml import tabular_predictor
 from backend.app.models.lstm_net import lstm_predictor
 
@@ -91,14 +94,59 @@ class MetaEnsembleEngine:
         current_goals: int = None,
         current_corners: int = None
     ) -> Dict[str, str]:
-        """Genera veredictos simples y directos sin jerga técnica con prioridad en vivo."""
+        """Genera veredictos simples y directos sin jerga técnica con prioridad en vivo y de cierre."""
+        # Detección estricta de partido finalizado
+        elapsed_min = parse_elapsed_minute(live_minute) if is_live else 0
+        min_clean = str(live_minute or "").upper().strip()
+        is_final = is_live and (
+            elapsed_min >= 90 or
+            bool(re.search(r"\b(FT|FINAL|FINALIZADO|TERMINADO|FIN|ENDED|FULL[\s-]?TIME|AET)\b", min_clean))
+        )
+
+        curr_gh, curr_ga = parse_live_score(live_score)
+        score_disp = live_score.strip() if live_score else f"{curr_gh} - {curr_ga}"
+
+        if is_final:
+            # Partido concluido: emisión explícita del resultado final oficial
+            if curr_gh > curr_ga:
+                winner_verdict = f"Partido finalizado. Resultado final: Victoria de {home_team} ({score_disp})."
+            elif curr_ga > curr_gh:
+                winner_verdict = f"Partido finalizado. Resultado final: Victoria de {away_team} ({score_disp})."
+            else:
+                winner_verdict = f"Partido finalizado. Resultado final: Empate ({score_disp})."
+
+            cg = current_goals if current_goals is not None else (curr_gh + curr_ga)
+            goals_verdict = f"Partido concluido con {cg} goles totales ({score_disp}). Mercados de goles en directo cerrados."
+            corners_count = current_corners if current_corners is not None else round(exp_corners)
+            corners_verdict = f"Partido finalizado con {corners_count} córners totales registrados en el encuentro."
+            cards_rounded = round(exp_cards)
+            cards_verdict = f"Encuentro concluido con {cards_rounded} tarjetas acumuladas en el acta final."
+
+            return {
+                "winner": winner_verdict,
+                "goals": goals_verdict,
+                "corners": corners_verdict,
+                "cards": cards_verdict
+            }
+
         # 1. Ganador y coberturas recomendadas
         diff = home_pct - away_pct
+        draw_dominant = draw_pct >= home_pct and draw_pct >= away_pct
 
         if home_pct >= 55.0:
             winner_verdict = f"Favorito claro: {home_team} ({home_pct}% de probabilidad)"
         elif away_pct >= 55.0:
             winner_verdict = f"Favorito claro: {away_team} ({away_pct}% de probabilidad)"
+        elif draw_dominant:
+            # El empate es el desenlace más probable: debe evaluarse antes que la "ligera ventaja",
+            # que solo compara local vs visitante e ignora la masa de probabilidad del empate.
+            if diff >= 5.0:
+                cover = f"1X ({home_team} o empate)"
+            elif diff <= -5.0:
+                cover = f"X2 (empate o {away_team})"
+            else:
+                cover = "Doble Oportunidad"
+            winner_verdict = f"El empate es el desenlace más probable ({draw_pct}%). Cobertura recomendada: {cover}."
         elif diff >= 10.0:
             winner_verdict = f"Ligera ventaja para {home_team} ({home_pct}%). Sugerencia: 1X o DNB para cobertura."
         elif diff <= -10.0:
@@ -140,7 +188,11 @@ class MetaEnsembleEngine:
 
         # 4. Tarjetas
         cards_rounded = round(exp_cards)
-        if exp_cards >= 5.0 or red_card_risk >= 22.0:
+        if is_live and red_card_risk >= 99.0:
+            cards_verdict = f"Partido con expulsión registrada en directo ({cards_rounded} tarjetas proyectadas, riesgo de roja 100%)"
+        elif is_live and elapsed_min >= 70 and red_card_risk <= 6.0:
+            cards_verdict = f"Tramo final disciplinario ({cards_rounded} tarjetas proyectadas, riesgo residual de roja bajo {round(red_card_risk)}%)"
+        elif exp_cards >= 5.0 or red_card_risk >= 22.0:
             cards_verdict = f"Alta intensidad y fricción ({cards_rounded} tarjetas esperadas, riesgo de roja {round(red_card_risk)}%)"
         else:
             cards_verdict = f"Intensidad media ({cards_rounded} tarjetas esperadas, juego dentro del límite reglamentario)"
@@ -158,8 +210,18 @@ class MetaEnsembleEngine:
         is_live = getattr(raw, "is_live", False)
         live_minute = getattr(raw, "live_minute", None)
         live_score = getattr(raw, "live_score", None)
+        elapsed_min = parse_elapsed_minute(live_minute) if is_live else 0
+        min_clean = str(live_minute or "").upper().strip()
+        is_final = is_live and (
+            elapsed_min >= 90 or
+            bool(re.search(r"\b(FT|FINAL|FINALIZADO|TERMINADO|FIN|ENDED|FULL[\s-]?TIME|AET)\b", min_clean))
+        )
 
-        if is_live:
+        if is_final:
+            curr_gh, curr_ga = parse_live_score(live_score)
+            score_disp = live_score.strip() if live_score else f"{curr_gh} - {curr_ga}"
+            factors.append(f"🏁 PARTIDO FINALIZADO: Marcador definitivo {score_disp}. Cierre del encuentro y liquidación de mercados.")
+        elif is_live:
             min_txt = f" (Minuto {live_minute})" if live_minute else ""
             score_txt = f" Marcador en directo: {live_score}." if live_score else ""
             factors.append(f"🔴 PARTIDO EN VIVO{min_txt}:{score_txt} Prioridad absoluta a estadísticas y dinámica del encuentro en curso.")
@@ -295,7 +357,9 @@ class MetaEnsembleEngine:
             exp_goals_combined = round(base_exp_goals * mom_ratio, 2)
 
         # Reparto consensual de goles restantes entre local y visitante
-        rem_goals_combined = max(0.08, exp_goals_combined - curr_tot_goals)
+        # (con el partido terminado no se inyecta ningún piso de goles residuales)
+        match_finished = is_live and calculate_remaining_goal_ratio(elapsed_min) <= 0.0
+        rem_goals_combined = 0.0 if match_finished else max(0.08, exp_goals_combined - curr_tot_goals)
         p_lambda_h = float(p_res.get("lambda_home", 1.30))
         p_mu_a = float(p_res.get("mu_away", 1.15))
         tot_p_lambdas = max(0.1, p_lambda_h + p_mu_a)
@@ -327,7 +391,16 @@ class MetaEnsembleEngine:
         most_likely_score = cons_goals["most_likely_score"]
 
         try:
-            if final_home_p >= 50.0 or (final_home_p - final_away_p >= 12.0):
+            draw_dominant = final_draw_p >= final_home_p and final_draw_p >= final_away_p
+            if draw_dominant:
+                # Si el empate es el desenlace más probable, el marcador mostrado debe ser un empate
+                draw_scores = [
+                    s["score"] for s in top_scores_list
+                    if (int(s["score"].split("-")[0].strip()) == int(s["score"].split("-")[1].strip()))
+                ]
+                if draw_scores:
+                    most_likely_score = draw_scores[0]
+            elif final_home_p >= 50.0 or (final_home_p - final_away_p >= 12.0):
                 home_wins_scores = [
                     s["score"] for s in top_scores_list
                     if (int(s["score"].split("-")[0].strip()) > int(s["score"].split("-")[1].strip()))
@@ -380,27 +453,12 @@ class MetaEnsembleEngine:
         live_corner_lines = []
 
         if is_live:
-            p_pois_no_more = _coalesce(p_res["goals"].get("no_more_goals_pct"), 45.0)
-            p_xgb_no_more = _coalesce(xgb_res.get("live_no_more_goals_pct"), p_pois_no_more)
-            p_lstm_no_more = _coalesce(lstm_res.get("live_no_more_goals_pct"), p_pois_no_more)
-
-            # Ensamble ponderado dinámico de "Sin más goles" según minuto de juego
-            final_no_more_p = round(p_pois_no_more * wp + p_xgb_no_more * wx + p_lstm_no_more * wl, 1)
-            final_no_more_p = float(np.clip(final_no_more_p, 1.0, 99.0))
+            # Líneas en vivo extraídas directamente de la Matriz Bivariada de Consenso:
+            # misma fuente que Over/Under, distribución y marcadores -> coherencia y monotonía garantizadas.
+            final_no_more_p = round(float(_coalesce(cons_goals.get("no_more_goals_pct"), 45.0)), 1)
             final_more_p = round(100.0 - final_no_more_p, 1)
-
-            pois_p2 = _coalesce(p_res["goals"].get("plus_2_goals_pct"), final_more_p * 0.65)
-            final_plus_2_p = round(min(final_more_p * 0.72, pois_p2), 1)
-            pois_p3 = _coalesce(p_res["goals"].get("plus_3_goals_pct"), final_plus_2_p * 0.55)
-            final_plus_3_p = round(min(final_plus_2_p * 0.60, pois_p3), 1)
-
-            import re
-            curr_gh, curr_ga = 0, 0
-            if getattr(raw, "live_score", None):
-                sc_m = re.search(r"(\d+)\s*[-:]\s*(\d+)", str(raw.live_score))
-                if sc_m:
-                    curr_gh, curr_ga = int(sc_m.group(1)), int(sc_m.group(2))
-
+            final_plus_2_p = round(min(final_more_p, float(_coalesce(cons_goals.get("plus_2_goals_pct"), 0.0))), 1)
+            final_plus_3_p = round(min(final_plus_2_p, float(_coalesce(cons_goals.get("plus_3_goals_pct"), 0.0))), 1)
             cg = curr_goals if curr_goals is not None else (curr_gh + curr_ga)
             live_goal_lines = [
                 LiveGoalLine(
@@ -545,7 +603,9 @@ class MetaEnsembleEngine:
                     over_3_5_pct=p_res["cards"]["over_3_5_pct"],
                     over_4_5_pct=p_res["cards"]["over_4_5_pct"],
                     red_card_risk_pct=p_res["cards"]["red_card_risk_pct"],
-                    human_verdict=verdicts["cards"]
+                    human_verdict=verdicts["cards"],
+                    is_live=is_live,
+                    expected_remaining_cards=p_res["cards"].get("expected_remaining_cards") if is_live else None
                 )
             ),
             chart_data=ChartData(

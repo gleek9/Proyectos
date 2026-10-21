@@ -85,6 +85,9 @@ class CardsPrediction(BaseModel):
     over_4_5_pct: float = Field(..., description="Probabilidad de más de 4.5 tarjetas (%)")
     red_card_risk_pct: float = Field(..., description="Probabilidad o riesgo de tarjeta roja (%)")
     human_verdict: str = Field(..., description="Veredicto humano de intensidad y tarjetas")
+    # Campos dinámicos en vivo
+    is_live: Optional[bool] = Field(False, description="Indica si corresponde a partido en vivo")
+    expected_remaining_cards: Optional[float] = Field(None, description="Tarjetas adicionales esperadas en el tiempo restante")
 
 class MatchPredictionDetails(BaseModel):
     winner: WinnerPrediction

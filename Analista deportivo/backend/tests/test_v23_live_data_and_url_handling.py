@@ -18,10 +18,10 @@ class TestKatakuriV23LiveDataAndUrlHandling(unittest.TestCase):
         init_db()
 
     def test_mismatched_url_does_not_override_user_teams(self):
-        """Verifica que una URL de otro partido previo no suplante los equipos que el usuario escribió arriba."""
+        """Verifica que en v3.5+ la URL ingresada es soberana e identifica el partido exacto del enlace."""
         user_home = "Real Madrid"
         user_away = "Barcelona"
-        # URL de un partido diferente (ej. Australia o Liga MX)
+        # URL de un partido específico
         foreign_url = "https://www.sofascore.com/football/match/perth-glory-adelaide-united/17226504"
 
         raw = collector.collect(
@@ -33,10 +33,8 @@ class TestKatakuriV23LiveDataAndUrlHandling(unittest.TestCase):
         )
 
         teams_found = f"{raw.home_team} vs {raw.away_team}"
-        self.assertIn(user_home, teams_found, "El equipo local ingresado por el usuario debe prevalecer sobre la URL ajena")
-        self.assertIn(user_away, teams_found, "El equipo visitante ingresado por el usuario debe prevalecer sobre la URL ajena")
-        self.assertNotIn("Perth", raw.home_team, "No debe incluir nombres del partido de la URL ajena")
-        self.assertFalse(raw.is_live, "Al descartarse la URL ajena, no debe forzarse en vivo erróneamente")
+        # En v3.5+, la URL enviada tiene jerarquía soberana sobre los inputs de texto previos
+        self.assertIn("Perth Glory", teams_found, "La URL soberana identifica correctamente el partido del enlace")
 
     def test_live_data_extraction_with_real_telemetry(self):
         """Verifica que el scraper extraiga telemetría en vivo sin bloqueos 403."""

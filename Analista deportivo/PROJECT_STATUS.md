@@ -1,4 +1,4 @@
-# PROJECT_STATUS.md — Estado de Avance del Proyecto (Katakuri v3.5)
+# PROJECT_STATUS.md — Estado de Avance del Proyecto (Katakuri v3.6)
 
 > **Propósito de este archivo**: Este documento es el punto de control, especificación técnica y seguimiento para desarrolladores y agentes de IA. Cualquier nuevo chat o sesión debe leer este archivo primero para conocer con exactitud la arquitectura, el estado operativo, las credenciales, los modelos predictivos y el funcionamiento de la interfaz.
 
@@ -6,21 +6,82 @@
 
 ## 1. Resumen Ejecutivo
 
-- **Proyecto**: **Katakuri v3.5** (Plataforma Autónoma de Predicción Deportiva con IA)
-- **Regla de Versiones**: Cada solicitud de cambios incrementa la versión en +0.1 (ej. v1.2 ➔ ... ➔ v3.3 ➔ v3.4 ➔ v3.5).
+- **Proyecto**: **Katakuri v3.6** (Plataforma Autónoma de Predicción Deportiva con IA)
+- **Regla de Versiones**: Cada solicitud de cambios incrementa la versión en +0.1 (ej. v1.2 ➔ ... ➔ v3.5 ➔ v3.6).
 - **Idioma de la Plataforma**: **100% Español** (interfaz, telemetría, veredictos humanos y logs de estado).
 - **Objetivo**: A partir de los nombres de dos equipos o una URL de partido online, recopila datos reales en tiempo real mediante **Gemini (Flash Lite) + LangChain + Sofascore API + Flashscore Ninja Feeds** y ejecuta un ensamble **100% local** compuesto por:
-  1. **Poisson Bivariado Calibrado con corrección Dixon-Coles ($\tau$), Normalización Estricta por Torneo, Localía Simétrica ($\sqrt{h}$), Elasticidad ($\gamma=0.52$), Sobredispersión Binomial Negativa en Córners/Tarjetas y Dinámica In-Play de Estado de Marcador (Game State Effect)**
-  2. **XGBoost / LightGBM** (Modelo tabular con 18 features numéricas, soporte neutral H2H y sigmoide calibrada)
+  1. **Poisson Bivariado Calibrado con corrección Dixon-Coles ($\tau$), decaimiento temporal ($\xi=0.12$), Normalización Estricta por Torneo, Localía Simétrica ($\sqrt{h}$), Elasticidad ($\gamma=0.52$), Sobredispersión Binomial Negativa en Córners/Tarjetas y Dinámica In-Play de Estado de Marcador (Game State Effect)**
+  2. **XGBoost / LightGBM** (Modelo tabular con 18 features numéricas, soporte neutral H2H, localía por competición y sigmoide calibrada)
   3. **PyTorch LSTM** (Red neuronal recurrente para series temporales y momentum relativo)
   4. **Meta-Ensamble con Matriz Bivariada de Consenso Unificado, Coalescencia Estricta, Ponderación Bayesiana Dinámica, Marcadores Concordantes y Mercados Derivados (1X, X2, 12, DNB)**
   5. **Módulo Formal de Validación Empírica y Backtesting Automatizado (`backend/app/analytics/backtest.py`) con métricas RPS (Ranked Probability Score), Brier Score, Log-Loss y MAE/RMSE**
-- **Versión Actual**: **v3.5**
-- **Estado General**: **100% Operativo, Resolución Jerárquica de URLs en Vivo, Servidor Resiliente con Auto-Recuperación, Barra Superior Espaciosa y Responsive sin Login Bloqueante**
+- **Versión Actual**: **v3.6**
+- **Estado General**: **100% Operativo, Implementación Completa de Roadmap P1, P2, P3 y P4, Veredicto de Resultado Final, Decaimiento Temporal Dixon-Coles y Telemetría In-Play**
 
 ---
 
-## 2. Novedades y Mejoras en la Versión v3.5 (Resolución Jerárquica de URLs y Estabilización de Servidores)
+## 2. Novedades y Mejoras en la Versión v3.6 (Auditoría Predictiva P1, P2, P3 y P4)
+
+1. **Veredicto y Telemetría de Resultado Final en Partidos Concluidos (`ensemble.py`, `WinnerCard.jsx`)**:
+   - **Causa Raíz Resuelta**: Al ingresar o finalizar un partido en vivo (`is_live=True` con `live_minute="FT"`, `"Final"`, `"Terminado"` o `elapsed_min >= 90`), el ensamble emitía veredictos hipotéticos de pronóstico pre-match como `"Favorito claro: Real Madrid (100.0% de probabilidad)"` en lugar de reportar el desenlace concluido.
+   - **Solución Implementada**:
+     * En `_generate_human_verdicts`: Rama directa de partido finalizado que emite el veredicto explícito: `Partido finalizado. Resultado final: Victoria de {equipo} ({score}).` o `Partido finalizado. Resultado final: Empate ({score}).`
+     * Cierre de mercados en goles (`Partido concluido con {cg} goles totales ({score}). Mercados de goles en directo cerrados`), córners y tarjetas.
+     * En `_extract_key_factors`: Sustitución del factor en vivo por el hito oficial: `🏁 PARTIDO FINALIZADO: Marcador definitivo {score}. Cierre del encuentro y liquidación de mercados.`
+     * En `WinnerCard.jsx`: Detección de partidos concluidos y despliegue del badge estático `Finalizado [{score}]` con acento esmeralda, sustituyendo el pulso parpadeante rojo de partido en juego.
+
+2. **Decaimiento Temporal Exponencial Dixon-Coles ($\xi = 0.12$) en Forma Reciente (`poisson.py`)**:
+   - **Fundamento Matemático**: Siguiendo a Dixon & Coles (1997), los partidos jugados recientemente reflejan con mayor precisión la dinámica táctica y goleadora que partidos de hace meses. Se implementó `_calculate_time_decayed_goal_rates` aplicando ponderación exponencial $w_k = \exp(-\xi \cdot k)$ sobre `last_matches` ($\ge 3$ partidos), mezclando 50% de la media ponderada reciente con 50% del promedio agregado.
+   - **Robustez**: Si no hay partidos individuales disponibles (ej: benchmarks agregados), recurre inmediatamente a los promedios globales con cero regresión matemática.
+
+3. **Clasificador Enriquecido de Ausencias Posicionales y Estrellas de Élite (`poisson.py`)**:
+   - **Ampliación Táctica**: Incorporación de ausencias en el mediocampo (`centrocampista`, `mediocampista`, `pivote`, `mf`, `cm`, etc.), las cuales penalizan la generación ofensiva (-4%) y aumentan la vulnerabilidad defensiva (+4%).
+   - **Abreviaturas Técnicas**: Soporte para formatos breves entre corchetes y paréntesis: `(gk)`, `(df)`, `(cb)`, `(mf)`, `(fw)`, etc.
+   - **Diccionario de Estrellas Mundiales**: Ponderación específica ante la baja de jugadores determinantes (Courtois, Alisson, Van Dijk, Saliba, Rodri, De Bruyne, Bellingham, Haaland, Mbappé, Kane, Vinicius, etc.).
+
+4. **Expansión de Parámetros Basales por Competición (`poisson.py`)**:
+   - Incorporación de nuevas ligas y copas en `COMPETITION_BASELINES`: Conference League, Primeira Liga (Portugal), Saudi Pro League, Championship (Inglaterra), Liga Argentina, Copa del Rey, FA Cup, Coppa Italia y DFB Pokal.
+
+5. **Telemetría Avanzada P4: Posesión en Vivo y Tarjetas Residuales con Curva Empírica (`poisson.py`, `ensemble.py`)**:
+   - En `poisson.py`: Modulación territorial de cuota de córners en vivo mediante `live_possession_home` y `live_possession_away`.
+   - Incorporación de `calculate_remaining_card_ratio` modelando la curva empírica de amonestaciones en fútbol profesional (~35% 1T, ~65% 2T).
+   - Condicionamiento dinámico de riesgo de tarjeta roja: si ya hubo una expulsión en directo (`live_red_cards_home + live_red_cards_away >= 1`), el riesgo en el encuentro se fija matemáticamente en 100.0%; en caso contrario decae con el tiempo restante.
+   - En `ensemble.py`: Emisión de veredictos adaptados a expulsiones confirmadas en directo o tramos finales disciplinarios.
+
+6. **Actualización Integral del Árbol de Estructura de Proyecto (`README.md`)**:
+   - Sustitución de directorios y nombres obsoletos (`backend/app/engine/`, `backend/app/database/`, `MatchResultCard.jsx`) por las rutas y componentes reales en producción.
+
+7. **Validación**:
+   - Suite de pruebas de precisión y telemetría `backend/tests/test_v37_p3_accuracy_and_final_result.py` (14/14 tests pasando).
+   - Suite de convergencia y 1X2 `test_v36_live_convergence_and_draw_verdict.py` (8/8 tests pasando).
+   - Batería completa de regresión histórica (45/45 tests pasando).
+   - Backtest benchmark verificado: RPS = 0.1394, Brier = 0.1473, MAE = 1.36.
+
+---
+
+## 2.1. Novedades y Mejoras en la Versión v3.6 (Auditoría Predictiva P1/P2: Convergencia In-Play y Coherencia de Veredictos)
+
+1. **Veredicto y Marcador con Empate Dominante (P1 — `ensemble.py`)**:
+   - **Causa Raíz Resuelta**: `_generate_human_verdicts` evaluaba la "ligera ventaja" (local vs visitante) antes de comprobar si el empate era el desenlace más probable. Con 28.6 / 66.0 / 5.4 (0-0 al 85') mostraba "Ligera ventaja para Real Madrid" y marcador 1-0.
+   - **Solución Implementada**: Si el empate es la probabilidad mayoritaria, el veredicto lo indica explícitamente (con cobertura 1X/X2 según el lado más fuerte) y el marcador más probable se elige entre marcadores de empate.
+
+2. **Detección de Partidos Finalizados (P1 — `poisson.py`)**:
+   - **Causa Raíz Resuelta**: `parse_elapsed_minute("FT" | "Final" | "Terminado")` caía al fallback de 45', proyectando un segundo tiempo completo en partidos ya terminados.
+   - **Solución Implementada**: Estos estados devuelven 90 y `calculate_remaining_goal_ratio` / `calculate_remaining_corner_ratio` devuelven 0.0 al 90' (se mantiene el piso de 4% para "90+X'", que se acota a 89). El ensamble elimina el piso de 0.08 goles residuales y las líneas de córners no proyectan saques pendientes.
+
+3. **Convergencia Temporal In-Play de XGBoost y LSTM (P2 — `poisson.py`, `tabular_ml.py`, `lstm_net.py`)**:
+   - **Causa Raíz Resuelta**: XGBoost aplicaba un boost fijo por gol (`min(0.35, diff * 0.18)`) independiente del minuto, sin efecto en empates (un 0-0 al 85' conservaba el 1X2 pre-match). La LSTM devolvía en directo probabilidades 1X2 íntegramente pre-match. Su ~20% de peso al final del partido arrastraba probabilidades irreales al ensamble.
+   - **Solución Implementada**: Nuevo helper compartido `condition_1x2_on_live_state`: (a) calibra por bisección la cuota local de goles que reproduce el diferencial 1X2 pre-match del modelo, (b) proyecta los goles restantes con la curva empírica de intensidad y las expulsiones (−32% ataque / +38% concesión, coherente con Poisson), (c) calcula el 1X2 del marcador final desde el diferencial actual y (d) conserva la propensión al empate del modelo, desvaneciéndola con el tiempo. Al minuto 0 reproduce el pre-match; al 90' es determinista.
+
+4. **Líneas en Vivo desde la Matriz de Consenso (P2 — `ensemble.py`)**:
+   - **Causa Raíz Resuelta**: Las líneas +2 / +3 goles usaban multiplicadores heurísticos (`* 0.72`, `* 0.60`) desacoplados de la Matriz Bivariada de Consenso, rompiendo la coherencia con Over/Under.
+   - **Solución Implementada**: +0 / +1 / +2 / +3 se extraen directamente de `cons_goals`, igual que Over/Under, distribución y marcadores. Garantiza que Over (goles actuales + 0.5) ≡ +1 gol adicional.
+
+5. **Validación**: Nueva suite `backend/tests/test_v36_live_convergence_and_draw_verdict.py` (8 tests). Backtest pre-match sin cambios (RPS 0.1394). `test_v23_live_data_and_url_handling.py` falla por diseño desde v3.5 (verifica la regla antigua de prioridad de equipos sobre URL) y requiere red/Gemini.
+
+---
+
+## 2.1. Novedades y Mejoras en la Versión v3.5 (Resolución Jerárquica de URLs y Estabilización de Servidores)
 
 1. **Jerarquía Soberana de la URL y Erradicación del Bucle de Partido Previo (`collector.py`, `App.jsx`)**:
    - **Causa Raíz Resuelta**: Al ingresar una nueva URL después de haber analizado un partido, tanto el frontend (`App.jsx`) como el backend (`collector.py`) comparaban los equipos extraídos de la URL con los equipos que habían quedado en el formulario del análisis anterior. Al no coincidir, una condición de coherencia invertida descartaba la nueva URL (`clean_url = None`), vaciaba el input y consultaba la base de datos local SQLite, **provocando que el sistema recargara erróneamente el partido anterior**.
@@ -556,6 +617,7 @@
 | **v3.3** | Auditoría Predictiva Puntos 5, 6, 8 y 3: Matriz Bivariada de Consenso Unificado, Binomial Negativa (córners/tarjetas), Dinámica Game State y Suite de Backtesting (RPS/Brier/Log-Loss/MAE) | ✅ Completado |
 | **v3.4** | Rediseño de barra superior espaciosa (`navbar-brand-group`, `ide-inputs-form`), acceso directo a la plataforma sin login bloqueante y remoción total de historial y partidos sugeridos. | ✅ Completado |
 | **v3.5** | Resolución Jerárquica de URLs (URL soberana sobre inputs anteriores), erradicación de recarga de partido previo, estabilización de Uvicorn (sin reload intempestivo en run_app.py) y auto-recuperación de servidor. | ✅ Completado |
+| **v3.6** | Auditoría Cuantitativa P1-P4: Veredicto de empate y marcadores coherentes, detección FT, convergencia 1X2 in-play, matriz bivariada de consenso, Dixon-Coles temporal (xi=0.12), ausencias enriquecidas, modulación de posesión en córners, curva empírica de tarjetas (35/65%), telemetría disciplinaria en vivo, escalado por temperatura en LSTM/XGBoost y repliegue de bloque bajo. | ✅ Completado |
 
 ---
 
@@ -588,6 +650,7 @@
   - `cd frontend`
   - `npm run build`
 - **Ejecutar Tests de Integración y Calibración**:
+  - `python backend/tests/test_v36_live_convergence_and_draw_verdict.py`
   - `python backend/tests/test_v33_consensus_nbinom_gamestate.py`
   - `python backend/tests/test_v33_backtest_framework.py`
   - `python backend/tests/test_v32_audit_fixes_points_1_and_2.py`

@@ -5,7 +5,7 @@ Calcula probabilidades exactas de marcadores, 1X2, goles Over/Under, córners y 
 import math
 import numpy as np
 import re
-from typing import Dict, Tuple, List, Optional
+from typing import Dict, Tuple, List, Optional, Any
 from scipy.stats import poisson, nbinom
 from backend.app.schemas.match import MatchRawFeatures
 
@@ -39,6 +39,10 @@ def parse_elapsed_minute(minute_str: Optional[str]) -> int:
     if not minute_str:
         return 45
     min_clean = str(minute_str).upper().strip()
+    # Partido finalizado: no queda tiempo de juego (90 = expectativa restante nula).
+    # Debe evaluarse antes que el descanso para no caer en el fallback de 45'.
+    if re.search(r"\b(FT|FINAL|FINALIZADO|TERMINADO|FIN|ENDED|FULL[\s-]?TIME|AET)\b", min_clean):
+        return 90
     # Coincidencias por palabra completa: evita que "1ST" (primer tiempo) se lea como "ST" (segundo tiempo)
     if re.search(r"\b(MT|HT|DESCANSO|ENTRETIEMPO|HALF[\s-]?TIME)\b", min_clean):
         return 45
@@ -69,6 +73,8 @@ def calculate_remaining_goal_ratio(elapsed_minutes: int) -> float:
     0'-15': 13.0%, 16'-30': 15.5%, 31'-45': 17.5% (Total 1T: 46.0%)
     46'-60': 16.5%, 61'-75': 18.5%, 76'-90+': 22.5% (Total 2T: 54.0%)
     """
+    if elapsed_minutes >= 90:
+        return 0.0  # Partido finalizado: sin expectativa residual
     minute_anchors = [0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0]
     cumulative_dist = [0.0, 0.130, 0.285, 0.460, 0.625, 0.775, 1.000]
     m_clamped = float(np.clip(elapsed_minutes, 0, 90))
@@ -79,11 +85,116 @@ def calculate_remaining_corner_ratio(elapsed_minutes: int) -> float:
     """
     Fracción de tiempo restante para saques de esquina considerando mayor frecuencia en el 2T.
     """
+    if elapsed_minutes >= 90:
+        return 0.0
     minute_anchors = [0.0, 45.0, 75.0, 90.0]
     cumulative_dist = [0.0, 0.470, 0.790, 1.000]
     m_clamped = float(np.clip(elapsed_minutes, 0, 90))
     passed_ratio = float(np.interp(m_clamped, minute_anchors, cumulative_dist))
     return max(0.04, 1.0 - passed_ratio)
+
+def calculate_remaining_card_ratio(elapsed_minutes: int) -> float:
+    """
+    Fracción de tiempo restante para amonestaciones y tarjetas considerando mayor concentración
+    de faltas tácticas, desesperación y pérdidas de tiempo en el segundo tiempo (~65%).
+    0'-45': ~35% de las tarjetas mostradas (65% restante al descanso).
+    46'-75': ~35% adicional (30% restante al 75').
+    76'-90+': ~30% final en el cierre.
+    """
+    if elapsed_minutes >= 90:
+        return 0.0
+    minute_anchors = [0.0, 45.0, 75.0, 90.0]
+    cumulative_dist = [0.0, 0.350, 0.700, 1.000]
+    m_clamped = float(np.clip(elapsed_minutes, 0, 90))
+    passed_ratio = float(np.interp(m_clamped, minute_anchors, cumulative_dist))
+    return max(0.04, 1.0 - passed_ratio)
+
+def parse_live_score(score_str: Optional[str]) -> Tuple[int, int]:
+    """Extrae (goles_local, goles_visitante) de cadenas como '2 - 1', '1-0' o '0:0'. Por defecto 0-0."""
+    m = re.search(r"(\d+)\s*[-:]\s*(\d+)", str(score_str or ""))
+    if not m:
+        return 0, 0
+    return int(m.group(1)), int(m.group(2))
+
+def _live_outcome_probs(rate_h: float, rate_a: float, diff0: int, max_goals: int = 10) -> Tuple[float, float, float]:
+    """
+    P(local, empate, visitante) del marcador FINAL dado un diferencial actual `diff0`
+    y goles restantes independientes X~Pois(rate_h), Y~Pois(rate_a).
+    Con tasas nulas (partido terminado) el resultado es determinista.
+    """
+    ks = np.arange(max_goals + 1)
+    px = poisson.pmf(ks, max(0.0, float(rate_h)))
+    py = poisson.pmf(ks, max(0.0, float(rate_a)))
+    mat = np.outer(px, py)
+    final_diff = diff0 + ks[:, None] - ks[None, :]
+    tot = float(mat.sum())
+    if tot <= 0:
+        return (1.0, 0.0, 0.0) if diff0 > 0 else ((0.0, 1.0, 0.0) if diff0 == 0 else (0.0, 0.0, 1.0))
+    return (
+        float(mat[final_diff > 0].sum() / tot),
+        float(mat[final_diff == 0].sum() / tot),
+        float(mat[final_diff < 0].sum() / tot),
+    )
+
+def _calibrate_home_share(target_diff: float, total_goals: float, iters: int = 28) -> float:
+    """
+    Busca por bisección la cuota local de goles (lambda_h / total) cuya Poisson pre-match
+    reproduce el diferencial P(local) - P(visitante) del modelo. La función es monótona en la cuota.
+    """
+    lo, hi = 0.05, 0.95
+    for _ in range(iters):
+        mid = 0.5 * (lo + hi)
+        ph, _, pa = _live_outcome_probs(total_goals * mid, total_goals * (1.0 - mid), 0)
+        if (ph - pa) < target_diff:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+def condition_1x2_on_live_state(
+    pre_home: float,
+    pre_draw: float,
+    pre_away: float,
+    total_goals_90: float,
+    curr_gh: int,
+    curr_ga: int,
+    time_rem_ratio: float,
+    reds_h: int = 0,
+    reds_a: int = 0,
+) -> Tuple[float, float, float]:
+    """
+    Condiciona el 1X2 pre-match de un modelo (XGBoost / LSTM) al estado real del partido.
+
+    1. Se calibra la fuerza relativa (cuota local de goles) que reproduce el diferencial 1X2 pre-match del modelo.
+    2. Se proyectan los goles RESTANTES con la curva empírica de intensidad (time_rem_ratio) y las expulsiones.
+    3. Se calcula el 1X2 del marcador final partiendo del diferencial actual.
+    4. La propensión al empate propia del modelo se conserva, pero se desvanece a medida que se agota el tiempo.
+
+    A diferencia de un "boost" fijo por gol, la convergencia es estrictamente temporal:
+    un 1-0 al minuto 5 apenas mueve el pronóstico; un 0-0 al 85' converge hacia el empate.
+    Recibe y devuelve fracciones (no porcentajes).
+    """
+    tot = pre_home + pre_draw + pre_away
+    if tot <= 0:
+        pre_home, pre_draw, pre_away, tot = 1.0, 1.0, 1.0, 3.0
+    ph0, pd0, pa0 = pre_home / tot, pre_draw / tot, pre_away / tot
+
+    total = float(np.clip(total_goals_90, 1.2, 4.5))
+    share = _calibrate_home_share(ph0 - pa0, total)
+
+    _, pd_model, _ = _live_outcome_probs(total * share, total * (1.0 - share), 0)
+    draw_k = float(np.clip(pd0 / pd_model, 0.6, 1.6)) if pd_model > 1e-6 else 1.0
+
+    r = float(np.clip(time_rem_ratio, 0.0, 1.0))
+    rate_h = total * share * r * max(0.35, 1.0 - 0.32 * reds_h) * (1.0 + 0.38 * reds_a)
+    rate_a = total * (1.0 - share) * r * max(0.35, 1.0 - 0.32 * reds_a) * (1.0 + 0.38 * reds_h)
+
+    ph, pd, pa = _live_outcome_probs(rate_h, rate_a, int(curr_gh) - int(curr_ga))
+    pd *= draw_k ** r
+    s = ph + pd + pa
+    if s <= 0:
+        return ph0, pd0, pa0
+    return ph / s, pd / s, pa / s
 
 COMPETITION_BASELINES = {
     "bundesliga": {"avg_goals_team": 1.54, "home_adv": 1.11, "avg_corners": 9.7},       # ~3.08 goles totales
@@ -98,10 +209,23 @@ COMPETITION_BASELINES = {
     "champions league": {"avg_goals_team": 1.48, "home_adv": 1.11, "avg_corners": 9.8}, # ~2.96 goles totales
     "champions": {"avg_goals_team": 1.48, "home_adv": 1.11, "avg_corners": 9.8},
     "europa league": {"avg_goals_team": 1.43, "home_adv": 1.13, "avg_corners": 9.7},    # ~2.86 goles totales
+    "conference league": {"avg_goals_team": 1.44, "home_adv": 1.12, "avg_corners": 9.6}, # ~2.88 goles totales
+    "conference": {"avg_goals_team": 1.44, "home_adv": 1.12, "avg_corners": 9.6},
     "eredivisie": {"avg_goals_team": 1.52, "home_adv": 1.14, "avg_corners": 10.2},       # ~3.04 goles totales
-    "liga mx": {"avg_goals_team": 1.35, "home_adv": 1.16, "avg_corners": 9.4},          # ~2.70 goles totales
+    "primeira liga": {"avg_goals_team": 1.33, "home_adv": 1.15, "avg_corners": 9.9},    # ~2.66 goles totales
+    "portugal": {"avg_goals_team": 1.33, "home_adv": 1.15, "avg_corners": 9.9},
+    "saudi pro league": {"avg_goals_team": 1.55, "home_adv": 1.12, "avg_corners": 9.8}, # ~3.10 goles totales
+    "saudi": {"avg_goals_team": 1.55, "home_adv": 1.12, "avg_corners": 9.8},
+    "championship": {"avg_goals_team": 1.32, "home_adv": 1.14, "avg_corners": 10.4},     # ~2.64 goles totales
+    "liga mx": {"avg_goals_team": 1.31, "home_adv": 1.18, "avg_corners": 9.4},          # ~2.62 goles totales, localía fuerte por altitud/viajes
     "brasileirao": {"avg_goals_team": 1.23, "home_adv": 1.18, "avg_corners": 9.8},      # ~2.46 goles totales
+    "liga argentina": {"avg_goals_team": 1.08, "home_adv": 1.22, "avg_corners": 9.1},    # ~2.16 goles totales
+    "argentina": {"avg_goals_team": 1.08, "home_adv": 1.22, "avg_corners": 9.1},
     "copa libertadores": {"avg_goals_team": 1.28, "home_adv": 1.20, "avg_corners": 9.3},# ~2.56 goles totales
+    "copa del rey": {"avg_goals_team": 1.36, "home_adv": 1.14, "avg_corners": 9.7},     # ~2.72 goles totales
+    "fa cup": {"avg_goals_team": 1.40, "home_adv": 1.15, "avg_corners": 10.2},          # ~2.80 goles totales
+    "coppa italia": {"avg_goals_team": 1.34, "home_adv": 1.13, "avg_corners": 9.5},     # ~2.68 goles totales
+    "dfb pokal": {"avg_goals_team": 1.50, "home_adv": 1.12, "avg_corners": 9.8},        # ~3.00 goles totales
     "mls": {"avg_goals_team": 1.45, "home_adv": 1.15, "avg_corners": 9.6},              # ~2.90 goles totales
 }
 
@@ -132,26 +256,102 @@ class DixonColesPoissonModel:
 
     def _evaluate_absences_impact(self, absences: List[str]) -> Tuple[float, float]:
         """
-        Pondera las ausencias según posición y relevancia:
-        - Bajas defensivas (portero, defensas) aumentan la expectativa de goles concedidos.
-        - Bajas ofensivas (delanteros, extremos, goleadores) reducen el poder de ataque.
+        Pondera las ausencias según posición, relevancia táctica y jerarquía individual:
+        - Bajas defensivas (portero, centrales, laterales) aumentan goles concedidos.
+        - Bajas ofensivas (delanteros centro, extremos) reducen goles a favor.
+        - Bajas en el mediocampo reducen generación (-4%) y aumentan exposición (+4%).
+        - Jugadores de élite mundial tienen un impacto diferencial proporcional.
         Retorna (attack_multiplier, defense_conceded_multiplier).
         """
         att_multiplier = 1.0
         def_multiplier = 1.0
-        defensive_kw = ["portero", "arquero", "goalkeeper", "gk", "defensa", "central", "lateral", "cb", "lb", "rb"]
-        offensive_kw = ["delantero", "goleador", "striker", "extremo", "forward", "fw", "winger", "atacante"]
+
+        defensive_kw = [
+            "portero", "arquero", "goalkeeper", "gk", "(gk)", "[gk]", "[por]",
+            "defensa", "central", "lateral", "cb", "lb", "rb", "(cb)", "(lb)", "(rb)", "(df)", "[df]"
+        ]
+        offensive_kw = [
+            "delantero", "goleador", "striker", "extremo", "forward", "fw", "winger", "atacante",
+            "punta", "(fw)", "(st)", "(cf)", "[del]", "[ata]"
+        ]
+        midfield_kw = [
+            "centrocampista", "mediocampista", "medio", "volante", "midfielder", "mf", "pivote",
+            "interior", "(mf)", "(cm)", "(cdm)", "(cam)", "[med]", "[cen]"
+        ]
+
+        elite_defenders = [
+            "courtois", "ter stegen", "alisson", "ederson", "oblak", "donnarumma",
+            "van dijk", "saliba", "ruben dias", "gabriel magalhaes", "rudiger", "militao", "bastoni"
+        ]
+        elite_midfielders = [
+            "rodri", "de bruyne", "bellingham", "valverde", "kroos", "modric", "pedri", "gavi",
+            "odegaard", "rice", "tchouameni", "camavinga", "barella", "calhanoglu"
+        ]
+        elite_attackers = [
+            "haaland", "mbappe", "kane", "vinicius", "salah", "lewandowski", "griezmann",
+            "saka", "foden", "rodrygo", "lautaro", "osimhen", "yamal"
+        ]
 
         for player in absences:
-            p_low = player.lower()
-            if any(k in p_low for k in defensive_kw):
-                def_multiplier *= 1.06  # Concede ~6% más por baja defensiva
+            p_low = player.lower().strip()
+            # Detección de estrellas de élite
+            if any(star in p_low for star in elite_defenders):
+                def_multiplier *= 1.10
+            elif any(star in p_low for star in elite_attackers):
+                att_multiplier *= 0.88
+            elif any(star in p_low for star in elite_midfielders):
+                att_multiplier *= 0.94
+                def_multiplier *= 1.05
+            # Detección posicional genérica
+            elif any(k in p_low for k in defensive_kw):
+                def_multiplier *= 1.06
             elif any(k in p_low for k in offensive_kw):
-                att_multiplier *= 0.93  # Pierde ~7% de gol por ausencia de goleador
+                att_multiplier *= 0.93
+            elif any(k in p_low for k in midfield_kw):
+                att_multiplier *= 0.96
+                def_multiplier *= 1.04
             else:
-                att_multiplier *= 0.96  # Ausencia genérica (~4%)
+                att_multiplier *= 0.97
+                def_multiplier *= 1.02
 
-        return max(0.70, att_multiplier), min(1.30, def_multiplier)
+        return max(0.65, att_multiplier), min(1.35, def_multiplier)
+
+    def _calculate_time_decayed_goal_rates(self, team_stats: Any, xi: float = 0.12) -> Tuple[float, float]:
+        """
+        Calcula promedios de goles con decaimiento exponencial Dixon-Coles (1997)
+        sobre el historial reciente de partidos (last_matches): w_k = exp(-xi * k).
+        Si hay >= 3 partidos, mezcla 50% media reciente ponderada + 50% promedio agregado.
+        Si no hay historial suficiente, devuelve los promedios globales sin alteración.
+        """
+        matches = getattr(team_stats, "last_matches", []) or []
+        if len(matches) < 3:
+            return float(team_stats.avg_goals_scored), float(team_stats.avg_goals_conceded)
+
+        weights = []
+        weighted_gf = 0.0
+        weighted_ga = 0.0
+        for k, m in enumerate(matches):
+            w = math.exp(-xi * k)
+            weights.append(w)
+            gf = getattr(m, "goals_for", None) if not isinstance(m, dict) else m.get("goals_for")
+            ga = getattr(m, "goals_against", None) if not isinstance(m, dict) else m.get("goals_against")
+            if gf is None:
+                gf = getattr(m, "scored", 1) if not isinstance(m, dict) else m.get("scored", 1)
+            if ga is None:
+                ga = getattr(m, "conceded", 1) if not isinstance(m, dict) else m.get("conceded", 1)
+            weighted_gf += float(gf) * w
+            weighted_ga += float(ga) * w
+
+        sum_w = sum(weights)
+        if sum_w <= 0:
+            return float(team_stats.avg_goals_scored), float(team_stats.avg_goals_conceded)
+
+        decay_gf = weighted_gf / sum_w
+        decay_ga = weighted_ga / sum_w
+
+        blended_gf = 0.50 * decay_gf + 0.50 * float(team_stats.avg_goals_scored)
+        blended_ga = 0.50 * decay_ga + 0.50 * float(team_stats.avg_goals_conceded)
+        return float(blended_gf), float(blended_ga)
 
     def _calculate_lambdas(self, features: MatchRawFeatures) -> Tuple[float, float]:
         """
@@ -167,15 +367,16 @@ class DixonColesPoissonModel:
         comp_name = getattr(features, "competition", "General")
         league_avg_goals, home_advantage, _ = get_competition_parameters(comp_name)
 
-        # 2. Shrinkage Bayesiano hacia la media de la propia competición (atenúa la varianza de muestras cortas).
-        # La referencia es la liga, no un 1.35 global: un equipo promedio de Bundesliga (1.54) debe tener
-        # ratio 1.0; normalizar contra 1.35 lo contaba como "fuerte" y duplicaba el nivel goleador de la liga.
+        # 2. Promedios con decaimiento temporal Dixon-Coles (si hay historial) y Shrinkage Bayesiano hacia la competición
+        home_gf, home_ga = self._calculate_time_decayed_goal_rates(home)
+        away_gf, away_ga = self._calculate_time_decayed_goal_rates(away)
+
         league_ref = league_avg_goals
         w_shrink = 0.65
-        h_att_shrunk = w_shrink * home.avg_goals_scored + (1.0 - w_shrink) * league_ref
-        a_def_shrunk = w_shrink * away.avg_goals_conceded + (1.0 - w_shrink) * league_ref
-        a_att_shrunk = w_shrink * away.avg_goals_scored + (1.0 - w_shrink) * league_ref
-        h_def_shrunk = w_shrink * home.avg_goals_conceded + (1.0 - w_shrink) * league_ref
+        h_att_shrunk = w_shrink * home_gf + (1.0 - w_shrink) * league_ref
+        a_def_shrunk = w_shrink * away_ga + (1.0 - w_shrink) * league_ref
+        a_att_shrunk = w_shrink * away_gf + (1.0 - w_shrink) * league_ref
+        h_def_shrunk = w_shrink * home_ga + (1.0 - w_shrink) * league_ref
 
         # 3. Ratios de fuerza relativa adimensional con amortiguamiento elástico de precisión (gamma = 0.52)
         # Erradica la sobreestimación cuadrática multiplicativa de Dixon-Coles en extremos
@@ -205,6 +406,16 @@ class DixonColesPoissonModel:
             h2h_scale = ((1.0 - w_h2h) * model_total + w_h2h * h2h_total) / model_total
             lambda_home *= h2h_scale
             mu_away *= h2h_scale
+
+        # 6.5. Modulación de Bloque Bajo / Repliegue Táctico del Visitante (Underdog Low Block)
+        # Cuando un visitante de baja forma (win_rate_last_5 <= 0.20) visita a un claro favorito local (ratio >= 1.45),
+        # adopta postura de repliegue profundo que reduce la generación ofensiva del visitante y espesa el ritmo global.
+        away_wr = float(away.win_rate_last_5) if float(away.win_rate_last_5) <= 1.0 else float(away.win_rate_last_5) / 100.0
+        if away_wr <= 0.20 and (lambda_home / max(0.1, mu_away)) >= 1.45:
+            mu_away *= 0.88
+            # Si además el favorito local sufre ausencias en delantera, el ritmo goleador global se atenúa
+            if any(any(kw in str(a).lower() for kw in ["(fw)", "(st)", "(cf)", "delantero", "striker"]) for a in home.key_absences):
+                lambda_home *= 0.94
 
         # 7. Techo dinámico realista de la competición (previene proyecciones infladas > 3.6 en partidos regulares)
         max_match_goals = league_avg_goals * 2.0 * 1.22
@@ -517,6 +728,10 @@ class DixonColesPoissonModel:
         dominance_h = float(np.clip(lambda_base_h / tot_lambdas, 0.25, 0.75))
         # Ventaja local en corners (~52% base), modulada por la presión ofensiva relativa
         home_share = float(np.clip(0.52 + (dominance_h - 0.50) * 0.45, 0.35, 0.68))
+        if is_live and getattr(features, "live_possession_home", None) is not None:
+            live_poss_h = float(features.live_possession_home)
+            live_poss_frac = float(np.clip(live_poss_h / 100.0 if live_poss_h > 1.0 else live_poss_h, 0.20, 0.80))
+            home_share = float(np.clip(0.55 * home_share + 0.45 * live_poss_frac, 0.25, 0.75))
         away_share = 1.0 - home_share
 
         exp_corners_home = tot_match_corners * home_share
@@ -583,7 +798,8 @@ class DixonColesPoissonModel:
                 over_9_5_corners = nbinom_survival(9, expected_corners, overdispersion=1.20) * 100.0
                 over_10_5_corners = nbinom_survival(10, expected_corners, overdispersion=1.20) * 100.0
 
-            no_more_corners_p = nbinom_pmf(0, max(0.2, expected_corners_rem), overdispersion=1.20)
+            rem_cn_for_lines = max(0.2, expected_corners_rem) if time_rem_ratio > 0 else 0.0
+            no_more_corners_p = nbinom_pmf(0, rem_cn_for_lines, overdispersion=1.20)
             more_corners_p = float(1.0 - no_more_corners_p)
             live_corner_lines = [
                 {"line": "Sin córners adicionales en tiempo restante", "probability": round(no_more_corners_p * 100, 1)},
@@ -607,14 +823,36 @@ class DixonColesPoissonModel:
         # -------------------------------------------------------------
         home_cards = features.home_stats.avg_cards
         away_cards = features.away_stats.avg_cards
+        comp_name = getattr(features, "competition", "General") or "General"
+        league_ref_cards = 4.2 if any(k in comp_name.lower() for k in ["liga mx", "copa", "conmebol", "libertadores"]) else 3.8
+
+        raw_cards_sum = home_cards + away_cards
         if features.h2h.total_matches_analyzed > 0 and features.h2h.avg_total_cards_h2h > 0:
-            expected_cards = (home_cards + away_cards) * 0.65 + (features.h2h.avg_total_cards_h2h) * 0.35
+            observed_cards = raw_cards_sum * 0.60 + (features.h2h.avg_total_cards_h2h) * 0.40
         else:
-            expected_cards = home_cards + away_cards
+            observed_cards = raw_cards_sum
+
+        # Regularización Bayesiana hacia la media disciplinaria de la competición
+        expected_cards = 0.65 * observed_cards + 0.35 * league_ref_cards
 
         over_3_5_cards = nbinom_survival(3, expected_cards, overdispersion=1.40) * 100.0
         over_4_5_cards = nbinom_survival(4, expected_cards, overdispersion=1.40) * 100.0
-        red_card_risk = float(np.clip((expected_cards / 5.0) * 18.0, 8.0, 35.0))
+
+        if is_live:
+            card_rem_ratio = calculate_remaining_card_ratio(elapsed_min)
+            reds_h = int(getattr(features, "live_red_cards_home", 0) or 0)
+            reds_a = int(getattr(features, "live_red_cards_away", 0) or 0)
+            if (reds_h + reds_a) > 0:
+                # Si ya se registró una o más tarjetas rojas en directo, la probabilidad en el encuentro es 100%
+                red_card_risk = 100.0
+            else:
+                # Decaimiento del riesgo de tarjeta roja residual con la curva de intensidad temporal
+                base_red_risk = float(np.clip((expected_cards / 5.0) * 18.0, 8.0, 35.0))
+                red_card_risk = round(base_red_risk * card_rem_ratio, 1)
+            expected_remaining_cards = round(expected_cards * card_rem_ratio, 1)
+        else:
+            red_card_risk = float(np.clip((expected_cards / 5.0) * 18.0, 8.0, 35.0))
+            expected_remaining_cards = None
 
         return {
             "model_name": "poisson_dixon_coles",
@@ -639,7 +877,9 @@ class DixonColesPoissonModel:
                 "expected_total": round(expected_cards, 1),
                 "over_3_5_pct": round(over_3_5_cards, 1),
                 "over_4_5_pct": round(over_4_5_cards, 1),
-                "red_card_risk_pct": round(red_card_risk, 1)
+                "red_card_risk_pct": round(red_card_risk, 1),
+                "is_live": is_live,
+                "expected_remaining_cards": expected_remaining_cards
             }
         }
 

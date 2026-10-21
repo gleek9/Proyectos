@@ -6,6 +6,11 @@ export default function WinnerCard({ match, winner, isLive }) {
 
   const { home_win_pct, draw_pct, away_win_pct, human_verdict } = winner;
   const showLive = isLive !== undefined ? isLive : match.is_live;
+  const minClean = (match.live_minute || '').toUpperCase().trim();
+  const isFinal = showLive && (
+    ['FT', 'FINAL', 'FINALIZADO', 'TERMINADO', 'FIN', 'ENDED'].some(k => minClean.includes(k)) ||
+    (parseInt(minClean, 10) >= 90)
+  );
 
   return (
     <section className="winner-section">
@@ -13,7 +18,7 @@ export default function WinnerCard({ match, winner, isLive }) {
         <div className="match-title">
           <span className="team-name home">{match.home_team}</span>
           {showLive && match.live_score ? (
-            <div className="live-score-pill" title={`Marcador oficial en directo: ${match.live_score}`}>
+            <div className="live-score-pill" title={`Marcador oficial: ${match.live_score}`}>
               <span className="live-score-num">{match.live_score.split('-')[0]?.trim()}</span>
               <span className="live-score-sep">-</span>
               <span className="live-score-num">{match.live_score.split('-')[1]?.trim()}</span>
@@ -29,13 +34,19 @@ export default function WinnerCard({ match, winner, isLive }) {
             [{match.competition || 'General'}]
           </span>
           {showLive && (
-            <span className="live-badge-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span className="pulse-dot-red"></span>
-              <span>En vivo {match.live_score ? `[${match.live_score}]` : ''}</span>
-              <span style={{ fontSize: '0.65rem', background: 'rgba(244, 63, 94, 0.22)', padding: '0.1rem 0.35rem', borderRadius: '3px', marginLeft: '0.2rem' }}>
-                Prioridad activa
+            isFinal ? (
+              <span className="live-badge-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)', color: 'var(--emerald)' }}>
+                <span>Finalizado {match.live_score ? `[${match.live_score}]` : ''}</span>
               </span>
-            </span>
+            ) : (
+              <span className="live-badge-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span className="pulse-dot-red"></span>
+                <span>En vivo {match.live_score ? `[${match.live_score}]` : ''}</span>
+                <span style={{ fontSize: '0.65rem', background: 'rgba(244, 63, 94, 0.22)', padding: '0.1rem 0.35rem', borderRadius: '3px', marginLeft: '0.2rem' }}>
+                  Prioridad activa
+                </span>
+              </span>
+            )
           )}
         </div>
 

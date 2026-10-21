@@ -1,4 +1,4 @@
-# ⚽ Katakuri v3.5 — Plataforma Autónoma de Predicción Deportiva con IA
+# ⚽ Katakuri v3.6 — Plataforma Autónoma de Predicción Deportiva con IA
 
 [![Python Version](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -9,7 +9,7 @@
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-3.5%20Flash%20Lite-8E75B2?logo=google&logoColor=white)](https://aistudio.google.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](#licencia)
 
-> **Katakuri v3.5** es una plataforma integral de analítica predictiva de fútbol que combina extracción web autónoma en tiempo real (mediante LLMs y feeds deportivos), un **meta-ensamble matemático cuantitativo 100% local** (Poisson Dixon-Coles, XGBoost y PyTorch LSTM) y una interfaz moderna estilo Dark IDE minimalista.
+> **Katakuri v3.6** es una plataforma integral de analítica predictiva de fútbol que combina extracción web autónoma en tiempo real (mediante LLMs y feeds deportivos), un **meta-ensamble matemático cuantitativo 100% local** (Poisson Dixon-Coles con decaimiento temporal, XGBoost y PyTorch LSTM) y una interfaz moderna estilo Dark IDE minimalista.
 
 ---
 
@@ -141,33 +141,44 @@ analista-deportivo/
 ├── backend/
 │   ├── requirements.txt      # Dependencias de Python
 │   ├── app/
-│   │   ├── main.py           # Entrada FastAPI, rutas y middlewares
+│   │   ├── main.py           # Entrada FastAPI, rutas API y middlewares
+│   │   ├── config.py         # Configuración central y variables de entorno
+│   │   ├── db.py             # Persistencia local SQLite y esquema de predicciones
 │   │   ├── agent/            # Módulo de extracción web autónoma
 │   │   │   ├── collector.py  # Orquestador LangChain / Gemini / Feeds
-│   │   │   └── search_tools.py
-│   │   ├── engine/           # Motores predictivos cuantitativos
-│   │   │   ├── poisson_model.py
-│   │   │   ├── xgboost_model.py
-│   │   │   ├── lstm_model.py
-│   │   │   └── ensemble.py   # Meta-ensamble de consenso unificado
-│   │   ├── database/         # Modelos SQLAlchemy y conexión SQLite
-│   │   └── schemas/          # Modelos Pydantic de entrada y salida
-│   └── tests/                # Suite de pruebas unitarias y backtesting
+│   │   │   ├── parser.py     # Parser heurístico estructurado de respuestas
+│   │   │   └── scraper.py    # Extracción en tiempo real vía httpx/BeautifulSoup
+│   │   ├── analytics/        # Módulo de calibración y evaluación
+│   │   │   └── backtest.py   # Motor de backtesting con RPS, Brier, MAE y Log-Loss
+│   │   ├── models/           # Motores predictivos cuantitativos 100% locales
+│   │   │   ├── poisson.py    # Poisson bivariado Dixon-Coles, decaimiento temporal y Game State
+│   │   │   ├── tabular_ml.py # Inferencia tabular XGBoost calibrada multi-clase
+│   │   │   ├── lstm_net.py   # Red neuronal recurrente LSTM en PyTorch
+│   │   │   └── ensemble.py   # Meta-ensamble de consenso unificado y traductor humano
+│   │   └── schemas/          # Modelos de validación Pydantic tipados
+│   │       ├── match.py      # Esquemas de entrada y telemetría en vivo
+│   │       └── prediction.py # Esquemas de salida estructurada y mercados derivados
+│   └── tests/                # Suite completa de pruebas unitarias y benchmarks
 │
 └── frontend/
     ├── package.json          # Dependencias y scripts de Node
-    ├── vite.config.js        # Configuración de Vite y proxy local
+    ├── vite.config.js        # Configuración de Vite y proxy local hacia backend
     ├── index.html            # Entrypoint HTML
     └── src/
-        ├── App.jsx           # Componente raíz y gestión de estado
-        ├── components/       # Componentes modulares de interfaz
-        │   ├── HeaderBar.jsx
-        │   ├── LiveNeuralSection.jsx
-        │   ├── MatchResultCard.jsx
-        │   ├── KeyFactorsPanel.jsx
-        │   └── MarketsGrid.jsx
+        ├── main.jsx          # Entrypoint de React
+        ├── App.jsx           # Componente raíz y orquestación de estado
+        ├── components/       # Componentes modulares de interfaz Dark IDE
+        │   ├── HeaderBar.jsx         # Barra de estado y selector de backend
+        │   ├── NeuralUrlCard.jsx     # Tarjeta de consulta manual y URL directa
+        │   ├── LiveNeuralSection.jsx # Telemetría neuronal LSTM y líneas in-play
+        │   ├── WinnerCard.jsx        # Veredicto de ganador, cuotas y mercados derivados
+        │   ├── MetricCards.jsx       # Métricas de goles, córners y tarjetas
+        │   ├── DistributionChart.jsx # Distribución visual de goles esperados
+        │   ├── KeyFactorsPanel.jsx   # Factores futbolísticos determinantes
+        │   ├── BacktestModal.jsx     # Modal interactivo de métricas de calibración
+        │   └── LoginModal.jsx        # Acceso y autenticación del sistema
         └── styles/
-            └── ide-theme.css # Sistema de diseño Dark IDE
+            └── ide-theme.css         # Sistema de diseño integral Dark IDE
 ```
 
 ---
@@ -268,6 +279,15 @@ python run_app.py
 Para verificar la integridad matemática y la calibración de los modelos, ejecuta:
 
 ```bash
+# Validación de Convergencia Temporal In-Play y Empate Dominante (v3.6)
+python backend/tests/test_v36_live_convergence_and_draw_verdict.py
+
+# Pruebas de Telemetría P4 (Córners, Tarjetas y Curva Empírica)
+python backend/tests/test_v36_p4_corners_cards_telemetry.py
+
+# Pruebas de Precisión P3, Ausencias y Veredicto de Resultado Final
+python backend/tests/test_v37_p3_accuracy_and_final_result.py
+
 # Validación del Consenso Bivariado, Sobredispersión y Game State
 python backend/tests/test_v33_consensus_nbinom_gamestate.py
 

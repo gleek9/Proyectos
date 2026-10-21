@@ -10,7 +10,10 @@ import torch.nn.functional as F
 import numpy as np
 from typing import Dict, List
 from backend.app.schemas.match import MatchRawFeatures, PreviousMatch
-from backend.app.models.poisson import parse_elapsed_minute, calculate_remaining_goal_ratio
+from backend.app.models.poisson import (
+    parse_elapsed_minute, calculate_remaining_goal_ratio,
+    parse_live_score, condition_1x2_on_live_state,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +188,10 @@ class LSTMPredictor:
             ).to(self.device)
 
             logits_1x2, goal_momentum = self.model(x_h, x_a)
-            probs = F.softmax(logits_1x2, dim=-1).squeeze(0).cpu().numpy()
+            # Calibración de temperatura para evitar sobre-polarización extrema en rachas asimétricas
+            temperature = 1.45
+            calibrated_logits = logits_1x2 / temperature
+            probs = F.softmax(calibrated_logits, dim=-1).squeeze(0).cpu().numpy()
 
             p_home = float(probs[0])
             p_draw = float(probs[1])
@@ -201,30 +207,53 @@ class LSTMPredictor:
             live_no_more_p = None
             live_more_p = None
 
+            if not is_live:
+                # En pre-partido, asegurar suelo competitivo de empate para evitar colapso a 0%
+                if p_draw < 0.12:
+                    deficit = 0.12 - p_draw
+                    p_draw = 0.12
+                    if p_home >= p_away:
+                        p_home = max(0.04, p_home - deficit)
+                    else:
+                        p_away = max(0.04, p_away - deficit)
+                    tot_p = p_home + p_draw + p_away
+                    p_home /= tot_p
+                    p_draw /= tot_p
+                    p_away /= tot_p
+
             if is_live:
-                import re
                 elapsed_min = parse_elapsed_minute(getattr(raw, "live_minute", None))
                 time_rem_ratio = calculate_remaining_goal_ratio(elapsed_min)
+                gh, ga = parse_live_score(getattr(raw, "live_score", None))
+                reds_h = int(getattr(raw, "live_red_cards_home", 0) or 0)
+                reds_a = int(getattr(raw, "live_red_cards_away", 0) or 0)
+
+                # Condicionamiento temporal del 1X2 secuencial al estado real del partido
+                p_home, p_draw, p_away = condition_1x2_on_live_state(
+                    p_home, p_draw, p_away,
+                    total_goals_90=float(np.clip(momentum_factor, 1.6, 4.0)),
+                    curr_gh=gh, curr_ga=ga,
+                    time_rem_ratio=time_rem_ratio,
+                    reds_h=reds_h, reds_a=reds_a,
+                )
 
                 # Calcular tensión o urgencia de gol según marcador actual
                 urgency = 1.0
-                score_str = str(getattr(raw, "live_score", "") or "")
-                sc_match = re.search(r"(\d+)\s*[-:]\s*(\d+)", score_str)
-                if sc_match:
-                    gh, ga = int(sc_match.group(1)), int(sc_match.group(2))
-                    diff = abs(gh - ga)
-                    if diff == 1 and elapsed_min >= 60:
-                        urgency = 1.25  # Partido cerrado con remontada en disputa
-                    elif diff >= 3:
-                        urgency = 0.85  # Partido sentenciado
+                diff = abs(gh - ga)
+                if diff == 1 and elapsed_min >= 60:
+                    urgency = 1.25  # Partido cerrado con remontada en disputa
+                elif diff >= 3:
+                    urgency = 0.85  # Partido sentenciado
 
                 # Goles adicionales proyectados por el momentum de la red neuronal
                 base_momentum = max(0.4, min(4.5, momentum_factor))
                 live_rem_goals = float(base_momentum * time_rem_ratio * urgency)
                 
                 # Probabilidad de que no haya más goles según la tasa de llegada de la red
-                live_no_more_p = float(np.exp(-live_rem_goals))
-                live_no_more_p = float(np.clip(live_no_more_p, 0.02, 0.95))
+                if time_rem_ratio > 0:
+                    live_no_more_p = float(np.clip(np.exp(-live_rem_goals), 0.02, 0.95))
+                else:
+                    live_no_more_p = 1.0  # Partido finalizado
                 live_more_p = float(1.0 - live_no_more_p)
 
         return {
