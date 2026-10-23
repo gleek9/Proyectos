@@ -23,4 +23,4 @@ INDEX_HTML = UI_DIR / 'index.html'
 APP_TITLE = "Cuva — Auditoría & Adaptación Profesional"
 WINDOW_WIDTH = 1040
 WINDOW_HEIGHT = 760
-MIN_MATCH_THRESHOLD = 90.0  # Umbral de activación para adaptar CV
+MIN_MATCH_THRESHOLD = 75.0  # Umbral de activación para adaptar CV (75% de afinidad mínima)

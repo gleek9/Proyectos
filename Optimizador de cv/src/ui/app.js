@@ -28,10 +28,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const jobForm = document.getElementById("job-analysis-form");
   const jobUrlInput = document.getElementById("job-url-input");
-  const btnAnalyzeJob = document.getElementById("btn-analyze-job");
-  const btnToggleManualText = document.getElementById("btn-toggle-manual-text");
-  const manualTextContainer = document.getElementById("manual-text-container");
+  const tabDirectText = document.getElementById("tab-direct-text");
+  const tabUrlMode = document.getElementById("tab-url-mode");
+  const panelDirectText = document.getElementById("panel-direct-text");
+  const panelUrlMode = document.getElementById("panel-url-mode");
+  const btnPasteClipboard = document.getElementById("btn-paste-clipboard");
+  const btnClearTextarea = document.getElementById("btn-clear-textarea");
+  const btnAnalyzeDirect = document.getElementById("btn-analyze-direct");
+  const btnAnalyzeUrl = document.getElementById("btn-analyze-url");
   const jobManualTextarea = document.getElementById("job-manual-textarea");
+  let currentMinMatch = 75;
 
   const progressCard = document.getElementById("analysis-progress-card");
   const progressStatusText = document.getElementById("progress-status-text");
@@ -72,6 +78,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateUIState(state) {
+    if (state.min_match_threshold) {
+      currentMinMatch = state.min_match_threshold;
+    }
+
     // 1. Estado de API Key
     if (state.has_api_key) {
       apiStatusDot.className = "status-dot active";
@@ -332,29 +342,97 @@ document.addEventListener("DOMContentLoaded", () => {
   profileEmptyState.addEventListener("drop", handleFileDrop, false);
   profileLoadedState.addEventListener("drop", handleFileDrop, false);
 
-  // --- Toggle de Texto Manual (Paso 2) ---
+  // --- Pestañas y Acciones de Entrada de Vacante (Paso 2) ---
 
-  btnToggleManualText.addEventListener("click", () => {
-    const isHidden = manualTextContainer.classList.contains("hidden");
-    if (isHidden) {
-      manualTextContainer.classList.remove("hidden");
+  if (tabDirectText && tabUrlMode) {
+    tabDirectText.addEventListener("click", () => {
+      tabDirectText.classList.add("active");
+      tabUrlMode.classList.remove("active");
+      panelDirectText.classList.remove("hidden");
+      panelDirectText.classList.add("active");
+      panelUrlMode.classList.add("hidden");
+      panelUrlMode.classList.remove("active");
       jobManualTextarea.focus();
-      btnToggleManualText.textContent = "Ocultar cuadro de texto manual";
+    });
+
+    tabUrlMode.addEventListener("click", () => {
+      tabUrlMode.classList.add("active");
+      tabDirectText.classList.remove("active");
+      panelUrlMode.classList.remove("hidden");
+      panelUrlMode.classList.add("active");
+      panelDirectText.classList.add("hidden");
+      panelDirectText.classList.remove("active");
+      jobUrlInput.focus();
+    });
+  }
+
+  if (btnPasteClipboard) {
+    btnPasteClipboard.addEventListener("click", async () => {
+      try {
+        let text = "";
+        // 1. Intentar API moderna de portapapeles del navegador
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          try {
+            text = await navigator.clipboard.readText();
+          } catch (e) {
+            console.warn("navigator.clipboard no disponible directamente:", e);
+          }
+        }
+        // 2. Fallback a método nativo de Python en PyWebView
+        if (!text && window.pywebview && window.pywebview.api && window.pywebview.api.get_clipboard_text) {
+          const clipRes = await window.pywebview.api.get_clipboard_text();
+          if (clipRes && clipRes.success) {
+            text = clipRes.text;
+          }
+        }
+
+        if (text && text.trim()) {
+          jobManualTextarea.value = text.trim();
+          jobManualTextarea.focus();
+        } else {
+          alert("No se detectó texto en el portapapeles. Copia la descripción de la vacante e inténtalo de nuevo.");
+        }
+      } catch (err) {
+        console.error("Error al pegar del portapapeles:", err);
+        alert("Puedes pegar directamente el texto usando el atajo Ctrl + V.");
+      }
+    });
+  }
+
+  if (btnClearTextarea) {
+    btnClearTextarea.addEventListener("click", () => {
+      jobManualTextarea.value = "";
+      jobManualTextarea.focus();
+    });
+  }
+
+  // --- Función de Auditoría de Vacante (Entrada Directa o URL) ---
+
+  async function executeJobAudit(mode) {
+    let url = "";
+    let manualText = "";
+
+    if (mode === "direct") {
+      manualText = jobManualTextarea.value.trim();
+      if (!manualText) {
+        alert("Por favor pega o escribe la descripción de la vacante en el cuadro de texto.");
+        jobManualTextarea.focus();
+        return;
+      }
+    } else if (mode === "url") {
+      url = jobUrlInput.value.trim();
+      if (!url) {
+        alert("Por favor ingresa la URL de la vacante.");
+        jobUrlInput.focus();
+        return;
+      }
     } else {
-      manualTextContainer.classList.add("hidden");
-      btnToggleManualText.textContent = "¿El sitio requiere inicio de sesión? Pega la descripción manualmente";
-    }
-  });
-
-  // --- Formulario de Análisis de Vacante (Paso 2) ---
-
-  jobForm.addEventListener("submit", async () => {
-    const url = jobUrlInput.value.trim();
-    const manualText = jobManualTextarea.value.trim();
-
-    if (!url && !manualText) {
-      alert("Por favor ingresa una URL de la vacante o escribe su descripción.");
-      return;
+      url = jobUrlInput.value.trim();
+      manualText = jobManualTextarea.value.trim();
+      if (!url && !manualText) {
+        alert("Por favor ingresa la descripción o la URL de la vacante.");
+        return;
+      }
     }
 
     // Comprobación de estado previo
@@ -376,16 +454,17 @@ document.addEventListener("DOMContentLoaded", () => {
     // Iniciar indicador de progreso determinista
     progressCard.classList.remove("hidden");
     resultsSection.classList.add("hidden");
-    btnAnalyzeJob.disabled = true;
+    if (btnAnalyzeDirect) btnAnalyzeDirect.disabled = true;
+    if (btnAnalyzeUrl) btnAnalyzeUrl.disabled = true;
 
-    progressStatusText.textContent = "1. Extrayendo requisitos clave de la vacante...";
+    progressStatusText.textContent = "1. Estructurando requisitos y competencias de la oferta...";
 
     const stepTimer = setTimeout(() => {
-      progressStatusText.textContent = "2. Cruzando perfil con estándares de sistemas ATS en Gemini...";
+      progressStatusText.textContent = "2. Cruzando perfil con estándares ATS en Gemini Flash 3.0+...";
     }, 1200);
 
     const stepTimer2 = setTimeout(() => {
-      progressStatusText.textContent = "3. Calculando porcentaje de viabilidad y preparando diagnóstico...";
+      progressStatusText.textContent = "3. Validando residencia y calculando viabilidad objetiva (≥ 75%)...";
     }, 2800);
 
     try {
@@ -397,9 +476,8 @@ document.addEventListener("DOMContentLoaded", () => {
         renderAnalysisResults(res.analysis);
       } else if (res.requires_manual) {
         // Fallback para sitios protegidos por login (LinkedIn, Indeed, etc.)
-        alert(res.error || "El portal requiere autenticación. Por favor pega la descripción de la vacante en el cuadro inferior.");
-        manualTextContainer.classList.remove("hidden");
-        btnToggleManualText.textContent = "Ocultar cuadro de texto manual";
+        alert(res.error || "El portal requiere autenticación o captcha. Te transferimos a la pestaña 'Descripción Directa' para que pegues el texto.");
+        if (tabDirectText) tabDirectText.click();
         jobManualTextarea.focus();
       } else {
         alert(res.error || "No se pudo realizar el análisis de la vacante.");
@@ -411,9 +489,24 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Error inesperado durante la auditoría de la vacante.");
     } finally {
       progressCard.classList.add("hidden");
-      btnAnalyzeJob.disabled = false;
+      if (btnAnalyzeDirect) btnAnalyzeDirect.disabled = false;
+      if (btnAnalyzeUrl) btnAnalyzeUrl.disabled = false;
     }
-  });
+  }
+
+  if (btnAnalyzeDirect) {
+    btnAnalyzeDirect.addEventListener("click", () => executeJobAudit("direct"));
+  }
+  if (btnAnalyzeUrl) {
+    btnAnalyzeUrl.addEventListener("click", () => executeJobAudit("url"));
+  }
+  if (jobForm) {
+    jobForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const isDirect = tabDirectText && tabDirectText.classList.contains("active");
+      executeJobAudit(isDirect ? "direct" : "url");
+    });
+  }
 
   // Renderizado dinámico del diagnóstico (principios de diseño de AGENTS.md)
   function renderAnalysisResults(analysis) {
@@ -426,20 +519,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const company = analysis.company ? ` en ${analysis.company}` : "";
     jobTitleDetected.textContent = `Puesto detectado: ${jobTitle}${company}`;
 
-    // Lógica estricta de activación de optimización (≥ 90%)
-    if (score >= 90) {
+    // Lógica estricta de activación de optimización (≥ 75%)
+    if (score >= currentMinMatch) {
       matchScoreValue.className = "score-value high-score";
       btnGenerateCv.disabled = false;
       btnGenerateCv.className = "btn-action-unlocked";
-      actionHintText.textContent = "¡Afinidad superior al 90%! Desbloqueado para adaptar y generar nuevo CV.";
+      actionHintText.textContent = `¡Afinidad superior al ${currentMinMatch}%! Desbloqueado para adaptar y generar nuevo CV.`;
     } else {
       matchScoreValue.className = "score-value medium-score";
       btnGenerateCv.disabled = true;
       btnGenerateCv.className = "btn-action-locked";
-      actionHintText.textContent = `Requiere ≥ 90% de afinidad para desbloquear adaptación (tu afinidad actual es ${score}%).`;
+      actionHintText.textContent = `Requiere ≥ ${currentMinMatch}% de afinidad para desbloquear adaptación (tu afinidad actual es ${score}%).`;
     }
 
-    // Columna 1: Requisitos cubiertos
+    // Columna 1: Requisitos cubiertos (incluye residencia y ubicación)
     const matched = analysis.matched_skills || [];
     listMatchedSkills.innerHTML = matched.length > 0 
       ? matched.map(s => `<li>${escapeHtml(s)}</li>`).join("")
@@ -451,7 +544,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ? transferable.map(s => `<li>${escapeHtml(s)}</li>`).join("")
       : "<li>No se identificaron habilidades secundarias afines.</li>";
 
-    // Columna 3: Brechas detectadas
+    // Columna 3: Brechas detectadas (sin penalización por residencia)
     const missing = analysis.missing_skills || [];
     listMissingSkills.innerHTML = missing.length > 0
       ? missing.map(s => `<li>${escapeHtml(s)}</li>`).join("")
@@ -476,8 +569,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if ((window._lastJobAnalysis.match_percentage || 0) < 90) {
-      alert("Se requiere un mínimo de 90% de afinidad para generar el currículum adaptado.");
+    if ((window._lastJobAnalysis.match_percentage || 0) < currentMinMatch) {
+      alert(`Se requiere un mínimo de ${currentMinMatch}% de afinidad para generar el currículum adaptado.`);
       return;
     }
 

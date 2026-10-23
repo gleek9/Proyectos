@@ -13,7 +13,7 @@
 | **1** | **Estructura Base, Base de Datos y Ventana PyWebView** | ✅ Completada | 100% |
 | **2** | **Conectividad con Google Gemini (BYOK)** | ✅ Completada | 100% |
 | **3** | **Ingesta, Parseo y Persistencia del CV Base** | ✅ Completada | 100% |
-| **4** | **Extracción de Ofertas y Comparador de Viabilidad (>90%)** | ✅ Completada | 100% |
+| **4** | **Extracción de Ofertas y Comparador de Viabilidad (≥75%)** | ✅ Completada | 100% |
 | **5** | **Motor de Generación de PDF Adaptado (ATS)** | ✅ Completada | 100% |
 | **6** | **Diseño UI/UX Final y Compilación a `.exe`** | ✅ Completada | 100% |
 
@@ -78,20 +78,21 @@
 
 ---
 
-### Fase 4: Extracción de Ofertas y Comparador de Viabilidad (>90%)
-*Objetivo: Analizar la vacante desde una URL y calcular la afinidad objetiva.*
-- [x] Campo de entrada de URL en la interfaz con botón "Auditar Viabilidad".
+### Fase 4: Extracción de Ofertas y Comparador de Viabilidad (≥75%)
+*Objetivo: Analizar la vacante desde texto directo o URL y calcular la afinidad objetiva.*
+- [x] Pestañas de entrada dual en interfaz: "Descripción Directa" (con pegado rápido de portapapeles) y "Desde Enlace Web (URL)".
 - [x] Módulo de web scraping (`src/job_scraper.py`) con headers realistas y extracción con Trafilatura y BeautifulSoup4:
-  - Manejo automático de fallback: si la web bloquea el scraping (LinkedIn, Indeed, Cloudflare, authwalls), se despliega automáticamente el área de texto para pegar la descripción manualmente.
+  - Manejo automático de fallback: si la web bloquea el scraping (LinkedIn, Indeed, Cloudflare, authwalls), conmuta automáticamente a la pestaña de texto directo.
 - [x] Prompt de evaluación y auditoría ATS en Gemini (`src/match_evaluator.py`):
   - Comparativa punto por punto: requisitos vs. experiencia real.
+  - Regla obligatoria: la residencia y ubicación geográfica se consideran **requisito cumplido por defecto** sin penalizar puntuación.
   - Cálculo de porcentaje objetivo de viabilidad (0 a 100%).
   - Desglose auditado en 3 columnas: requisitos cubiertos, habilidades transferibles y brechas formativas.
   - Generación de mensaje pedagógico en tono de mentor ejecutivo.
   - Persistencia de cada análisis en la tabla `job_history` de SQLite.
 - [x] Lógica de activación condicional en la interfaz:
-  - Si porcentaje < 90%: Feedback visual constructivo, explicación de brechas y botón bloqueado con mensaje explicativo.
-  - Si porcentaje ≥ 90%: Desbloqueo suave del botón de acción pasando a Azul Autoridad (`#1E3A8A`) para proceder a la adaptación.
+  - Si porcentaje < 75%: Feedback visual constructivo, explicación de brechas y botón bloqueado con mensaje explicativo.
+  - Si porcentaje ≥ 75%: Desbloqueo suave del botón de acción pasando a Azul Autoridad (`#1E3A8A`) para proceder a la adaptación.
 
 ---
 
@@ -144,5 +145,24 @@
     - Descubrimiento dinámico de modelos (`discover_flash_models`) con filtro estricto $\ge 3.0$ y ordenamiento de prioridad.
     - Rotación transparente de cuota (`RESOURCE_EXHAUSTED` / 429 / failover): si un modelo agota su cuota de peticiones por minuto o diarias en la cuenta del usuario, el sistema salta automáticamente al siguiente modelo Gemini 3.0+ Flash sin interrumpir el flujo.
     - Corrección en el clasificador de errores de `validate_api_key`: los errores de modelo no disponible o cuota no abortan la validación como "clave inválida", evaluando la lista completa con respaldo resiliente.
-    - Limpieza de bloques de formato markdown (```json) en las respuestas de los modelos 3.0 Flash para evitar errores de parseo.
+  - **Mantenimiento y Corrección v1.3 (Umbral 75%, Residencia Cumplida y Descripción Directa):**
+    - Reducción del umbral mínimo de activación de adaptación de CV del 90% al **75%** (`MIN_MATCH_THRESHOLD = 75.0`).
+    - Regla estricta de residencia: la residencia y ubicación territorial requeridas por la vacante se validan por defecto como **requisito cumplido** (`matched_skills`), blindando al candidato contra penalizaciones de ubicación tanto a nivel de prompt como en post-procesamiento determinista en Python.
+    - Implementación de la función de **Descripción Directa de Vacante** como pestaña principal y predeterminada en el Paso 2:
+      - Área de texto amplia para pegar ofertas desde cualquier portal (LinkedIn, Indeed, correos, etc.).
+      - Botón de un solo clic para pegar desde el portapapeles de Windows (`📋 Pegar Portapapeles`) con fallback nativo en PyWebView.
+      - Botón para limpiar texto.
+      - Pestaña secundaria para análisis por URL pública con conmutación automática si hay authwalls.
+    - Actualización de microcopys, alertas y estados visuales del botón "Generar CV Adaptado".
+  - **Mantenimiento y Corrección v1.4 (Rediseño Visual 2026: Dark Minimalist con Neón):**
+    - Rediseño integral de la experiencia visual para el estándar del año 2026 bajo la estética *Cyber-Obsidian & Precision Neon*:
+      - **Canvas y Atmósfera:** Fondo en negro cósmico obsidiana (`#07080B`) con sutiles resplandores atmosféricos radiales (Electric Cyan y Cyber Mint) que aportan profundidad sin distraer.
+      - **Superficies Glassmórficas:** Tarjetas en cristal ahumado oscuro (`rgba(13, 17, 24, 0.75)` con `backdrop-filter: blur(16px)` y bordes nanométricos de 1px `rgba(255, 255, 255, 0.08)`).
+      - **Acentos Neón de Alta Precisión:**
+        - *Electric Cyan (`#00F0FF`):* Identidad de marca Cuva, badges interactivos, inputs en foco con aura de resplandor.
+        - *Cyber Mint (`#00FF9D`):* Indicador de viabilidad $\ge 75\%$, botones desbloqueados y requisitos cubiertos.
+        - *Solar Flare Amber (`#FFB800`):* Habilidades transferibles y sugerencias de mejora.
+        - *Laser Rose (`#FF385C`):* Brechas o habilidades faltantes de forma limpia y sobria.
+      - **Tipografía 2026:** Integración de Google Fonts `Plus Jakarta Sans` (300-800) para lectura ejecutiva y `JetBrains Mono` (400-700) para métricas analíticas y porcentajes.
+      - **Microinteracciones y Feedback:** Barra de progreso analítica con resplandor pulsante neón, zona de arrastre con iluminación perimetral al interactuar (`.drag-over`), y botón CTA "Generar CV Adaptado" con gradiente activo y resplandor dinámico al superar el umbral del 75%.
 

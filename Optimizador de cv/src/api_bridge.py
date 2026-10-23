@@ -5,6 +5,7 @@ from src.database import (
     get_config, set_config, delete_config,
     get_user_profile, get_job_history
 )
+from src.config import MIN_MATCH_THRESHOLD
 
 class ApiBridge:
     """Puente bidireccional entre la interfaz web (JavaScript) y el backend en Python."""
@@ -29,6 +30,7 @@ class ApiBridge:
             "user_name": profile.get("full_name", "") if profile else "",
             "profile_summary": profile.get("summary", "") if profile else "",
             "original_cv_file": profile.get("original_filename", "") if profile else "",
+            "min_match_threshold": MIN_MATCH_THRESHOLD,
             "recent_history": get_job_history(limit=5)
         }
 
@@ -61,6 +63,18 @@ class ApiBridge:
         """Elimina la clave API guardada de la base de datos local."""
         delete_config("gemini_api_key")
         return {"success": True, "message": "Clave eliminada exitosamente."}
+
+    def get_clipboard_text(self) -> Dict[str, Any]:
+        """Obtiene el texto almacenado en el portapapeles de Windows de forma segura."""
+        try:
+            import tkinter as tk
+            root = tk.Tk()
+            root.withdraw()
+            text = root.clipboard_get()
+            root.destroy()
+            return {"success": True, "text": text}
+        except Exception:
+            return {"success": False, "text": ""}
 
     # --- Ingesta y Procesamiento de Currículum ---
 
@@ -294,12 +308,12 @@ class ApiBridge:
         else:
             history_id = job_analysis.get("id")
 
-        # 2. Criterio de activación estricto: requiere afinidad >= 90%
+        # 2. Criterio de activación: requiere afinidad >= 75% (configurable en config.py)
         score = job_analysis.get("match_percentage", 0)
-        if score < 90:
+        if score < MIN_MATCH_THRESHOLD:
             return {
                 "success": False,
-                "error": f"La afinidad actual es del {score}%. Para mantener altos estándares de éxito, se requiere ≥ 90% de compatibilidad para adaptar el currículum."
+                "error": f"La afinidad actual es del {score}%. Para garantizar altos estándares de éxito, se requiere ≥ {int(MIN_MATCH_THRESHOLD)}% de compatibilidad para adaptar el currículum."
             }
 
         # 3. Nomenclatura del archivo generado según AGENTS.md regla 4.1: [Nombre_Apellido]_[Puesto_Deseado].pdf

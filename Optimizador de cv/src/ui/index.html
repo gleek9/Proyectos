@@ -6,7 +6,7 @@
   <title>Cuva</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -98,49 +98,95 @@
       </section>
 
       <!-- Paso 2: Análisis de Vacante Laboral -->
+      <!-- Paso 2: Análisis de Vacante Laboral -->
       <section class="card job-section">
         <div class="card-header">
           <div class="step-badge">Paso 2</div>
           <div class="card-title-group">
             <h2 class="card-title">Oferta de Trabajo Objetivo</h2>
-            <p class="card-desc">Ingresa el enlace de la propuesta de trabajo a la que deseas postular.</p>
+            <p class="card-desc">Ingresa directamente la descripción de la vacante o escribe su enlace web.</p>
           </div>
         </div>
 
+        <!-- Selector de Modo de Entrada (Directa vs URL) -->
+        <div class="job-input-tabs">
+          <button type="button" id="tab-direct-text" class="tab-btn active">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span>Descripción Directa</span>
+          </button>
+          <button type="button" id="tab-url-mode" class="tab-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            <span>Desde Enlace Web (URL)</span>
+          </button>
+        </div>
+
         <form id="job-analysis-form" class="job-form" onsubmit="return false;">
-          <div class="url-input-container">
-            <div class="input-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-              </svg>
+          <!-- Panel 1: Entrada Directa de Texto (Predeterminada) -->
+          <div id="panel-direct-text" class="tab-panel active">
+            <div class="textarea-header">
+              <label for="job-manual-textarea" class="form-label">Pega aquí el texto completo de la vacante:</label>
+              <div class="textarea-actions">
+                <button type="button" id="btn-paste-clipboard" class="btn-text-action" title="Pegar contenido del portapapeles de Windows">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                  </svg>
+                  <span>Pegar Portapapeles</span>
+                </button>
+                <button type="button" id="btn-clear-textarea" class="btn-text-action" title="Limpiar texto">
+                  <span>Limpiar</span>
+                </button>
+              </div>
             </div>
-            <input 
-              type="url" 
-              id="job-url-input" 
-              class="form-input" 
-              placeholder="https://ejemplo.com/empleo/senior-frontend-developer" 
-              required
-            >
-            <button type="submit" id="btn-analyze-job" class="btn btn-primary">
-              <span class="btn-text">Auditar Viabilidad</span>
-            </button>
-          </div>
-
-          <div class="form-toggle-link">
-            <button type="button" id="btn-toggle-manual-text" class="link-btn">
-              ¿El sitio requiere inicio de sesión? Pega la descripción manualmente
-            </button>
-          </div>
-
-          <div id="manual-text-container" class="manual-input-box hidden">
-            <label for="job-manual-textarea" class="form-label">Descripción completa de la vacante:</label>
             <textarea 
               id="job-manual-textarea" 
-              class="form-textarea" 
+              class="form-textarea job-description-textarea" 
               rows="6" 
-              placeholder="Pega aquí los requisitos, responsabilidades y habilidades requeridas..."
+              placeholder="Pega aquí directamente los requisitos, responsabilidades y habilidades requeridas (copiado desde LinkedIn, Indeed, correo, portal de empleo, etc.)..."
             ></textarea>
+            <div class="direct-input-footer">
+              <div class="policy-note">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <span>Residencia y ubicación se consideran cumplidas por defecto • Requiere ≥ 75% de afinidad</span>
+              </div>
+              <button type="button" id="btn-analyze-direct" class="btn btn-primary">
+                <span class="btn-text">Auditar Viabilidad</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Panel 2: Entrada por Enlace Web (URL) -->
+          <div id="panel-url-mode" class="tab-panel hidden">
+            <div class="url-input-container">
+              <div class="input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                </svg>
+              </div>
+              <input 
+                type="text" 
+                id="job-url-input" 
+                class="form-input" 
+                placeholder="https://ejemplo.com/empleo/senior-frontend-developer"
+              >
+              <button type="button" id="btn-analyze-url" class="btn btn-primary">
+                <span class="btn-text">Auditar Viabilidad</span>
+              </button>
+            </div>
+            <p class="form-help-text">Si el portal solicita credenciales o bloqueo antibot (LinkedIn, Indeed), usa la pestaña <strong>Descripción Directa</strong>.</p>
           </div>
         </form>
 
@@ -211,10 +257,10 @@
           </p>
         </div>
 
-        <!-- Barra de Acción Final (≥ 90%) -->
+        <!-- Barra de Acción Final (≥ 75%) -->
         <div class="action-footer">
           <div class="action-hint">
-            <span id="action-hint-text">Se requiere un mínimo de 90% de afinidad para desbloquear la adaptación.</span>
+            <span id="action-hint-text">Se requiere un mínimo de 75% de afinidad para desbloquear la adaptación.</span>
           </div>
           <button id="btn-generate-cv" class="btn btn-action-locked" disabled>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

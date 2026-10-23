@@ -6965,6 +6965,10 @@
    'PYMODULE'),
   ('textwrap', 'C:\\Python314\\Lib\\textwrap.py', 'PYMODULE'),
   ('threading', 'C:\\Python314\\Lib\\threading.py', 'PYMODULE'),
+  ('tkinter', 'C:\\Python314\\Lib\\tkinter\\__init__.py', 'PYMODULE'),
+  ('tkinter.constants',
+   'C:\\Python314\\Lib\\tkinter\\constants.py',
+   'PYMODULE'),
   ('tld',
    'C:\\Users\\uriel\\Vibe coding\\Proyectos\\Optimizador de '
    'cv\\.venv\\Lib\\site-packages\\tld\\__init__.py',
