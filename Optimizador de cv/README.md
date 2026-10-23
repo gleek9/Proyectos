@@ -48,16 +48,16 @@ El flujo de trabajo en Cuva se divide en 3 pasos secuenciales y sin fricción:
 
 ```mermaid
 graph TD
-    A[📄 Ingesta de CV] -->|Drag & Drop PDF/DOCX| B[💾 Extracción y Almacenamiento Local]
-    B --> C[🏢 Ingesta de Oferta Laboral]
-    C -->|Opción 1: Pegado Directo| D[🧠 Motor de IA Gemini 3.0+ Flash]
-    C -->|Opción 2: URL Pública| D
-    D --> E[📊 Auditoría de Viabilidad ATS]
-    E -->|Desglose en 3 Columnas| F{Match >= 75%?}
-    F -->|No: < 75%| G[⚠️ Diagnóstico Educativo y Guía de Brechas]
-    F -->|Sí: >= 75%| H[🚀 Desbloqueo de Botón Neón]
-    H --> I[📥 Generador de PDF ATS con ReportLab]
-    I --> J[✅ [Nombre_Apellido]_[Puesto].pdf]
+    A["📄 Ingesta de CV"] -->|"Drag & Drop PDF o DOCX"| B["💾 Extracción y Almacenamiento Local"]
+    B --> C["🏢 Ingesta de Oferta Laboral"]
+    C -->|"Opción 1: Pegado Directo"| D["🧠 Motor de IA Gemini 3.0+ Flash"]
+    C -->|"Opción 2: URL Pública"| D
+    D --> E["📊 Auditoría de Viabilidad ATS"]
+    E -->|"Desglose en 3 Columnas"| F{"¿Match ≥ 75%?"}
+    F -->|"No: Menor a 75%"| G["⚠️ Diagnóstico Educativo y Guía de Brechas"]
+    F -->|"Sí: Mayor o igual a 75%"| H["🚀 Desbloqueo de Botón Neón"]
+    H --> I["📥 Generador de PDF ATS con ReportLab"]
+    I --> J["✅ CV Optimizado: Nombre_Apellido_Puesto.pdf"]
 ```
 
 1. **Paso 1: Perfil Profesional:** Arrastra tu CV actual en formato PDF o Word (`.docx`). Cuva extrae el texto, estructura tu experiencia y habilidades mediante IA, y lo almacena en tu base de datos local SQLite.
