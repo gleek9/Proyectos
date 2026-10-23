@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cuva</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Encabezado Ejecutivo -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-symbol">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Cuva</h1>
+          <p class="brand-subtitle">Auditoría ATS y Adaptación Profesional</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Indicador de Privacidad Local -->
+        <div class="privacy-badge" title="Tus datos personales y clave API se guardan exclusivamente en SQLite local">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span>SQLite Local · Privacidad Total</span>
+        </div>
+
+        <!-- Estado de API Key -->
+        <button id="btn-open-settings" class="btn-settings" title="Configurar Clave API de Google">
+          <span id="api-status-dot" class="status-dot warning"></span>
+          <span id="api-status-text">Clave API</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="main-content">
+      
+      <!-- Paso 1: Perfil Profesional del Usuario -->
+      <section class="card profile-section" id="profile-section">
+        <div class="card-header">
+          <div class="step-badge">Paso 1</div>
+          <div class="card-title-group">
+            <h2 class="card-title">Tu Perfil Profesional Base</h2>
+            <p class="card-desc">Carga tu currículum actual una sola vez para que el motor analice tus competencias.</p>
+          </div>
+        </div>
+
+        <div id="profile-empty-state" class="profile-upload-zone">
+          <div class="upload-icon-wrapper">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <div class="upload-text-group">
+            <p class="upload-title">Arrastra tu currículum aquí o selecciónalo</p>
+            <p class="upload-subtitle">Formatos admitidos: PDF o Word (.docx) · Procesado en SQLite local</p>
+          </div>
+          <button id="btn-upload-cv" class="btn btn-secondary">
+            <span>Cargar Archivo de CV</span>
+          </button>
+        </div>
+
+        <div id="profile-loaded-state" class="profile-loaded-card hidden" title="Arrastra un nuevo archivo PDF o DOCX aquí para actualizar tu perfil">
+          <div class="profile-summary-info">
+            <div class="profile-avatar">
+              <span id="profile-initials">U</span>
+            </div>
+            <div>
+              <h3 id="profile-name" class="profile-name">Cargando perfil...</h3>
+              <p id="profile-file-info" class="profile-meta">Archivo base: CV_Original.pdf</p>
+            </div>
+          </div>
+          <div class="profile-loaded-actions">
+            <span class="dnd-hint-text">O arrastra un archivo aquí</span>
+            <button id="btn-change-cv" class="btn btn-ghost btn-sm">
+              <span>Actualizar CV</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Paso 2: Análisis de Vacante Laboral -->
+      <section class="card job-section">
+        <div class="card-header">
+          <div class="step-badge">Paso 2</div>
+          <div class="card-title-group">
+            <h2 class="card-title">Oferta de Trabajo Objetivo</h2>
+            <p class="card-desc">Ingresa el enlace de la propuesta de trabajo a la que deseas postular.</p>
+          </div>
+        </div>
+
+        <form id="job-analysis-form" class="job-form" onsubmit="return false;">
+          <div class="url-input-container">
+            <div class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+            </div>
+            <input 
+              type="url" 
+              id="job-url-input" 
+              class="form-input" 
+              placeholder="https://ejemplo.com/empleo/senior-frontend-developer" 
+              required
+            >
+            <button type="submit" id="btn-analyze-job" class="btn btn-primary">
+              <span class="btn-text">Auditar Viabilidad</span>
+            </button>
+          </div>
+
+          <div class="form-toggle-link">
+            <button type="button" id="btn-toggle-manual-text" class="link-btn">
+              ¿El sitio requiere inicio de sesión? Pega la descripción manualmente
+            </button>
+          </div>
+
+          <div id="manual-text-container" class="manual-input-box hidden">
+            <label for="job-manual-textarea" class="form-label">Descripción completa de la vacante:</label>
+            <textarea 
+              id="job-manual-textarea" 
+              class="form-textarea" 
+              rows="6" 
+              placeholder="Pega aquí los requisitos, responsabilidades y habilidades requeridas..."
+            ></textarea>
+          </div>
+        </form>
+
+        <!-- Indicador de Progreso Determinista -->
+        <div id="analysis-progress-card" class="progress-card hidden">
+          <div class="progress-bar-track">
+            <div id="progress-bar-fill" class="progress-bar-fill"></div>
+          </div>
+          <div class="progress-status-content">
+            <span class="spinner-dot"></span>
+            <span id="progress-status-text">Analizando vacante con Google Gemini...</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Paso 3: Diagnóstico de Viabilidad y Descarga -->
+      <section id="results-section" class="card results-section hidden">
+        <div class="results-header">
+          <div>
+            <h2 class="card-title">Resultado de Viabilidad ATS</h2>
+            <p id="job-title-detected" class="card-desc">Puesto detectado: Senior Developer</p>
+          </div>
+          <div class="score-display">
+            <span class="score-label">Afinidad Calculada</span>
+            <div class="score-badge-wrapper">
+              <span id="match-score-value" class="score-value">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desglose de 3 Columnas Auditadas -->
+        <div class="diagnosis-grid">
+          <div class="diagnosis-column col-matched">
+            <div class="col-header">
+              <span class="col-indicator indicator-success"></span>
+              <h3>Requisitos Cubiertos</h3>
+            </div>
+            <ul id="list-matched-skills" class="skills-list">
+              <!-- Se puebla dinámicamente -->
+            </ul>
+          </div>
+
+          <div class="diagnosis-column col-transferable">
+            <div class="col-header">
+              <span class="col-indicator indicator-info"></span>
+              <h3>Habilidades Afines</h3>
+            </div>
+            <ul id="list-transferable-skills" class="skills-list">
+              <!-- Se puebla dinámicamente -->
+            </ul>
+          </div>
+
+          <div class="diagnosis-column col-gaps">
+            <div class="col-header">
+              <span class="col-indicator indicator-warning"></span>
+              <h3>Brechas a Reforzar</h3>
+            </div>
+            <ul id="list-missing-skills" class="skills-list">
+              <!-- Se puebla dinámicamente -->
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tono de Mentor / Mensaje Formativo -->
+        <div id="mentor-feedback-card" class="mentor-card">
+          <p id="mentor-feedback-text">
+            El sistema evalúa tu experiencia frente a los requerimientos de la oferta.
+          </p>
+        </div>
+
+        <!-- Barra de Acción Final (≥ 90%) -->
+        <div class="action-footer">
+          <div class="action-hint">
+            <span id="action-hint-text">Se requiere un mínimo de 90% de afinidad para desbloquear la adaptación.</span>
+          </div>
+          <button id="btn-generate-cv" class="btn btn-action-locked" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span id="btn-generate-text">Generar CV Adaptado (PDF)</span>
+          </button>
+        </div>
+
+        <!-- Tarjeta de Éxito y Descarga de CV Generado -->
+        <div id="cv-success-card" class="cv-success-card hidden">
+          <div class="cv-success-header">
+            <div class="cv-success-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div>
+              <h3 class="cv-success-title">Currículum Optimizado con Éxito</h3>
+              <p class="cv-success-desc">Tu documento cumple al 100% las directrices ATS en una sola columna con tipografía profesional.</p>
+            </div>
+          </div>
+
+          <div class="cv-file-display">
+            <div class="cv-file-badge">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span id="cv-generated-filename">Uriel_Lopez_Puesto.pdf</span>
+            </div>
+            
+            <div class="cv-action-buttons">
+              <button type="button" id="btn-open-pdf" class="btn btn-secondary btn-sm" title="Abrir archivo PDF">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span>Abrir PDF</span>
+              </button>
+              <button type="button" id="btn-open-folder" class="btn btn-secondary btn-sm" title="Mostrar en explorador">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>Mostrar en Carpeta</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Modal de Configuración de API Key -->
+    <div id="settings-modal" class="modal-backdrop hidden">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="modal-title">Clave de API de Google Gemini</h3>
+          <button id="btn-close-modal" class="btn-close" aria-label="Cerrar modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">
+            Para que el programa sea rápido, privado y gratuito de utilizar, ingresa tu clave API personal de Google AI Studio. 
+            <strong>Se almacenará únicamente en tu base de datos local SQLite.</strong>
+          </p>
+          <div class="form-group">
+            <label for="input-api-key" class="form-label">Google Gemini API Key:</label>
+            <input 
+              type="password" 
+              id="input-api-key" 
+              class="form-input" 
+              placeholder="AIzaSy..." 
+              autocomplete="off"
+            >
+            <span id="modal-error-msg" class="field-error hidden"></span>
+            <span id="modal-success-msg" class="field-success hidden"></span>
+          </div>
+          <div class="modal-tip">
+            <span>¿No tienes una clave? Puedes obtenerla gratis en <a href="#" id="link-get-api-key">Google AI Studio</a> en 1 minuto.</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-remove-key" class="btn btn-ghost btn-sm hidden">Eliminar Clave</button>
+          <div class="modal-footer-right">
+            <button id="btn-cancel-modal" class="btn btn-secondary">Cancelar</button>
+            <button id="btn-save-key" class="btn btn-primary">Guardar Clave</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

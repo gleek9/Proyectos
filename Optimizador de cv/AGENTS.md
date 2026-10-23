@@ -10,20 +10,59 @@ Proporcionar una aplicación de escritorio nativa para Windows (`.exe`), rápida
 
 ---
 
-## 2. Principios de Diseño y Experiencia de Usuario (UX/UI)
+## 2. Principios de Diseño, UX/UI y Psicología de Confianza
 
-1. **Simplicidad Radical (Zero Clutter):** La interfaz debe mostrar únicamente los elementos necesarios en cada momento. Sin menús ocultos, opciones confusas ni configuraciones complejas.
-2. **Flujo Paso a Paso:**
-   - **Paso 0 (Configuración Inicial):** Introducción de la API Key de Google (se valida al instante y se guarda cifrada/localmente).
-   - **Paso 1 (Perfil Base):** Carga del CV en PDF/Word una sola vez; la IA estructura la información y la almacena en la base de datos local.
-   - **Paso 2 (Análisis de Oferta):** El usuario ingresa la URL de la vacante (con opción de pegar texto si la página tiene bloqueo o captcha).
-   - **Paso 3 (Diagnóstico y Match):** Diagnóstico visual inmediato del porcentaje de compatibilidad, puntos fuertes y brechas.
-   - **Paso 4 (Generación Condicional):** Si el porcentaje es ≥ 90%, se activa el botón para generar y descargar el nuevo CV adaptado.
-3. **Estética Premium y Sofisticada:**
-   - Paleta sobria (modo oscuro elegante con toques de acento en tonos neutros o índigo tecnológico).
-   - Tipografía moderna (Inter / Outfit / SF Pro display).
-   - Microinteracciones y transiciones suaves durante el análisis (spinners o barras de progreso elegantes, sin pantallas congeladas).
-4. **Respeto a la Privacidad (Local-First):** Todos los datos personales y la clave API residen exclusivamente en la base de datos local del usuario (`SQLite`). No existen servidores externos intermediarios.
+El usuario está poniendo en manos del software una de las áreas más críticas de su vida: su carrera profesional. Por ello, la experiencia visual no debe parecer un juguete ni un experimento con "efectos mágicos de IA", sino un **instrumento de auditoría profesional de alta precisión, sobrio, transparente y seguro**.
+
+### 2.1 Filosofía Estética: Minimalismo Suizo en Tonos Claros (Swiss White Minimalism)
+- **Claridad Quirúrgica y Blancura Intencional:** Fondo amplio y limpio que transmita orden, rigor y serenidad. Se evitan las saturaciones visuales y los modos oscuros densos; predomina una estética de documento ejecutivo y papelería corporativa premium.
+- **Zero AI Gimmicks:** Cero gradientes púrpuras/neón clichés, cero partículas brillantes o iconografía de "magia". El análisis se comunica como un cálculo analítico objetivo y determinista.
+- **Estructura Visible como Información:** Líneas sutiles de separación, tarjetas bien delimitadas y espaciados generosos (`gap: 1.5rem` - `2rem`) que permiten al usuario escanear la información en menos de 5 segundos.
+
+### 2.2 Sistema de Diseño y Tokens de Color (High-Trust Palette)
+Inspirado en los perfiles de confianza y autoridad (*Swiss Minimal / Executive Authority* de `ui-ux-pro-max`):
+
+| Token | Valor Hex | Propósito Psicológico |
+| :--- | :---: | :--- |
+| **Canvas de Fondo** | `#F8FAFC` (Slate-50) | Lienzo base neutro y limpio; descansa la vista frente al blanco absoluto. |
+| **Superficie de Tarjetas** | `#FFFFFF` (Pure White) | Superficies de trabajo y foco, con sensación de documento físico pulcro. |
+| **Bordes y Divisores** | `#E2E8F0` (Slate-200) | Delimitaciones milimétricas (1px solid), sin sombras pesadas. |
+| **Texto Principal (Tinta)** | `#0F172A` (Slate-900) | Máximo contraste legible (WCAG AAA), tono tinta obsidiana para títulos. |
+| **Texto de Lectura** | `#334155` (Slate-700) | Contraste óptimo y descanso para párrafos y descripciones. |
+| **Texto Secundario** | `#64748B` (Slate-500) | Metadatos, etiquetas y contexto auxiliar. |
+| **Azul Autoridad (Primary)** | `#1E3A8A` / `#2563EB` | Acento principal en botones interactivos; evoca rigor institucional y seguridad. |
+| **Verde Calificación (Success)** | `#059669` (Emerald-600) | Reservado exclusivamente para el porcentaje ≥ 90% y confirmaciones de éxito. |
+| **Ámbar Constructivo (Warning)** | `#D97706` (Amber-600) | Destaca brechas o requisitos faltantes de forma pedagógica, nunca alarmista. |
+
+### 2.3 Pilares de Seguridad y Confianza del Usuario ("Career-Safe UX")
+1. **Transparencia Local Visible (Zero-Leakage Assurance):**
+   - La interfaz muestra de forma discreta pero permanente en el pie o encabezado un sello de privacidad: *"Tus datos y tu clave API se guardan exclusivamente en tu computadora (SQLite local). Nada pasa por servidores intermediarios"*.
+   - Estado de la API Key validado con indicador verde sereno y opción inmediata de revocar o editar la clave.
+2. **Diagnóstico Auditado y Justificado:**
+   - El porcentaje de viabilidad nunca es una "caja negra". Debe desglosarse visualmente en tres columnas claras:
+     - *Requisitos cubiertos con tu experiencia.*
+     - *Habilidades transferibles o afines.*
+     - *Brechas detectadas que motivan la puntuación.*
+3. **Tono Constructivo (Feedback de Mentor Ejecutivo):**
+   - Si el match es < 90%, el sistema no muestra un "error" en rojo que desanime al usuario. Muestra un diagnóstico formativo: *"Para postular con alta probabilidad a esta vacante, se requiere reforzar [Habilidad X]. Tu perfil tiene excelente alineación en [Habilidad Y]"*.
+4. **Retroalimentación de Estado Determinista:**
+   - Durante las llamadas a Gemini, no se utilizan spinners infinitos genéricos. Se muestra un indicador de pasos progresivos con transiciones suaves:
+     1. *Extrayendo requisitos clave de la vacante...*
+     2. *Cruzando perfil con estándares de sistemas ATS...*
+     3. *Calculando porcentaje de viabilidad...*
+
+### 2.4 Tipografía
+- **Familia:** `Inter` o `Plus Jakarta Sans` (Sans-serif geométrica de alta legibilidad en pantallas desktop).
+- **Escala y Jerarquía:**
+  - Títulos principales: Semibold (600), tamaño 22–26px, `letter-spacing: -0.02em`.
+  - Subtítulos y secciones: Medium (500), tamaño 15–16px.
+  - Cuerpo de texto: Regular (400), tamaño 14px, `line-height: 1.55`.
+  - Etiquetas y micro-copys: Regular o Medium (500), tamaño 12px, sin uso indiscriminado de mayúsculas sostenidas.
+
+### 2.5 Microinteracciones y Respuesta Física
+- **Transiciones:** Rápidas y naturales: `150ms` a `200ms` con curva `cubic-bezier(0.16, 1, 0.3, 1)`.
+- **Botón de Acción Principal (≥ 90%):** En reposo permanece inactivo con mensaje claro (*"Requiere ≥ 90% de afinidad"*). Al alcanzar o superar el 90%, se activa con una transición sutil de color y elevación hacia el Azul Autoridad (`#1E3A8A`), invitando al usuario a descargar con total certeza su nuevo documento.
+
 
 ---
 
