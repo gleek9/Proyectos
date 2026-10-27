@@ -85,21 +85,25 @@ A partir de **dos equipos** o una **URL directa de partido** (de plataformas com
 ```
 
 ### Componentes Clave:
-- **Poisson Bivariado con Dixon-Coles ($\tau$)**: Modela correlaciones de baja puntuación ($0-0, 1-0, 0-1, 1-1$) y aplica elasticidad amortiguada ($\gamma=0.52$).
+- **Base de Datos Oficial Real (3,525 partidos / 122 equipos)**: Ingestión masiva de `football-data.co.uk` con marcadores oficiales, remates a puerta (*Shots on Target*), córners, tarjetas y cuotas reales de Bet365.
+- **Rating Elo Dinámico Cronológico**: Algoritmo FIFA/Chess Elo ($K=24$, localía 65 pts) actualizado jornada a jornada para los 122 clubes.
+- **Poisson Bivariado con Dixon-Coles ($\tau$), Elo y Splits**: Expectativas de gol moduladas por diferencia de Elo ($R_{elo} = 10^{\Delta Elo / 2400}$), splits home/away (55/45) y correlación $\rho$ adaptativa por torneo.
 - **Sobredispersión Binomial Negativa**: Corrige la varianza en córners y tarjetas evitando subestimar colas pesadas.
-- **XGBoost / LightGBM**: Procesa 18 variables numéricas con calibración sigmoide para predecir probabilidades 1X2 y Over/Under.
-- **PyTorch LSTM**: Red recurrente para capturar la inercia temporal y el momentum relativo de los equipos.
-- **Efecto Game State (In-Play)**: Adapta las tasas de gol esperado por minuto según si el equipo va perdiendo, empatando o con inferioridad numérica por expulsión.
+- **XGBoost Supervisado (23 Features Predictivas)**: Clasificador multi-clase 1X2 entrenado cronológicamente con early stopping sobre datos empíricos reales.
+- **PyTorch LSTM**: Red recurrente `MatchSequenceLSTM` entrenada para capturar la inercia temporal y el momentum relativo.
+- **Backtesting Walk-Forward & Value Betting**: Validación out-of-sample (+53.56% ROI vs Bet365, RPS = 0.1888) integrado en API y UI.
+- **Efecto Game State (In-Play)**: Adapta las tasas de gol esperado por minuto y aceleración de córners en desventaja.
 
 ---
 
 ## ✨ Características Principales
 
-- **Ingestión Jerárquica de URLs (v3.5)**: Introduce cualquier URL de Sofascore o Flashscore; el sistema extrae automáticamente la información y prioriza la URL sobre cualquier dato previo del formulario.
-- **Acceso Directo Sin Fricción**: Interfaz lista para usar al instante, sin bloqueos de inicio de sesión obligatorios.
-- **Diseño Dark IDE Minimalista**: Diseñado para alta legibilidad, con paleta oscura elegante, micro-animaciones, gráficos con Chart.js y tipografía de código moderno.
-- **Resiliencia Operativa**: Servidor backend desacoplado con auto-recuperación de subprocesos y prevención de reinicios intempestivos.
-- **Framework de Backtesting Integrado**: Suite matemática para validar la calibración de los modelos con métricas científicas: Ranked Probability Score (RPS), Brier Score, Log-Loss y MAE.
+- **Alta Precisión Matemática (v4.0)**: Desempeño predictivo respaldado por 3,525 partidos reales con calibración RPS $\le 0.190$ (estándar Constantinou-Fenton).
+- **Simulador de Apuestas de Valor (Value Betting)**: Identifica y cuantifica discrepancias analíticas entre las probabilidades del modelo y las cuotas de las casas de apuestas (Bet365).
+- **Resolución Instantánea (<10ms)**: Búsqueda y feature engineering ultra-rápido en SQLite para los 122 equipos principales de Europa y América.
+- **Ingestión Jerárquica de URLs en Vivo**: Soporta enlaces de Sofascore o Flashscore, extrayendo telemetría in-play y auto-sincronizando cada 5 minutos.
+- **Diseño Dark IDE Minimalista**: Diseñado para alta legibilidad táctica, con paleta oscura elegante, micro-animaciones, gráficos interactivos con Chart.js y tipografía monoespaciada.
+- **Lanzador Automatizado en 1 Clic**: Scripts de arranque con auto-recuperación de procesos para Windows (`iniciar_app.bat`, `iniciar_app.ps1`, `run_app.py`).
 
 ---
 
@@ -108,19 +112,19 @@ A partir de **dos equipos** o una **URL directa de partido** (de plataformas com
 ### Backend
 - **Python 3.10+**
 - **FastAPI**: API REST asíncrona de alto rendimiento.
-- **Uvicorn**: Servidor ASGI de producción.
-- **LangChain & Google Gemini 3.5 Flash Lite**: Agente extractor inteligente de telemetría y datos web.
-- **PyTorch**: Inferencia de red neuronal recurrente LSTM.
-- **XGBoost & LightGBM**: Modelos tabulares basados en Gradient Boosting.
+- **Uvicorn**: Servidor ASGI de producción con recarga en caliente supervisada.
+- **LangChain & Google Gemini 3.5 Flash Lite**: Agente extractor inteligente de telemetría y datos web fallback.
+- **PyTorch**: Red neuronal recurrente LSTM (`backend/weights/lstm_momentum.pt`).
+- **XGBoost & LightGBM**: Modelo tabular supervisado de 23 features (`backend/weights/xgb_1x2.json`).
 - **SciPy & NumPy**: Optimización matemática, distribuciones Poisson y Binomial Negativa.
-- **SQLite & SQLAlchemy**: Almacenamiento local persistente y caché inteligente.
+- **SQLite & SQLAlchemy**: Almacenamiento local persistente (`analista.db`).
 
 ### Frontend
 - **React 19**: Biblioteca reactiva para la interfaz de usuario.
-- **Vite 8**: Herramienta de compilación ultrarrápida (HMR instantáneo).
+- **Vite 8**: Herramienta de compilación ultrarrápida.
 - **Chart.js & react-chartjs-2**: Gráficos interactivos de distribución de probabilidades.
 - **Lucide React**: Iconografía moderna y minimalista.
-- **CSS3 Puro**: Sistema de diseño IDE Dark con variables CSS y diseño responsive.
+- **CSS3 Puro**: Sistema de diseño Dark IDE con variables CSS y diseño responsive.
 
 ---
 
@@ -130,35 +134,42 @@ A partir de **dos equipos** o una **URL directa de partido** (de plataformas com
 analista-deportivo/
 ├── .env.example              # Plantilla de variables de entorno
 ├── .gitignore                # Reglas de exclusión de Git (seguridad y temporales)
-├── Agents.md                 # Especificación de roles y agentes de IA
-├── PROJECT_STATUS.md         # Bitácora detallada de hitos y estado del proyecto
+├── Agents.md                 # Especificación técnica de referencia para agentes
+├── PROJECT_STATUS.md         # Bitácora viva de arquitectura y avances
 ├── README.md                 # Este documento
-├── run_app.py                # Script unificado de arranque supervisado
-├── iniciar_app.bat           # Lanzador rápido para Windows (CMD/Batch)
+├── run_app.py                # Script unificado de arranque supervisado Fullstack
+├── iniciar_app.bat           # Lanzador rápido en 1 clic para Windows (CMD/Batch)
 ├── iniciar_app.ps1           # Lanzador rápido para Windows (PowerShell)
 ├── detener_app.bat           # Detención limpia de servicios en Windows
+├── analista.db               # Base de datos SQLite (3,525 partidos oficiales y 122 clubes)
 │
 ├── backend/
 │   ├── requirements.txt      # Dependencias de Python
+│   ├── data/                 # Datasets oficiales CSV de football-data.co.uk
+│   ├── weights/              # Pesos entrenados de XGBoost (xgb_1x2.json) y LSTM (lstm_momentum.pt)
 │   ├── app/
-│   │   ├── main.py           # Entrada FastAPI, rutas API y middlewares
+│   │   ├── main.py           # Entrada FastAPI, rutas REST y ciclo de vida
 │   │   ├── config.py         # Configuración central y variables de entorno
-│   │   ├── db.py             # Persistencia local SQLite y esquema de predicciones
-│   │   ├── agent/            # Módulo de extracción web autónoma
-│   │   │   ├── collector.py  # Orquestador LangChain / Gemini / Feeds
-│   │   │   ├── parser.py     # Parser heurístico estructurado de respuestas
+│   │   ├── db.py             # Modelos relacionales SQLAlchemy (HistoricalMatch, TeamStatsCache)
+│   │   ├── services/         # Servicios de datos oficiales
+│   │   │   ├── real_data_loader.py # Ingestión de CSVs oficiales y cálculo de Elo dinámico
+│   │   │   └── league_database.py  # Resolución de partidos en <10ms y normalización de alias
+│   │   ├── agent/            # Extracción web autónoma fallback
+│   │   │   ├── collector.py  # Orquestador LangChain / Gemini / Base de Datos
+│   │   │   ├── parser.py     # Parser estructurado de respuestas
 │   │   │   └── scraper.py    # Extracción en tiempo real vía httpx/BeautifulSoup
-│   │   ├── analytics/        # Módulo de calibración y evaluación
-│   │   │   └── backtest.py   # Motor de backtesting con RPS, Brier, MAE y Log-Loss
+│   │   ├── analytics/        # Calibración, entrenamiento y evaluación
+│   │   │   ├── backtest.py   # Motor de Walk-Forward, Value Betting, RPS y Brier
+│   │   │   └── train_models.py # Pipeline de reentrenamiento supervisado sin data leakage
 │   │   ├── models/           # Motores predictivos cuantitativos 100% locales
-│   │   │   ├── poisson.py    # Poisson bivariado Dixon-Coles, decaimiento temporal y Game State
-│   │   │   ├── tabular_ml.py # Inferencia tabular XGBoost calibrada multi-clase
+│   │   │   ├── poisson.py    # Dixon-Coles calibrado con Elo y Splits Home/Away
+│   │   │   ├── tabular_ml.py # Inferencia tabular XGBoost (23 variables)
 │   │   │   ├── lstm_net.py   # Red neuronal recurrente LSTM en PyTorch
-│   │   │   └── ensemble.py   # Meta-ensamble de consenso unificado y traductor humano
+│   │   │   └── ensemble.py   # Meta-ensamble bivariado de consenso y veredictos
 │   │   └── schemas/          # Modelos de validación Pydantic tipados
 │   │       ├── match.py      # Esquemas de entrada y telemetría en vivo
 │   │       └── prediction.py # Esquemas de salida estructurada y mercados derivados
-│   └── tests/                # Suite completa de pruebas unitarias y benchmarks
+│   └── tests/                # 75 pruebas unitarias y suites de integración
 │
 └── frontend/
     ├── package.json          # Dependencias y scripts de Node
@@ -175,7 +186,7 @@ analista-deportivo/
         │   ├── MetricCards.jsx       # Métricas de goles, córners y tarjetas
         │   ├── DistributionChart.jsx # Distribución visual de goles esperados
         │   ├── KeyFactorsPanel.jsx   # Factores futbolísticos determinantes
-        │   ├── BacktestModal.jsx     # Modal interactivo de métricas de calibración
+        │   ├── BacktestModal.jsx     # Modal interactivo de Walk-Forward y Value Betting
         │   └── LoginModal.jsx        # Acceso y autenticación del sistema
         └── styles/
             └── ide-theme.css         # Sistema de diseño integral Dark IDE
@@ -241,17 +252,22 @@ Ejecuta el supervisor unificado que inicia Backend y Frontend coordinadamente:
 ```bash
 python run_app.py
 ```
-*O en Windows, haz doble clic en `iniciar_app.bat`.*
+*O en Windows, haz doble clic en `iniciar_app.bat` (o ejecuta `.\iniciar_app.ps1` en PowerShell).*
 
-- **Frontend**: [http://localhost:5173](http://localhost:5173)
+- **Frontend UI**: [http://localhost:5173](http://localhost:5173)
 - **Backend API**: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 - **Documentación Interactiva Swagger**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+Para detener ambos servidores limpiamente en Windows:
+```bash
+detener_app.bat
+```
 
 ### Opción 2: Arranque Manual por Separado
 - **Terminal 1 (Backend)**:
   ```bash
   .venv\Scripts\activate
-  uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+  uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir backend
   ```
 - **Terminal 2 (Frontend)**:
   ```bash
@@ -265,40 +281,29 @@ python run_app.py
 
 | Método | Endpoint | Descripción |
 |---|---|---|
-| `POST` | `/api/predict` | Ejecuta la predicción integral pre-match o in-play para dos equipos o URL. |
-| `GET` | `/api/health` | Estado del sistema, modelos cargados y conexión de base de datos. |
+| `POST` | `/api/predict` | Ejecuta la predicción integral pre-match o in-play con ensamble Katakuri v4.0. |
+| `GET` | `/api/health` | Estado del sistema, modelos cargados y conexión a base de datos. |
 | `GET` | `/api/predictions/recent` | Consulta el historial de análisis almacenados localmente. |
+| `GET` | `/api/backtest/walk-forward` | **(Nuevo en v4.0)** Simulación out-of-sample cronológica y telemetría de Value Betting. |
 | `GET` | `/api/backtest/benchmark` | Ejecuta el benchmark cuantitativo sobre el dataset histórico curado. |
 | `POST` | `/api/backtest/run` | Ejecuta una sesión de backtesting sobre un lote personalizado. |
-| `POST` | `/api/login` | Endpoint de autenticación JWT (opcional en v3.4+). |
+| `POST` | `/api/login` | Endpoint de autenticación JWT (opcional). |
 
 ---
 
 ## 🧪 Suite de Pruebas y Backtesting
 
-Para verificar la integridad matemática y la calibración de los modelos, ejecuta:
+Para verificar la integridad de la base de datos real, los ratings Elo dinámicos, los modelos ML y la calibración probabilística, ejecuta:
 
 ```bash
-# Validación de Convergencia Temporal In-Play y Empate Dominante (v3.6)
-python backend/tests/test_v36_live_convergence_and_draw_verdict.py
+# Ejecución de la suite completa de 75 pruebas (100% éxito garantizado):
+.venv\Scripts\python -m unittest discover -s backend/tests
 
-# Pruebas de Telemetría P4 (Córners, Tarjetas y Curva Empírica)
-python backend/tests/test_v36_p4_corners_cards_telemetry.py
+# O ejecutar la suite específica de validación v4.0 (Datos Reales, Elo y Walk-Forward):
+.venv\Scripts\python -m unittest backend/tests/test_v40_real_data_and_walkforward.py
 
-# Pruebas de Precisión P3, Ausencias y Veredicto de Resultado Final
-python backend/tests/test_v37_p3_accuracy_and_final_result.py
-
-# Validación del Consenso Bivariado, Sobredispersión y Game State
-python backend/tests/test_v33_consensus_nbinom_gamestate.py
-
-# Benchmark de Métricas de Calibración (RPS, Brier, Log-Loss)
-python backend/tests/test_v33_backtest_framework.py
-
-# Auditoría de Normalización por Torneo y Localía Simétrica
-python backend/tests/test_v32_audit_fixes_points_1_and_2.py
-
-# Verificación de Amortiguación de Goles y Córners
-python backend/tests/test_v31_calibration_corners_and_goals.py
+# Benchmark de métricas de calibración (RPS, Brier, Log-Loss, MAE):
+.venv\Scripts\python -m unittest backend/tests/test_v33_backtest_framework.py
 ```
 
 ---

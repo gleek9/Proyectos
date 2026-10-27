@@ -1,7 +1,7 @@
 @echo off
-title Detener Katakuri AI
+title Detener Katakuri v4.0
 echo =====================================================================
-echo           DETENIENDO SERVIDORES DE KATAKURI AI
+echo           DETENIENDO SERVIDORES DE KATAKURI v4.0
 echo =====================================================================
 echo.
 echo Cerrando procesos de Uvicorn/Python en puerto 8000...
@@ -15,6 +15,6 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173" ^| findstr "LISTENING
 )
 
 echo.
-echo [OK] Servidores detenidos correctamente.
+echo [OK] Servidores de Katakuri v4.0 detenidos correctamente.
 timeout /t 2 > nul
 exit

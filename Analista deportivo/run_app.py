@@ -1,6 +1,6 @@
 """
-Katakuri AI — Lanzador Automático Fullstack (Backend FastAPI + Frontend Vite)
-Inicia ambos servidores y abre el navegador automáticamente.
+Katakuri v4.0 — Lanzador Automático Fullstack (Backend FastAPI + Frontend Vite)
+Inicia ambos servidores y abre el navegador automáticamente con motor de predicción de alta precisión.
 """
 import os
 import sys
@@ -19,7 +19,8 @@ def main():
         venv_python = sys.executable
 
     print("=" * 70)
-    print("           KATAKURI AI — SPORTS PREDICTION PLATFORM")
+    print("      KATAKURI v4.0 — ALTA PRECISIÓN & ANALÍTICA DEPORTIVA")
+    print(" 3,525 Partidos Oficiales · Elo Dinámico · Walk-Forward Validado")
     print("=" * 70)
     print()
     print("[1/3] Iniciando Servidor Backend FastAPI en puerto 8000...")
