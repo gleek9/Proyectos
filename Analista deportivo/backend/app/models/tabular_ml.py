@@ -17,8 +17,11 @@ from backend.app.models.poisson import (
 
 logger = logging.getLogger(__name__)
 
-# Definición de nombres de características tabulares
+# Definición de nombres de características tabulares calibradas (Katakuri v4)
 FEATURE_NAMES = [
+    "elo_diff",
+    "home_elo",
+    "away_elo",
     "home_win_rate_5",
     "away_win_rate_5",
     "home_goal_diff",
@@ -28,6 +31,8 @@ FEATURE_NAMES = [
     "away_goals_scored",
     "home_goals_conceded",
     "away_goals_conceded",
+    "home_sot_avg",
+    "away_sot_avg",
     "h2h_home_win_ratio",
     "h2h_away_win_ratio",
     "h2h_draw_ratio",
@@ -62,10 +67,21 @@ class TabularPredictor:
 
     def _train_and_save_baseline_model(self):
         """
-        Entrena un modelo XGBoost multi-clase calibrado sobre distribuciones de dominio
-        futbolístico representativas (fuerza de ataque/defensa, H2H y localía).
+        Entrena un modelo XGBoost multi-clase calibrado sobre el historial real de partidos
+        o fallback de regularización si la BD está en inicialización.
         """
-        logger.info("Entrenando modelo tabular XGBoost base calibrado...")
+        try:
+            from backend.app.analytics.train_models import train_and_save_all_models
+            train_and_save_all_models(self.weights_dir)
+            if os.path.exists(self.xgb_model_path):
+                self.model = xgb.Booster()
+                self.model.load_model(self.xgb_model_path)
+                logger.info("Modelo XGBoost entrenado exitosamente con datos históricos reales.")
+                return
+        except Exception as e:
+            logger.warning(f"Entrenamiento con dataset histórico derivó a contingencia: {e}")
+
+        logger.info("Entrenando modelo tabular XGBoost base calibrado de contingencia...")
         np.random.seed(42)
         n_samples = 4000
 
@@ -169,10 +185,38 @@ class TabularPredictor:
             a_wr /= 100.0
         a_wr = float(np.clip(a_wr, 0.0, 1.0))
 
+        # Ratings Elo
+        elo_h = getattr(h, "elo_rating", None)
+        elo_a = getattr(a, "elo_rating", None)
+        if elo_h is None or elo_a is None:
+            try:
+                from backend.app.services.league_database import league_db
+                if elo_h is None:
+                    t_h = league_db.normalize_team(raw.home_team)
+                    if t_h and t_h.elo_rating:
+                        elo_h = t_h.elo_rating
+                if elo_a is None:
+                    t_a = league_db.normalize_team(raw.away_team)
+                    if t_a and t_a.elo_rating:
+                        elo_a = t_a.elo_rating
+            except Exception:
+                pass
+        elo_h = float(elo_h or 1600.0)
+        elo_a = float(elo_a or 1600.0)
+        elo_diff = (elo_h - elo_a + 65.0) / 100.0
+        home_elo_scaled = elo_h / 1000.0
+        away_elo_scaled = elo_a / 1000.0
+
+        home_sot = float(getattr(h, "avg_shots_target_for", None) or 5.0)
+        away_sot = float(getattr(a, "avg_shots_target_for", None) or 4.5)
+
         # Ventaja de localía calibrada al torneo específico
         _, comp_home_adv, _ = get_competition_parameters(getattr(raw, "competition", "General"))
 
         feat = [
+            float(elo_diff),
+            float(home_elo_scaled),
+            float(away_elo_scaled),
             h_wr,
             a_wr,
             float(home_diff),
@@ -182,6 +226,8 @@ class TabularPredictor:
             float(a.avg_goals_scored),
             float(h.avg_goals_conceded),
             float(a.avg_goals_conceded),
+            float(home_sot),
+            float(away_sot),
             float(h2h_h_ratio),
             float(h2h_a_ratio),
             float(h2h_d_ratio),

@@ -27,6 +27,13 @@ class TeamFormStats(BaseModel):
     avg_cards: float = Field(2.2, description="Promedio de tarjetas amarillas/rojas recibidas")
     win_rate_last_5: float = Field(0.5, description="Porcentaje de victorias en los últimos 5 partidos (0.0 a 1.0)")
     key_absences: List[str] = Field(default_factory=list, description="Jugadores clave lesionados o suspendidos")
+    elo_rating: Optional[float] = Field(None, description="Rating Elo dinámico")
+    home_goals_scored: Optional[float] = Field(None, description="Promedio de goles anotados jugando como local")
+    home_goals_conceded: Optional[float] = Field(None, description="Promedio de goles concedidos jugando como local")
+    away_goals_scored: Optional[float] = Field(None, description="Promedio de goles anotados jugando como visitante")
+    away_goals_conceded: Optional[float] = Field(None, description="Promedio de goles concedidos jugando como visitante")
+    avg_shots_target_for: Optional[float] = Field(None, description="Promedio de tiros a puerta a favor por partido")
+    avg_shots_target_against: Optional[float] = Field(None, description="Promedio de tiros a puerta concedidos por partido")
 
 class HeadToHeadStats(BaseModel):
     total_matches_analyzed: int = Field(0, description="Número de enfrentamientos directos previos encontrados (0 si no hay datos)")

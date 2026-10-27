@@ -318,7 +318,7 @@ export default function App() {
       {loading && (
         <div className="state-box">
           <div className="terminal-spinner"></div>
-          <div className="state-title">Pipeline predictivo Katakuri v3.5</div>
+          <div className="state-title">Pipeline predictivo Katakuri v4.0</div>
           <div className="state-sub">
             {isLiveActive
               ? 'Rastreando datos en vivo desde la URL online, extrayendo telemetría y ejecutando Red Neuronal LSTM...'

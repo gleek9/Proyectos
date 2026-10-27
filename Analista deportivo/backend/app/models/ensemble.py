@@ -18,7 +18,8 @@ from backend.app.schemas.prediction import (
     DoubleChancePrediction, DrawNoBetPrediction
 )
 from backend.app.models.poisson import (
-    poisson_model, parse_elapsed_minute, calculate_remaining_goal_ratio, parse_live_score
+    poisson_model, parse_elapsed_minute, calculate_remaining_goal_ratio, parse_live_score,
+    get_competition_rho
 )
 from backend.app.models.tabular_ml import tabular_predictor
 from backend.app.models.lstm_net import lstm_predictor
@@ -372,13 +373,15 @@ class MetaEnsembleEngine:
         cons_lambda_h = rem_goals_combined * h_share
         cons_mu_a = rem_goals_combined * (1.0 - h_share)
 
-        # Matriz Bivariada de Consenso Unificado: garantiza coherencia total
+        # Matriz Bivariada de Consenso Unificado: garantiza coherencia total con rho adaptativo por liga
+        comp_rho = get_competition_rho(getattr(raw, "competition", "General"))
         cons_goals = poisson_model.evaluate_matrix_goals(
             lambda_home=cons_lambda_h,
             mu_away=cons_mu_a,
             curr_gh=curr_gh,
             curr_ga=curr_ga,
-            is_live=is_live
+            is_live=is_live,
+            rho=comp_rho
         )
 
         over_1_5 = round(cons_goals["over_1_5_pct"], 1)

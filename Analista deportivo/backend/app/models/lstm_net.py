@@ -77,10 +77,22 @@ class LSTMPredictor:
 
     def _train_and_save_baseline(self):
         """
-        Entrena el modelo LSTM con secuencias de momentum sintéticas que reflejan
-        la dinámica de rachas consecutivas y decaimiento temporal en el fútbol.
+        Entrena el modelo LSTM con secuencias reales de la base de datos local
+        o contingencia sintética regularizada si la BD no está disponible.
         """
-        logger.info("Inicializando y preentrenando red LSTM secuencial...")
+        try:
+            from backend.app.analytics.train_models import train_and_save_all_models
+            train_and_save_all_models(self.weights_dir)
+            if os.path.exists(self.model_path):
+                state_dict = torch.load(self.model_path, map_location=self.device)
+                self.model.load_state_dict(state_dict)
+                self.model.eval()
+                logger.info("Red LSTM cargada exitosamente tras entrenamiento con datos reales.")
+                return
+        except Exception as e:
+            logger.warning(f"Entrenamiento con dataset histórico derivó a contingencia: {e}")
+
+        logger.info("Inicializando y preentrenando red LSTM secuencial de contingencia...")
         torch.manual_seed(42)
         np.random.seed(42)
 
@@ -188,8 +200,8 @@ class LSTMPredictor:
             ).to(self.device)
 
             logits_1x2, goal_momentum = self.model(x_h, x_a)
-            # Calibración de temperatura para evitar sobre-polarización extrema en rachas asimétricas
-            temperature = 1.45
+            # Calibración de temperatura equilibrada para evitar compresión excesiva
+            temperature = 1.10
             calibrated_logits = logits_1x2 / temperature
             probs = F.softmax(calibrated_logits, dim=-1).squeeze(0).cpu().numpy()
 

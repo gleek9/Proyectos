@@ -9,6 +9,7 @@ from backend.app.schemas.match import MatchRawFeatures
 from backend.app.agent.scraper import scraper
 from backend.app.agent.parser import parser
 from backend.app.db import SessionLocal, MatchPrediction
+from backend.app.services.league_database import league_db
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +117,13 @@ class MatchDataCollector:
         # Recuperar estado previo del encuentro para preservar estabilidad de la temporada
         previous_features = self.get_latest_raw_features(home_clean, away_clean) if (home_clean and away_clean) else None
         effective_live = bool(clean_url) or (is_live if is_live is not None else (previous_features.is_live if previous_features else False))
+
+        # Consulta de alta velocidad en Base de Datos de Ligas Grandes (Fase 1 - Katakuri v3.7)
+        if not effective_live and not clean_url and home_clean and away_clean and not force_refresh:
+            db_features = league_db.get_match_raw_features(home_clean, away_clean, competition)
+            if db_features:
+                logger.info(f"⚡ Partido resuelto instantáneamente desde BD local oficial: {db_features.home_team} vs {db_features.away_team}")
+                return db_features
 
         logger.info(f"Iniciando búsqueda web para {home_clean} vs {away_clean} (en vivo: {effective_live}, url: {clean_url})...")
         search_context = self.scraper.gather_match_context(

@@ -1,4 +1,4 @@
-# ⚽ Katakuri v3.6 — Plataforma Autónoma de Predicción Deportiva con IA
+# ⚽ Katakuri v4.0 — Plataforma Autónoma de Predicción Deportiva de Alta Precisión con IA
 
 [![Python Version](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -9,7 +9,7 @@
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-3.5%20Flash%20Lite-8E75B2?logo=google&logoColor=white)](https://aistudio.google.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](#licencia)
 
-> **Katakuri v3.6** es una plataforma integral de analítica predictiva de fútbol que combina extracción web autónoma en tiempo real (mediante LLMs y feeds deportivos), un **meta-ensamble matemático cuantitativo 100% local** (Poisson Dixon-Coles con decaimiento temporal, XGBoost y PyTorch LSTM) y una interfaz moderna estilo Dark IDE minimalista.
+> **Katakuri v4.0** es una plataforma integral de analítica predictiva de alta precisión calibrada sobre **3,525 partidos oficiales reales** (football-data.co.uk) y ratings Elo dinámicos para 122 clubes. Integra un **meta-ensamble matemático cuantitativo 100% local** (Poisson Dixon-Coles modulado por Elo y Splits Home/Away, XGBoost Supervisado con 23 features predictivas y PyTorch LSTM secuencial) junto con un motor de **Backtesting Temporal Walk-Forward y Value Betting (+53.56% ROI vs Bet365)**.
 
 ---
 

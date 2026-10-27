@@ -1852,4 +1852,79 @@ body {
   }
 }
 
+/* Katakuri v4.0 — Walk-Forward & Value Betting Tab Styles */
+.backtest-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.backtest-tab-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  color: var(--text-secondary);
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s ease;
+}
+
+.backtest-tab-btn.active {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--emerald);
+  color: var(--emerald);
+  font-weight: 600;
+}
+
+.backtest-tab-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+}
+
+.value-betting-banner {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 8px;
+  padding: 0.9rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.vb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #60a5fa;
+}
+
+.vb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.65rem;
+}
+
+.vb-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.vb-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.vb-stat-val {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
 

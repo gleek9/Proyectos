@@ -36,8 +36,8 @@ export default function KeyFactorsPanel({ factors, analyzedAt }) {
 
       <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border-dim)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-          <span>Pipeline: Dixon-Coles + Bivariada + XGBoost + LSTM · Katakuri v3.5</span>
-          <span style={{ color: 'var(--emerald)' }}>Calibrado (RPS: 0.182)</span>
+          <span>Pipeline: Dixon-Coles (Elo Dinámico) + XGBoost 23F + LSTM · Katakuri v4.0</span>
+          <span style={{ color: 'var(--emerald)' }}>Calibrado (RPS: 0.188)</span>
         </div>
       </div>
     </div>

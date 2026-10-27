@@ -195,6 +195,9 @@ def run_backtest(items: List[HistoricalEvaluationItem], engine=None) -> Dict:
             "actual_score": f"{actual.home_goals} - {actual.away_goals}",
             "dominant_pred": dominant_1x2,
             "actual_outcome": actual_1x2,
+            "home_win_pct": round(h_pct, 1),
+            "draw_pct": round(d_pct, 1),
+            "away_win_pct": round(a_pct, 1),
             "rps": round(rps, 4),
             "log_loss": round(ll, 4),
             "expected_goals": pred_goals.expected_total,
@@ -456,3 +459,159 @@ def get_benchmark_dataset() -> List[HistoricalEvaluationItem]:
             )
         )
     ]
+
+def run_walk_forward_backtest(
+    n_matches: int = 150,
+    competition: Optional[str] = None,
+    edge_threshold: float = 0.05
+) -> Dict:
+    """
+    Ejecuta un backtesting temporal walk-forward sobre partidos oficiales reales en analista.db.
+    Simula predicciones out-of-sample para los últimos N partidos disputados cronológicamente,
+    evaluando la precisión probabilística (RPS, Log-Loss), líneas de goles (Over 2.5, BTTS)
+    y un backtesting de valor contra cuotas de mercado (Bet365).
+    """
+    from backend.app.db import SessionLocal, HistoricalMatch
+    from backend.app.services.league_database import league_db
+
+    db = SessionLocal()
+    try:
+        query = db.query(HistoricalMatch)
+        if competition:
+            comp_clean = competition.lower().strip()
+            # Búsqueda flexible por código o nombre de liga
+            code_map = {
+                "premier league": "premier_league",
+                "laliga": "laliga",
+                "serie a": "serie_a",
+                "bundesliga": "bundesliga",
+                "ligue 1": "ligue_1",
+                "champions league": "champions_league",
+                "liga mx": "liga_mx"
+            }
+            target_code = code_map.get(comp_clean, comp_clean.replace(" ", "_"))
+            query = query.filter(HistoricalMatch.league_code.ilike(f"%{target_code}%"))
+
+        # Tomar los últimos n_matches finalizados
+        matches = query.order_by(HistoricalMatch.id.desc()).limit(n_matches).all()
+        # Invertir para avance cronológico walk-forward
+        matches = list(reversed(matches))
+    finally:
+        db.close()
+
+    if not matches:
+        return {
+            "total_matches_evaluated": 0,
+            "status": "error",
+            "message": "No se encontraron partidos históricos en la base de datos para la evaluación."
+        }
+
+    items: List[HistoricalEvaluationItem] = []
+    bet_data: List[Dict] = []
+
+    for m in matches:
+        feats = league_db.get_match_raw_features(m.home_team, m.away_team, m.league_code)
+        if not feats:
+            feats = MatchRawFeatures(
+                home_team=m.home_team,
+                away_team=m.away_team,
+                competition=m.league_code,
+                home_stats=TeamFormStats(team_name=m.home_team, avg_goals_scored=1.4, avg_goals_conceded=1.2),
+                away_stats=TeamFormStats(team_name=m.away_team, avg_goals_scored=1.2, avg_goals_conceded=1.4),
+                h2h=HeadToHeadStats(total_matches_analyzed=0, home_team_wins=0, away_team_wins=0, draws=0, avg_total_goals_h2h=2.6)
+            )
+
+        cn_sum = (m.corners_home + m.corners_away) if (m.corners_home is not None and m.corners_away is not None and (m.corners_home + m.corners_away) > 0) else None
+        cd_sum = (m.cards_home + m.cards_away) if (m.cards_home is not None and m.cards_away is not None and (m.cards_home + m.cards_away) > 0) else None
+
+        actual = MatchActualResult(
+            home_goals=m.home_goals,
+            away_goals=m.away_goals,
+            corners=cn_sum,
+            cards=cd_sum
+        )
+
+        item = HistoricalEvaluationItem(
+            match_id=f"wf_{m.id}_{m.home_team}_{m.away_team}",
+            features=feats,
+            actual=actual
+        )
+        items.append(item)
+
+        bet_data.append({
+            "b365_h": m.b365_home_odds,
+            "b365_d": m.b365_draw_odds,
+            "b365_a": m.b365_away_odds,
+            "outcome": actual.outcome_1x2
+        })
+
+    # Ejecutar evaluación mediante el ensamble de Katakuri v4
+    base_results = run_backtest(items)
+
+    # Simulación de Value Betting (Katakuri Edge vs Cuotas de Mercado)
+    total_bets = 0
+    bets_won = 0
+    total_staked = 0.0
+    total_returned = 0.0
+
+    for i, report in enumerate(base_results.get("matches", [])):
+        b = bet_data[i]
+        b_h, b_d, b_a = b["b365_h"], b["b365_d"], b["b365_a"]
+        actual_out = b["outcome"]
+
+        if b_h and b_d and b_a and b_h > 1.0 and b_d > 1.0 and b_a > 1.0:
+            raw_h, raw_d, raw_a = 1.0 / b_h, 1.0 / b_d, 1.0 / b_a
+            margin = raw_h + raw_d + raw_a
+            p_mkt_h, p_mkt_d, p_mkt_a = raw_h / margin, raw_d / margin, raw_a / margin
+
+            p_mod_h = report.get("home_win_pct", 33.3) / 100.0
+            p_mod_d = report.get("draw_pct", 33.3) / 100.0
+            p_mod_a = report.get("away_win_pct", 33.3) / 100.0
+
+            edge_h = p_mod_h - p_mkt_h
+            edge_d = p_mod_d - p_mkt_d
+            edge_a = p_mod_a - p_mkt_a
+
+            best_pick = None
+            max_edge = 0.0
+            best_odds = 1.0
+            if edge_h > edge_threshold and edge_h > max_edge:
+                max_edge = edge_h
+                best_pick = "1"
+                best_odds = b_h
+            if edge_d > edge_threshold and edge_d > max_edge:
+                max_edge = edge_d
+                best_pick = "X"
+                best_odds = b_d
+            if edge_a > edge_threshold and edge_a > max_edge:
+                max_edge = edge_a
+                best_pick = "2"
+                best_odds = b_a
+
+            if best_pick is not None:
+                total_bets += 1
+                total_staked += 1.0  # Unidad plana
+                if best_pick == actual_out:
+                    bets_won += 1
+                    total_returned += best_odds
+
+    net_profit = round(total_returned - total_staked, 2)
+    roi_pct = round((net_profit / total_staked * 100.0), 2) if total_staked > 0 else 0.0
+    win_rate_bets = round((bets_won / total_bets * 100.0), 1) if total_bets > 0 else 0.0
+
+    base_results["walk_forward_simulation"] = {
+        "dataset_type": "Partidos Históricos Oficiales (football-data.co.uk)",
+        "sample_size": len(items),
+        "competition_filter": competition or "Todas las ligas activas",
+        "value_betting": {
+            "edge_threshold_pct": round(edge_threshold * 100.0, 1),
+            "total_bets_placed": total_bets,
+            "bets_won": bets_won,
+            "bets_lost": total_bets - bets_won,
+            "win_rate_pct": win_rate_bets,
+            "total_staked_units": total_staked,
+            "net_profit_units": net_profit,
+            "roi_pct": roi_pct
+        }
+    }
+    return base_results

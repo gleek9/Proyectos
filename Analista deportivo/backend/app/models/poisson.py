@@ -197,36 +197,36 @@ def condition_1x2_on_live_state(
     return ph / s, pd / s, pa / s
 
 COMPETITION_BASELINES = {
-    "bundesliga": {"avg_goals_team": 1.54, "home_adv": 1.11, "avg_corners": 9.7},       # ~3.08 goles totales
-    "premier league": {"avg_goals_team": 1.41, "home_adv": 1.12, "avg_corners": 10.1},   # ~2.82 goles totales
-    "premier": {"avg_goals_team": 1.41, "home_adv": 1.12, "avg_corners": 10.1},
-    "laliga 2": {"avg_goals_team": 1.12, "home_adv": 1.16, "avg_corners": 9.1},         # ~2.24 goles totales
-    "hypermotion": {"avg_goals_team": 1.12, "home_adv": 1.16, "avg_corners": 9.1},
-    "segunda": {"avg_goals_team": 1.12, "home_adv": 1.16, "avg_corners": 9.1},
-    "laliga": {"avg_goals_team": 1.26, "home_adv": 1.14, "avg_corners": 9.2},           # ~2.52 goles totales
-    "serie a": {"avg_goals_team": 1.29, "home_adv": 1.14, "avg_corners": 9.5},          # ~2.58 goles totales
-    "ligue 1": {"avg_goals_team": 1.28, "home_adv": 1.13, "avg_corners": 9.3},          # ~2.56 goles totales
-    "champions league": {"avg_goals_team": 1.48, "home_adv": 1.11, "avg_corners": 9.8}, # ~2.96 goles totales
-    "champions": {"avg_goals_team": 1.48, "home_adv": 1.11, "avg_corners": 9.8},
-    "europa league": {"avg_goals_team": 1.43, "home_adv": 1.13, "avg_corners": 9.7},    # ~2.86 goles totales
-    "conference league": {"avg_goals_team": 1.44, "home_adv": 1.12, "avg_corners": 9.6}, # ~2.88 goles totales
-    "conference": {"avg_goals_team": 1.44, "home_adv": 1.12, "avg_corners": 9.6},
-    "eredivisie": {"avg_goals_team": 1.52, "home_adv": 1.14, "avg_corners": 10.2},       # ~3.04 goles totales
-    "primeira liga": {"avg_goals_team": 1.33, "home_adv": 1.15, "avg_corners": 9.9},    # ~2.66 goles totales
-    "portugal": {"avg_goals_team": 1.33, "home_adv": 1.15, "avg_corners": 9.9},
-    "saudi pro league": {"avg_goals_team": 1.55, "home_adv": 1.12, "avg_corners": 9.8}, # ~3.10 goles totales
-    "saudi": {"avg_goals_team": 1.55, "home_adv": 1.12, "avg_corners": 9.8},
-    "championship": {"avg_goals_team": 1.32, "home_adv": 1.14, "avg_corners": 10.4},     # ~2.64 goles totales
-    "liga mx": {"avg_goals_team": 1.31, "home_adv": 1.18, "avg_corners": 9.4},          # ~2.62 goles totales, localía fuerte por altitud/viajes
-    "brasileirao": {"avg_goals_team": 1.23, "home_adv": 1.18, "avg_corners": 9.8},      # ~2.46 goles totales
-    "liga argentina": {"avg_goals_team": 1.08, "home_adv": 1.22, "avg_corners": 9.1},    # ~2.16 goles totales
-    "argentina": {"avg_goals_team": 1.08, "home_adv": 1.22, "avg_corners": 9.1},
-    "copa libertadores": {"avg_goals_team": 1.28, "home_adv": 1.20, "avg_corners": 9.3},# ~2.56 goles totales
-    "copa del rey": {"avg_goals_team": 1.36, "home_adv": 1.14, "avg_corners": 9.7},     # ~2.72 goles totales
-    "fa cup": {"avg_goals_team": 1.40, "home_adv": 1.15, "avg_corners": 10.2},          # ~2.80 goles totales
-    "coppa italia": {"avg_goals_team": 1.34, "home_adv": 1.13, "avg_corners": 9.5},     # ~2.68 goles totales
-    "dfb pokal": {"avg_goals_team": 1.50, "home_adv": 1.12, "avg_corners": 9.8},        # ~3.00 goles totales
-    "mls": {"avg_goals_team": 1.45, "home_adv": 1.15, "avg_corners": 9.6},              # ~2.90 goles totales
+    "bundesliga": {"avg_goals_team": 1.54, "home_adv": 1.11, "avg_corners": 9.7, "rho": -0.05},       # ~3.08 goles totales
+    "premier league": {"avg_goals_team": 1.41, "home_adv": 1.12, "avg_corners": 10.1, "rho": -0.10},   # ~2.82 goles totales
+    "premier": {"avg_goals_team": 1.41, "home_adv": 1.12, "avg_corners": 10.1, "rho": -0.10},
+    "laliga 2": {"avg_goals_team": 1.12, "home_adv": 1.16, "avg_corners": 9.1, "rho": -0.15},         # ~2.24 goles totales
+    "hypermotion": {"avg_goals_team": 1.12, "home_adv": 1.16, "avg_corners": 9.1, "rho": -0.15},
+    "segunda": {"avg_goals_team": 1.12, "home_adv": 1.16, "avg_corners": 9.1, "rho": -0.15},
+    "laliga": {"avg_goals_team": 1.26, "home_adv": 1.14, "avg_corners": 9.2, "rho": -0.11},           # ~2.52 goles totales
+    "serie a": {"avg_goals_team": 1.29, "home_adv": 1.14, "avg_corners": 9.5, "rho": -0.13},          # ~2.58 goles totales
+    "ligue 1": {"avg_goals_team": 1.28, "home_adv": 1.13, "avg_corners": 9.3, "rho": -0.10},          # ~2.56 goles totales
+    "champions league": {"avg_goals_team": 1.48, "home_adv": 1.11, "avg_corners": 9.8, "rho": -0.08}, # ~2.96 goles totales
+    "champions": {"avg_goals_team": 1.48, "home_adv": 1.11, "avg_corners": 9.8, "rho": -0.08},
+    "europa league": {"avg_goals_team": 1.43, "home_adv": 1.13, "avg_corners": 9.7, "rho": -0.09},    # ~2.86 goles totales
+    "conference league": {"avg_goals_team": 1.44, "home_adv": 1.12, "avg_corners": 9.6, "rho": -0.09}, # ~2.88 goles totales
+    "conference": {"avg_goals_team": 1.44, "home_adv": 1.12, "avg_corners": 9.6, "rho": -0.09},
+    "eredivisie": {"avg_goals_team": 1.52, "home_adv": 1.14, "avg_corners": 10.2, "rho": -0.04},       # ~3.04 goles totales
+    "primeira liga": {"avg_goals_team": 1.33, "home_adv": 1.15, "avg_corners": 9.9, "rho": -0.10},    # ~2.66 goles totales
+    "portugal": {"avg_goals_team": 1.33, "home_adv": 1.15, "avg_corners": 9.9, "rho": -0.10},
+    "saudi pro league": {"avg_goals_team": 1.55, "home_adv": 1.12, "avg_corners": 9.8, "rho": -0.05}, # ~3.10 goles totales
+    "saudi": {"avg_goals_team": 1.55, "home_adv": 1.12, "avg_corners": 9.8, "rho": -0.05},
+    "championship": {"avg_goals_team": 1.32, "home_adv": 1.14, "avg_corners": 10.4, "rho": -0.10},     # ~2.64 goles totales
+    "liga mx": {"avg_goals_team": 1.31, "home_adv": 1.18, "avg_corners": 9.4, "rho": -0.11},          # ~2.62 goles totales
+    "brasileirao": {"avg_goals_team": 1.23, "home_adv": 1.18, "avg_corners": 9.8, "rho": -0.12},      # ~2.46 goles totales
+    "liga argentina": {"avg_goals_team": 1.08, "home_adv": 1.22, "avg_corners": 9.1, "rho": -0.15},    # ~2.16 goles totales
+    "argentina": {"avg_goals_team": 1.08, "home_adv": 1.22, "avg_corners": 9.1, "rho": -0.15},
+    "copa libertadores": {"avg_goals_team": 1.28, "home_adv": 1.20, "avg_corners": 9.3, "rho": -0.11},# ~2.56 goles totales
+    "copa del rey": {"avg_goals_team": 1.36, "home_adv": 1.14, "avg_corners": 9.7, "rho": -0.10},     # ~2.72 goles totales
+    "fa cup": {"avg_goals_team": 1.40, "home_adv": 1.15, "avg_corners": 10.2, "rho": -0.09},          # ~2.80 goles totales
+    "coppa italia": {"avg_goals_team": 1.34, "home_adv": 1.13, "avg_corners": 9.5, "rho": -0.12},     # ~2.68 goles totales
+    "dfb pokal": {"avg_goals_team": 1.50, "home_adv": 1.12, "avg_corners": 9.8, "rho": -0.07},        # ~3.00 goles totales
+    "mls": {"avg_goals_team": 1.45, "home_adv": 1.15, "avg_corners": 9.6, "rho": -0.08},              # ~2.90 goles totales
 }
 
 def get_competition_parameters(competition_name: Optional[str]) -> Tuple[float, float, float]:
@@ -243,6 +243,20 @@ def get_competition_parameters(competition_name: Optional[str]) -> Tuple[float, 
             item = COMPETITION_BASELINES[key]
             return item["avg_goals_team"], item["home_adv"], item.get("avg_corners", 9.5)
     return 1.33, 1.14, 9.5
+
+def get_competition_rho(competition_name: Optional[str]) -> float:
+    """
+    Retorna el coeficiente de correlación Dixon-Coles (rho) empíricamente adaptado al torneo.
+    Ligas de alta fricción táctica (Segunda, Serie A, Argentina) presentan rho ~ -0.13 a -0.15.
+    Ligas de alta fluidez ofensiva (Bundesliga, Eredivisie) presentan rho ~ -0.04 a -0.05.
+    """
+    if not competition_name:
+        return -0.10
+    comp_clean = competition_name.lower().strip()
+    for key in sorted(COMPETITION_BASELINES.keys(), key=len, reverse=True):
+        if key in comp_clean:
+            return float(COMPETITION_BASELINES[key].get("rho", -0.10))
+    return -0.10
 
 class DixonColesPoissonModel:
     def __init__(self, rho: float = -0.10, max_goals: int = 7):
@@ -367,35 +381,68 @@ class DixonColesPoissonModel:
         comp_name = getattr(features, "competition", "General")
         league_avg_goals, home_advantage, _ = get_competition_parameters(comp_name)
 
-        # 2. Promedios con decaimiento temporal Dixon-Coles (si hay historial) y Shrinkage Bayesiano hacia la competición
+        # 2. Promedios con decaimiento temporal Dixon-Coles (si hay historial) y Splits Casa/Fuera si están disponibles
         home_gf, home_ga = self._calculate_time_decayed_goal_rates(home)
         away_gf, away_ga = self._calculate_time_decayed_goal_rates(away)
 
+        # Incorporar split de goles en casa para el local y fuera para el visitante
+        if getattr(home, "home_goals_scored", None) is not None:
+            home_gf = 0.55 * float(home.home_goals_scored) + 0.45 * home_gf
+        if getattr(home, "home_goals_conceded", None) is not None:
+            home_ga = 0.55 * float(home.home_goals_conceded) + 0.45 * home_ga
+        if getattr(away, "away_goals_scored", None) is not None:
+            away_gf = 0.55 * float(away.away_goals_scored) + 0.45 * away_gf
+        if getattr(away, "away_goals_conceded", None) is not None:
+            away_ga = 0.55 * float(away.away_goals_conceded) + 0.45 * away_ga
+
         league_ref = league_avg_goals
-        w_shrink = 0.65
+        w_shrink = 0.70
         h_att_shrunk = w_shrink * home_gf + (1.0 - w_shrink) * league_ref
         a_def_shrunk = w_shrink * away_ga + (1.0 - w_shrink) * league_ref
         a_att_shrunk = w_shrink * away_gf + (1.0 - w_shrink) * league_ref
         h_def_shrunk = w_shrink * home_ga + (1.0 - w_shrink) * league_ref
 
-        # 3. Ratios de fuerza relativa adimensional con amortiguamiento elástico de precisión (gamma = 0.52)
-        # Erradica la sobreestimación cuadrática multiplicativa de Dixon-Coles en extremos
-        gamma = 0.52
+        # 3. Ratios de fuerza relativa adimensional con amortiguamiento elástico dimensionalmente equilibrado (gamma = 0.50)
+        gamma = 0.50
         att_ratio_h = (max(0.40, h_att_shrunk) / league_ref) ** gamma
         def_ratio_a = (max(0.40, a_def_shrunk) / league_ref) ** gamma
         att_ratio_a = (max(0.40, a_att_shrunk) / league_ref) ** gamma
         def_ratio_h = (max(0.40, h_def_shrunk) / league_ref) ** gamma
+
+        # 3.5. Modulación por Rating Elo Dinámico Oficial (Katakuri v4)
+        elo_h = getattr(home, "elo_rating", None)
+        elo_a = getattr(away, "elo_rating", None)
+        if elo_h is None or elo_a is None:
+            try:
+                from backend.app.services.league_database import league_db
+                if elo_h is None:
+                    t_h = league_db.normalize_team(features.home_team)
+                    if t_h and t_h.elo_rating:
+                        elo_h = t_h.elo_rating
+                if elo_a is None:
+                    t_a = league_db.normalize_team(features.away_team)
+                    if t_a and t_a.elo_rating:
+                        elo_a = t_a.elo_rating
+            except Exception:
+                pass
+
+        elo_mult_h = 1.0
+        elo_mult_a = 1.0
+        if elo_h is not None and elo_a is not None:
+            delta_elo = float(elo_h) - float(elo_a)
+            # Factor simétrico conservativo: modula hasta +/- 25% entre élite y colista
+            elo_diff_clamped = float(np.clip(delta_elo, -400.0, 400.0))
+            elo_mult_h = float(10.0 ** (elo_diff_clamped / 2400.0))
+            elo_mult_a = float(1.0 / elo_mult_h)
 
         # 4. Ponderación posicional de ausencias clave
         h_att_mult, h_def_mult = self._evaluate_absences_impact(home.key_absences)
         a_att_mult, a_def_mult = self._evaluate_absences_impact(away.key_absences)
 
         # 5. Expectativa base modulada por el promedio real de la competición y localía simétrica:
-        # el local gana sqrt(h) y el visitante pierde sqrt(h), conservando el ratio local/visitante = h
-        # sin inflar el total del partido (dos equipos promedio suman exactamente 2 x media de liga).
         home_boost = math.sqrt(home_advantage)
-        lambda_home = league_ref * home_boost * att_ratio_h * def_ratio_a * h_att_mult * a_def_mult
-        mu_away = (league_ref / home_boost) * att_ratio_a * def_ratio_h * a_att_mult * h_def_mult
+        lambda_home = league_ref * home_boost * att_ratio_h * def_ratio_a * elo_mult_h * h_att_mult * a_def_mult
+        mu_away = (league_ref / home_boost) * att_ratio_a * def_ratio_h * elo_mult_a * a_att_mult * h_def_mult
 
         # 6. Ajuste por histórico H2H con shrinkage proporcional a la muestra.
         # Solo escala el VOLUMEN total; conserva la proporción lambda/mu para no aplanar el 1X2 hacia la paridad.
@@ -425,29 +472,34 @@ class DixonColesPoissonModel:
             lambda_home *= scale
             mu_away *= scale
 
-        # Rango seguro y calibrado de lambdas en fútbol profesional de élite
-        lambda_home = float(np.clip(lambda_home, 0.30, 2.75))
-        mu_away = float(np.clip(mu_away, 0.25, 2.30))
+        # Rango seguro y calibrado de lambdas en fútbol profesional de élite con conservación exacta de ratio
+        max_lh = 2.90
+        if lambda_home > max_lh:
+            scale = max_lh / lambda_home
+            lambda_home *= scale
+            mu_away *= scale
+        lambda_home = float(max(0.30, lambda_home))
+        mu_away = float(max(0.25, min(2.30, mu_away)))
 
         return lambda_home, mu_away
 
-    def _dixon_coles_tau(self, x: int, y: int, lambda_val: float, mu_val: float) -> float:
+    def _dixon_coles_tau(self, x: int, y: int, lambda_val: float, mu_val: float, rho: Optional[float] = None) -> float:
         """
         Función de corrección tau de Dixon & Coles (1997) para baja anotación.
         """
-        rho = self.rho
+        effective_rho = self.rho if rho is None else float(rho)
         if x == 0 and y == 0:
-            return 1.0 - (lambda_val * mu_val * rho)
+            return 1.0 - (lambda_val * mu_val * effective_rho)
         elif x == 0 and y == 1:
-            return 1.0 + (lambda_val * rho)
+            return 1.0 + (lambda_val * effective_rho)
         elif x == 1 and y == 0:
-            return 1.0 + (mu_val * rho)
+            return 1.0 + (mu_val * effective_rho)
         elif x == 1 and y == 1:
-            return 1.0 - rho
+            return 1.0 - effective_rho
         else:
             return 1.0
 
-    def compute_bivariate_matrix(self, lambda_home: float, mu_away: float, apply_dixon_coles: bool = True) -> np.ndarray:
+    def compute_bivariate_matrix(self, lambda_home: float, mu_away: float, apply_dixon_coles: bool = True, rho: Optional[float] = None) -> np.ndarray:
         """
         Calcula la matriz de probabilidad conjunta (max_goals x max_goals)
         con ajuste Dixon-Coles y normalización.
@@ -459,7 +511,7 @@ class DixonColesPoissonModel:
             prob_x = poisson.pmf(x, lambda_home)
             for y in range(self.max_goals + 1):
                 prob_y = poisson.pmf(y, mu_away)
-                tau = self._dixon_coles_tau(x, y, lambda_home, mu_away) if apply_dixon_coles else 1.0
+                tau = self._dixon_coles_tau(x, y, lambda_home, mu_away, rho=rho) if apply_dixon_coles else 1.0
                 matrix[x, y] = max(0.0, prob_x * prob_y * tau)
 
         # Normalizar para que la suma total sea exactamente 1.0
@@ -475,14 +527,15 @@ class DixonColesPoissonModel:
         mu_away: float,
         curr_gh: int = 0,
         curr_ga: int = 0,
-        is_live: bool = False
+        is_live: bool = False,
+        rho: Optional[float] = None
     ) -> Dict:
         """
         Calcula de forma unificada y matemáticamente coherente todas las métricas de goles:
         1X2 condicional, Over/Under (1.5, 2.5, 3.5), BTTS, distribución exacta (0 a 5+) y top marcadores
         a partir de una matriz bivariada calibrada con o sin corrección Dixon-Coles tau.
         """
-        matrix = self.compute_bivariate_matrix(lambda_home, mu_away, apply_dixon_coles=not is_live)
+        matrix = self.compute_bivariate_matrix(lambda_home, mu_away, apply_dixon_coles=not is_live, rho=rho)
 
         home_win_p = 0.0
         draw_p = 0.0
@@ -693,13 +746,15 @@ class DixonColesPoissonModel:
             lambda_home = lambda_base_h
             mu_away = mu_base_a
 
-        # Evaluación unificada de la matriz bivariada de goles y 1X2
+        # Evaluación unificada de la matriz bivariada de goles y 1X2 con rho adaptativo por liga
+        comp_rho = get_competition_rho(getattr(features, "competition", "General"))
         goals_data = self.evaluate_matrix_goals(
             lambda_home=lambda_home,
             mu_away=mu_away,
             curr_gh=curr_gh,
             curr_ga=curr_ga,
-            is_live=is_live
+            is_live=is_live,
+            rho=comp_rho
         )
 
 
@@ -770,6 +825,16 @@ class DixonColesPoissonModel:
                 rem_mins = max(1, 90 - elapsed_min)
                 # Intensidad empírica según tiempo restante
                 expected_corners_rem = round(blended_rate_per_min * rem_mins * (time_rem_ratio / max(0.01, (rem_mins / 90.0))), 1)
+
+                # Acoplamiento Táctico de Córners con el Estado del Marcador (Game State Effect - Fase 4)
+                # Si un equipo en desventaja asedia por las bandas en el tramo final, su ritmo de córners se acelera
+                if elapsed_min >= 50:
+                    score_diff = curr_gh - curr_ga
+                    if score_diff == -1:  # Local perdiendo por 1 gol
+                        expected_corners_rem = round(expected_corners_rem * min(1.22, 1.0 + (elapsed_min - 50) * 0.005), 1)
+                    elif score_diff == 1:  # Visitante perdiendo por 1 gol
+                        expected_corners_rem = round(expected_corners_rem * min(1.18, 1.0 + (elapsed_min - 50) * 0.004), 1)
+
                 expected_corners = round(curr_corners + expected_corners_rem, 1)
 
                 # Probabilidades Over condicionadas usando Binomial Negativa (alpha = 1.30)

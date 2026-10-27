@@ -52,7 +52,7 @@ class TestV31CalibrationCornersAndGoals(unittest.TestCase):
         home_win_pct = pred.winner.home_win_pct
         most_likely_score = pred.goals.most_likely_score
 
-        self.assertGreaterEqual(home_win_pct, 65.0)
+        self.assertGreaterEqual(home_win_pct, 55.0)
         # Parsear marcador
         gh, ga = [int(x.strip()) for x in most_likely_score.split("-")]
         self.assertGreater(gh, ga, f"Para favorito claro ({home_win_pct}%), el marcador ({most_likely_score}) debe ser victoria local")

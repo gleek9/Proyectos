@@ -35,9 +35,9 @@ async def lifespan(app: FastAPI):
     logger.info("Apagando Katakuri AI API Server...")
 
 app = FastAPI(
-    title="Katakuri AI - Plataforma de Predicción Deportiva",
-    description="Motor autónomo de predicción deportiva impulsado por Gemini 2.5 Flash, XGBoost, PyTorch LSTM y Poisson Dixon-Coles.",
-    version="1.8.0",
+    title="Katakuri v4.0 - Plataforma de Predicción Deportiva de Alta Precisión",
+    description="Motor autónomo de predicción deportiva de alta precisión calibrado sobre 3,525 partidos reales (football-data.co.uk), rating Elo dinámico, Poisson Dixon-Coles, XGBoost y PyTorch LSTM.",
+    version="4.0.0",
     lifespan=lifespan
 )
 
@@ -290,6 +290,24 @@ async def run_custom_backtest(items: List[dict]):
     except Exception as e:
         logger.error(f"Error procesando backtest personalizado: {e}")
         raise HTTPException(status_code=400, detail=f"Error en formato de datos de evaluación: {str(e)}")
+
+@app.get("/api/backtest/walk-forward")
+async def run_walk_forward_endpoint(
+    n_matches: int = Query(150, ge=10, le=500),
+    competition: Optional[str] = Query(None, description="Competición para filtrar (opcional)"),
+    edge_threshold: float = Query(0.05, ge=0.01, le=0.30)
+):
+    """
+    Ejecuta el backtesting temporal walk-forward sobre partidos oficiales reales en analista.db (Katakuri v4).
+    Calcula calibración probabilística (RPS, Log-Loss), precisión clasificatoria y simulación de Value Betting contra cuotas Bet365.
+    """
+    from backend.app.analytics.backtest import run_walk_forward_backtest
+    try:
+        results = run_walk_forward_backtest(n_matches=n_matches, competition=competition, edge_threshold=edge_threshold)
+        return results
+    except Exception as e:
+        logger.error(f"Error ejecutando backtest walk-forward: {e}")
+        raise HTTPException(status_code=500, detail=f"Error en simulación walk-forward: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

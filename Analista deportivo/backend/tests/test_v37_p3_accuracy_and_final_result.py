@@ -18,7 +18,7 @@ from backend.app.schemas.match import MatchRawFeatures, TeamFormStats, HeadToHea
 from backend.app.models.poisson import (
     poisson_model, get_competition_parameters, COMPETITION_BASELINES
 )
-from backend.app.models.tabular_ml import tabular_predictor
+from backend.app.models.tabular_ml import tabular_predictor, FEATURE_NAMES
 from backend.app.models.ensemble import ensemble_engine
 
 
@@ -135,12 +135,14 @@ class TestV37TabularDefensiveAndHomeAdv(unittest.TestCase):
         m = _make_match()
         m.home_stats.win_rate_last_5 = 80.0  # Enviado como porcentaje 80.0%
         feat = tabular_predictor.extract_features(m)[0]
-        self.assertAlmostEqual(feat[0], 0.80, places=2)
+        idx_wr = FEATURE_NAMES.index("home_win_rate_5")
+        self.assertAlmostEqual(feat[idx_wr], 0.80, places=2)
 
     def test_home_adv_tied_to_competition(self):
         m_arg = _make_match(comp="Liga Argentina")  # Liga con fuerte localía (1.22)
         feat = tabular_predictor.extract_features(m_arg)[0]
-        self.assertAlmostEqual(feat[15], 1.22, places=2)
+        idx_adv = FEATURE_NAMES.index("home_advantage")
+        self.assertAlmostEqual(feat[idx_adv], 1.22, places=2)
 
 
 class TestV37CornerLivePossession(unittest.TestCase):

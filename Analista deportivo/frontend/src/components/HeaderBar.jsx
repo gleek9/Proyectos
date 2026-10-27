@@ -63,7 +63,7 @@ export default function HeaderBar({
               : 'Modo pre-partido estándar: agrega una URL para activar telemetría en vivo'
           }
         >
-          <span className="brand-title">Katakuri v3.5</span>
+          <span className="brand-title">Katakuri v4.0</span>
           <span className="brand-sub"> · Analista Deportivo</span>
         </div>
 
