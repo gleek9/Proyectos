@@ -10,7 +10,7 @@ router = APIRouter(prefix="/health", tags=["Monitoreo"])
 @router.get("", response_model=HealthStatusResponse)
 def health_check(db: Session = Depends(get_db)):
     """
-    Monitor de estado del motor Citi Analyzer: APIs y Base de Datos.
+    Monitor de estado del motor Social Analyzer: APIs y Base de Datos.
     """
     db_ok = False
     try:

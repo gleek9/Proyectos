@@ -7,7 +7,7 @@ router = APIRouter(prefix="/auth", tags=["Autenticación"])
 @router.post("/login", response_model=AuthLoginResponse)
 def login(credentials: AuthLoginRequest):
     """
-    Autenticación administrativa de Citi Analyzer contra variables de entorno.
+    Autenticación administrativa de Social Analyzer contra variables de entorno.
     """
     if credentials.username != settings.ADMIN_USER or credentials.password != settings.ADMIN_PASS:
         raise HTTPException(
@@ -17,7 +17,7 @@ def login(credentials: AuthLoginRequest):
 
     # Token de sesión local dev/prod
     return AuthLoginResponse(
-        access_token=f"citi_session_{settings.ADMIN_USER.lower()}_token",
+        access_token=f"social_session_{settings.ADMIN_USER.lower()}_token",
         token_type="bearer",
         username=settings.ADMIN_USER
     )

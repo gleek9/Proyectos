@@ -1,23 +1,24 @@
-# 🎬 Citi Analyzer v1.0.0 — Inteligencia Competitiva de Reels & Generador de Guiones con IA
+# 🎬 Social Analyzer v1.1 — Inteligencia Competitiva de Reels & Generador de Guiones con IA
 
-[![Version](https://img.shields.io/badge/Version-v1.0.0-58FF9C?style=flat-square&labelColor=090A0D)]()
+[![Version](https://img.shields.io/badge/Version-v1.1-58FF9C?style=flat-square&labelColor=090A0D)]()
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-18%2F19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Gemini Multimodal](https://img.shields.io/badge/Google%20Gemini-3.0%20Flash-8E75B2?style=flat-square&logo=google&logoColor=white)](https://aistudio.google.com/)
 
-> **Citi Analyzer v1.0.0** es una plataforma *Local-First* de inteligencia competitiva para Instagram y generación automatizada de contenido audiovisual corto (Reels) inspirada en el **Método ACE® (Analizar, Crear, Escalar)**. Extrae la voz de marca de tus clientes, rastrea los Reels más virales de sus competidores mediante **Apify**, transcribe el audio real con **`yt-dlp` + Google Gemini 3.0 Multimodal** y redacta **3 propuestas de guiones listas para grabar** con escaleta técnica segundo a segundo.
+> **Social Analyzer v1.1** es una plataforma *Local-First* de inteligencia competitiva para Instagram y generación automatizada de contenido audiovisual corto (Reels) basada en el **Método ACE® (Analizar, Crear, Escalar)**. Extrae la voz de marca de tus clientes, rastrea los Reels más virales de sus competidores mediante **Apify**, transcribe el audio real con **`yt-dlp` + Google Gemini 3.0 Multimodal** y redacta **3 propuestas de guiones listas para grabar** con escaleta técnica segundo a segundo.
 
 ---
 
 ## 📑 Tabla de Contenidos
 
 - [¿Qué Problema Resuelve?](#-qué-problema-resuelve)
+- [Novedades de la Versión 1.1](#-novedades-de-la-versión-11)
 - [Flujo del Pipeline de IA (4 Fases)](#-flujo-del-pipeline-de-ia-4-fases)
 - [Características Principales](#-características-principales)
-- [Sistema de Diseño "Anti-IA" (Swiss Grid & Verde Citi)](#-sistema-de-diseño-anti-ia-swiss-grid--verde-citi)
+- [Sistema de Diseño "Anti-IA" (Swiss Grid & Verde Eléctrico)](#-sistema-de-diseño-anti-ia-swiss-grid--verde-eléctrico)
 - [Stack Tecnológico](#-stack-tecnológico)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
 - [Requisitos e Instalación](#-requisitos-e-instalación)
@@ -31,11 +32,20 @@
 
 Las agencias de marketing, creadores de contenido y estrategas digitales suelen invertir horas buscando qué contenido le está funcionando a la competencia en Instagram, transcribiendo videos manualmente y tratando de adaptarlos al tono de cada cliente.
 
-**Citi Analyzer** automatiza todo el ciclo desde un tablero Kanban centralizado:
+**Social Analyzer v1.1** automatiza todo el ciclo desde un tablero Kanban centralizado:
 1. Gestiona múltiples perfiles de clientes categorizados por industria y color identificativo.
 2. Analiza el perfil del cliente para sintetizar su *Brand Voice Profile* (tono, oferta y audiencia).
 3. Detecta matemáticamente el **Top 3 de Reels más virales** entre todos los competidores vinculados.
 4. Extrae y transcribe el audio hablado de esos videos y genera **3 guiones adaptados palabra por palabra** con gancho (`00:00 - 00:03`), retención (`00:03 - 00:15`) y llamado a la acción (`00:15 - 00:30`).
+
+---
+
+## 🆕 Novedades de la Versión 1.1
+
+- **Renombrado Oficial a Social Analyzer v1.1**: Identidad unificada en interfaz web (Login, Navbar, Títulos HTML), servidor API (`FastAPI v1.1`) y scripts de automatización local.
+- **Normalización Universal de Entradas de Instagram**: Soporte transparente para `@usuario`, `usuario`, URLs completas (`https://www.instagram.com/usuario/`), enlaces directos a Reels o URLs con parámetros de seguimiento.
+- **Consumo 0 Bytes de Almacenamiento Persistente en Apify**: Purga inmediata de datasets y registros de ejecución en la nube (`dataset.delete()` y `run.delete()`) tras cada análisis.
+- **Higiene Atómica en Disco (`tmp_media`)**: Limpieza instantánea garantizada de pistas de audio temporales descargadas por `yt-dlp`.
 
 ---
 
@@ -80,12 +90,12 @@ Las agencias de marketing, creadores de contenido y estrategas digitales suelen 
 
 ---
 
-## 🎨 Sistema de Diseño "Anti-IA" (Swiss Grid & Verde Citi)
+## 🎨 Sistema de Diseño "Anti-IA" (Swiss Grid & Verde Eléctrico)
 
 Inspirado en la estética ejecutiva del **Método ACE®** y herramientas de precisión como Linear, Vercel y Raycast:
 
 - **Fondos Obsidiana y Carbón**: Lienzo profundo `#090A0D`, superficies `#111318` y contenedores elevados `#171A21` con cuadrícula técnica sutil (`bg-tech-grid`).
-- **Acento Verde Eléctrico Citi (`#58FF9C`)**: Reservado para llamadas a la acción primarias, indicadores de conexión API, estados activos y bordes en foco.
+- **Acento Verde Eléctrico (`#58FF9C`)**: Reservado para llamadas a la acción primarias, indicadores de conexión API, estados activos y bordes en foco.
 - **Tipografía con Carácter**: `Plus Jakarta Sans` para titulares y lectura de guiones, combinada con `JetBrains Mono` para badges de categoría, contadores de tiempo, métricas de vistas y marcas de tiempo de escaleta (`[00:00 - 00:03]`).
 - **Bordes Técnicos de `1px`**: Cero gradientes neón genéricos ni sombras difusas exageradas; indicadores de color de cliente aplicados con elegancia en barras de `3px` y badges al `12%` de opacidad.
 
@@ -96,7 +106,7 @@ Inspirado en la estética ejecutiva del **Método ACE®** y herramientas de prec
 | Capa | Tecnología | Propósito |
 | :--- | :--- | :--- |
 | **Backend** | `Python 3.11+` · `FastAPI` · `Uvicorn` | API REST asíncrona, orquestación del pipeline y validación estricta con Pydantic. |
-| **Base de Datos** | `SQLite` · `SQLAlchemy ORM` | Persistencia local en `./data/citi_analyzer.db` lista para migrar a PostgreSQL vía `.env`. |
+| **Base de Datos** | `SQLite` · `SQLAlchemy ORM` | Persistencia local en `./data/` lista para migrar a PostgreSQL vía `.env`. |
 | **Scraping Social** | `apify-client` | Extracción de perfiles, publicaciones y métricas de Reels en Instagram con fallback seguro. |
 | **Multimedia & IA** | `yt-dlp` · `Google Gemini 3.0 Flash` | Extracción temporal de pistas de audio, transcripción multimodal e ingeniería inversa de guiones. |
 | **Frontend** | `React` · `TypeScript` · `Vite` · `Tailwind CSS` | Interfaz SPA de alto rendimiento con iconografía `Lucide Icons` (`strokeWidth={1.5}`). |
@@ -111,10 +121,9 @@ Analizador de redes/
 ├── .gitignore                # Reglas de exclusión (.env, .venv, *.db, tmp_media/)
 ├── AGENTS.md                 # Especificación maestra de arquitectura y diseño
 ├── PROJECT_STATUS.md         # Bitácora de versiones, changelog y estado de módulos
-├── README.md                 # Documentación principal del proyecto
+├── README.md                 # Documentación principal de Social Analyzer v1.1
 ├── start_local.bat           # Lanzador automático en 1 clic para Windows
-├── data/
-│   └── citi_analyzer.db      # Base de datos SQLite local autogenerada
+├── data/                     # Directorio de base de datos SQLite local autogenerada
 ├── tmp_media/                # Directorio temporal autolimpiable para yt-dlp
 │
 ├── backend/
@@ -135,7 +144,7 @@ Analizador de redes/
 │       └── analyzer_service.py # Orquestador integral de las 4 fases del pipeline
 │
 └── frontend/
-    ├── package.json          # Dependencias React, TypeScript y Tailwind CSS
+    ├── package.json          # Dependencias React, TypeScript y Tailwind CSS (v1.1.0)
     ├── vite.config.ts        # Configuración de Vite (puerto 3000)
     ├── tailwind.config.js    # Tokens de diseño Swiss Grid y paleta #58FF9C
     └── src/
@@ -171,7 +180,7 @@ Analizador de redes/
 
 ## 🚀 Ejecución en 1 Clic (`start_local.bat`)
 
-Para iniciar todo el entorno local en Windows sin ejecutar comandos manuales, haz doble clic en **`start_local.bat`** o ejecútalo desde la terminal:
+Para iniciar todo el entorno local de **Social Analyzer v1.1** en Windows sin ejecutar comandos manuales, haz doble clic en **`start_local.bat`** o ejecútalo desde la terminal:
 
 ```bat
 .\start_local.bat
@@ -206,8 +215,7 @@ El script realiza automáticamente:
 
 ## 🌐 Guía de Escalado a Producción
 
-1. **Base de Datos**: Sustituir `DATABASE_URL=sqlite:///./data/citi_analyzer.db` en `.env` por una instancia PostgreSQL (`postgresql://user:pass@host:5432/dbname` en Supabase o Neon) y añadir `psycopg2-binary`.
+1. **Base de Datos**: Sustituir `DATABASE_URL` en `.env` por una instancia PostgreSQL (`postgresql://user:pass@host:5432/dbname` en Supabase o Neon) y añadir `psycopg2-binary`.
 2. **Backend**: Desplegar `/backend` en Railway, Render o Fly.io con `uvicorn main:app --host 0.0.0.0 --port $PORT` (incluyendo `ffmpeg` en la imagen para extracción de audio con `yt-dlp`).
 3. **Frontend**: Desplegar `/frontend` en Vercel o Cloudflare Pages apuntando `VITE_API_URL` / `NEXT_PUBLIC_API_URL` al dominio HTTPS del backend.
 4. **Seguridad**: Actualizar `ADMIN_USER`, `ADMIN_PASS` y `APP_SECRET_KEY` con credenciales seguras de producción.
-

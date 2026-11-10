@@ -13,7 +13,7 @@ interface CreateProfileModalProps {
 }
 
 const PRESET_COLORS = [
-  "#58FF9C", // Verde Citi Eléctrico
+  "#58FF9C", // Verde Eléctrico
   "#38BDF8", // Celeste Sky
   "#F59E0B", // Ámbar Oro
   "#A855F7", // Púrpura Editorial

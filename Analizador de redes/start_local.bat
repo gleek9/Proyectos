@@ -1,9 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
-title Citi Analyzer — Viral Script Intelligence Hub
+title Social Analyzer v1.1 — Viral Script Intelligence Hub
 
 echo ===================================================================
-echo               CITI ANALYZER - SISTEMA LOCAL-FIRST
+echo             SOCIAL ANALYZER v1.1 - SISTEMA LOCAL-FIRST
 echo         Metodo ACE: Analizar, Crear, Escalar (Localhost)
 echo ===================================================================
 echo.
@@ -54,19 +54,19 @@ echo ===================================================================
 echo.
 
 :: Lanzar Backend en ventana independiente
-start "Citi Analyzer - Backend (FastAPI)" cmd /k "cd backend && ..\.venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+start "Social Analyzer v1.1 - Backend (FastAPI)" cmd /k "cd backend && ..\.venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
 
 :: Esperar 2 segundos a que el backend inicie
 timeout /t 2 /nobreak >nul
 
 :: Lanzar Frontend en ventana independiente
-start "Citi Analyzer - Frontend (Vite)" cmd /k "cd frontend && npm run dev"
+start "Social Analyzer v1.1 - Frontend (Vite)" cmd /k "cd frontend && npm run dev"
 
 :: Esperar 2 segundos adicionales y abrir navegador predeterminado
 timeout /t 2 /nobreak >nul
 start http://localhost:3000
 
-echo [EXITO] Citi Analyzer iniciado correctamente.
+echo [EXITO] Social Analyzer v1.1 iniciado correctamente.
 echo - Frontend: http://localhost:3000
 echo - Backend API: http://localhost:8000
 echo - Documentacion OpenAPI: http://localhost:8000/docs

@@ -43,10 +43,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSuccess }) => {
             <Sparkles size={22} strokeWidth={1.5} />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-[#F8FAFC]">
-            Citi Analyzer
+            Social Analyzer
           </h1>
           <p className="text-xs text-[#94A3B8] mt-1 font-mono">
-            Acceso al Sistema de Inteligencia Viral
+            Acceso al Sistema de Inteligencia Viral • v1.1
           </p>
         </div>
 

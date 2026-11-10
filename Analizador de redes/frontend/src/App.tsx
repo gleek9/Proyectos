@@ -28,7 +28,7 @@ export const App: React.FC = () => {
   if (checkingAuth) {
     return (
       <div className="min-h-screen bg-[#090A0D] flex items-center justify-center font-mono text-xs text-[#64748B]">
-        Iniciando Citi Analyzer...
+        Iniciando Social Analyzer v1.1...
       </div>
     );
   }

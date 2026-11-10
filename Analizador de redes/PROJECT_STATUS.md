@@ -1,14 +1,21 @@
-# PROJECT_STATUS.md — Control y Trazabilidad de Citi Analyzer
+# PROJECT_STATUS.md — Control y Trazabilidad de Social Analyzer
 
 ## 1. Estado General del Proyecto
-- **Versión Actual:** `1.0.0`
-- **Porcentaje de Avance Global:** `100%` (Todas las Fases 1 a 6 completadas, integradas y verificadas end-to-end)
-- **Arquitectura:** Local-First (`FastAPI` + `SQLite` en `./data/citi_analyzer.db` + motor multimodal `Gemini 3.0 gratuito` + `React / Vite` + `Tailwind CSS`).
+- **Nombre del Proyecto:** `Social Analyzer`
+- **Versión Actual:** `1.1`
+- **Porcentaje de Avance Global:** `100%` (Todas las Fases 1 a 6 completadas, renombradas a v1.1 y documentadas)
+- **Arquitectura:** Local-First (`FastAPI` + `SQLite` + motor multimodal `Gemini 3.0 gratuito` + `React / Vite` + `Tailwind CSS`).
 - **Estado Operativo:** Servidor Backend en `http://localhost:8000` y Frontend en `http://localhost:3000` ejecutándose con éxito.
 
 ---
 
 ## 2. Registro de Cambios (Changelog)
+
+### [2026-11-10 02:26] — Lanzamiento v1.1: Renombrado a Social Analyzer y Documentación README.md
+- **Renombrado Integral a `Social Analyzer v1.1`:**
+  - Actualizada la identidad del producto eliminando "Citi" en toda la interfaz de usuario (`Navbar.tsx`, `LoginView.tsx`, `App.tsx`, `CreateProfileModal.tsx`, `index.html`, `package.json`), en el servidor Backend (`main.py`, `auth.py`, `health.py`, `apify_service.py`) y en el lanzador automático (`start_local.bat`).
+- **Documentación Principal (`README.md`):**
+  - Creado y actualizado `README.md` para **Social Analyzer v1.1** con insignias de versión, arquitectura del pipeline de 4 fases, novedades de la versión 1.1, guía de instalación, ejecución en 1 clic y tabla de endpoints REST.
 
 ### [2026-10-27 14:15] — Fases 4, 5 y 6: Sistema de Diseño "Anti-IA", Interfaz de Usuario y Automatización
 - **Sistema de Diseño "Anti-IA" y Paleta Cromática (`frontend/src/index.css`):**

@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Tuple
 from apify_client import ApifyClient
 from config import settings
 
-logger = logging.getLogger("citi_analyzer.apify")
+logger = logging.getLogger("social_analyzer.apify")
 
 def normalize_instagram_input(raw: str) -> Tuple[str, str]:
     """

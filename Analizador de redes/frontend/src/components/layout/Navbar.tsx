@@ -28,10 +28,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
           <div>
             <span className="text-base font-bold tracking-tight text-[#F8FAFC]">
-              Citi Analyzer
+              Social Analyzer
             </span>
             <span className="hidden sm:inline-block ml-2 text-[10px] font-mono text-[#64748B] border border-[#1E222B] px-1.5 py-0.5 rounded">
-              ACE MVP
+              v1.1
             </span>
           </div>
         </div>
