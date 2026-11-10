@@ -9,7 +9,23 @@ import subprocess
 import webbrowser
 import signal
 
+def _disable_windows_quickedit():
+    """Desactiva el modo QuickEdit de la consola de Windows para evitar que un clic en la ventana congele stdout y cuelgue el servidor."""
+    if os.name == "nt":
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            h_stdin = kernel32.GetStdHandle(-10)  # STD_INPUT_HANDLE
+            mode = ctypes.c_uint32()
+            if kernel32.GetConsoleMode(h_stdin, ctypes.byref(mode)):
+                # Desactivar ENABLE_QUICK_EDIT_MODE (0x0040) y activar ENABLE_EXTENDED_FLAGS (0x0080)
+                new_mode = (mode.value & ~0x0040) | 0x0080
+                kernel32.SetConsoleMode(h_stdin, new_mode)
+        except Exception:
+            pass
+
 def main():
+    _disable_windows_quickedit()
     root_dir = os.path.abspath(os.path.dirname(__file__))
     frontend_dir = os.path.join(root_dir, "frontend")
     
@@ -19,8 +35,8 @@ def main():
         venv_python = sys.executable
 
     print("=" * 70)
-    print("      KATAKURI v4.0 — ALTA PRECISIÓN & ANALÍTICA DEPORTIVA")
-    print(" 3,525 Partidos Oficiales · Elo Dinámico · Walk-Forward Validado")
+    print("      KATAKURI v4.1 — ALTA PRECISIÓN & ANALÍTICA DEPORTIVA")
+    print(" 4,749 Partidos Oficiales · Elo Dinámico · Walk-Forward Validado")
     print("=" * 70)
     print()
     print("[1/3] Iniciando Servidor Backend FastAPI en puerto 8000...")
@@ -29,7 +45,8 @@ def main():
         "-m", "uvicorn",
         "backend.app.main:app",
         "--host", "127.0.0.1",
-        "--port", "8000"
+        "--port", "8000",
+        "--timeout-keep-alive", "75"
     ]
     
     # Iniciar backend
@@ -79,23 +96,33 @@ def main():
     print("\nPresiona CTRL+C en esta consola para detener ambos servidores.\n")
 
     backend_restarts = 0
+    last_backend_start = time.time()
     try:
         while True:
             time.sleep(1)
-            # Si el backend se detiene inesperadamente, intentar recuperarlo
+            # Si el backend lleva más de 60s estable, resetear el contador de reinicios
+            if backend_proc.poll() is None and (time.time() - last_backend_start) > 60:
+                backend_restarts = 0
+
+            # Si el backend se detiene inesperadamente, auto-recuperarlo
             if backend_proc.poll() is not None:
-                if backend_restarts < 3:
+                if backend_restarts < 5:
                     backend_restarts += 1
-                    print(f"\n[AVISO] El servidor Backend se detuvo. Auto-recuperando (intento {backend_restarts}/3)...")
+                    print(f"\n[AVISO] El servidor Backend se detuvo. Auto-recuperando (intento {backend_restarts}/5)...")
                     backend_proc = subprocess.Popen(backend_cmd, cwd=root_dir)
+                    last_backend_start = time.time()
                     time.sleep(2)
                     continue
                 else:
                     print("\n[ERROR] El servidor Backend se ha detenido repetidamente.")
                     break
+
+            # Si el frontend se detiene inesperadamente, auto-recuperarlo en lugar de cerrar la sesión
             if frontend_proc.poll() is not None:
-                print("\n[AVISO] El servidor Frontend se ha detenido.")
-                break
+                print("\n[AVISO] El servidor Frontend se detuvo. Auto-recuperando Vite...")
+                frontend_proc = subprocess.Popen("npm run dev", cwd=frontend_dir, shell=True)
+                time.sleep(2)
+                continue
     except KeyboardInterrupt:
         print("\nDeteniendo servidores Katakuri AI...")
     finally:

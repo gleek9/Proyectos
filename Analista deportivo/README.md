@@ -1,4 +1,4 @@
-# ⚽ Katakuri v4.0 — Plataforma Autónoma de Predicción Deportiva de Alta Precisión con IA
+# ⚽ Katakuri v4.1 — Plataforma Autónoma de Predicción Deportiva de Alta Precisión con IA
 
 [![Python Version](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -9,7 +9,7 @@
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-3.5%20Flash%20Lite-8E75B2?logo=google&logoColor=white)](https://aistudio.google.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](#licencia)
 
-> **Katakuri v4.0** es una plataforma integral de analítica predictiva de alta precisión calibrada sobre **3,525 partidos oficiales reales** (football-data.co.uk) y ratings Elo dinámicos para 122 clubes. Integra un **meta-ensamble matemático cuantitativo 100% local** (Poisson Dixon-Coles modulado por Elo y Splits Home/Away, XGBoost Supervisado con 23 features predictivas y PyTorch LSTM secuencial) junto con un motor de **Backtesting Temporal Walk-Forward y Value Betting (+53.56% ROI vs Bet365)**.
+> **Katakuri v4.1** es una plataforma integral de analítica predictiva de alta precisión calibrada sobre **4,749 partidos oficiales reales** (`football-data.co.uk`) en 9 competiciones y ratings Elo dinámicos para **164 clubes**. Integra un **meta-ensamble matemático cuantitativo 100% local** (Poisson Dixon-Coles modulado por Elo y Splits Home/Away, XGBoost Supervisado con 23 features predictivas y PyTorch LSTM secuencial) junto con un motor de **Backtesting Temporal Walk-Forward Point-in-Time (Cero Look-Ahead Bias) y Value Betting con Criterio de Kelly Fraccional 1/4 vs Bet365**.
 
 ---
 
@@ -85,23 +85,23 @@ A partir de **dos equipos** o una **URL directa de partido** (de plataformas com
 ```
 
 ### Componentes Clave:
-- **Base de Datos Oficial Real (3,525 partidos / 122 equipos)**: Ingestión masiva de `football-data.co.uk` con marcadores oficiales, remates a puerta (*Shots on Target*), córners, tarjetas y cuotas reales de Bet365.
-- **Rating Elo Dinámico Cronológico**: Algoritmo FIFA/Chess Elo ($K=24$, localía 65 pts) actualizado jornada a jornada para los 122 clubes.
-- **Poisson Bivariado con Dixon-Coles ($\tau$), Elo y Splits**: Expectativas de gol moduladas por diferencia de Elo ($R_{elo} = 10^{\Delta Elo / 2400}$), splits home/away (55/45) y correlación $\rho$ adaptativa por torneo.
-- **Sobredispersión Binomial Negativa**: Corrige la varianza en córners y tarjetas evitando subestimar colas pesadas.
-- **XGBoost Supervisado (23 Features Predictivas)**: Clasificador multi-clase 1X2 entrenado cronológicamente con early stopping sobre datos empíricos reales.
+- **Base de Datos Oficial Real (4,749 partidos / 164 equipos / 9 competiciones)**: Ingestión masiva de `football-data.co.uk` (Premier League, LaLiga, Serie A, Bundesliga, Ligue 1, Eredivisie, Primeira Liga, más Champions League y Liga MX) con marcadores oficiales, remates a puerta (*Shots on Target*), córners, tarjetas y cuotas reales de Bet365.
+- **Rating Elo Dinámico Cronológico**: Algoritmo FIFA/Chess Elo ($K=24$, localía 65 pts, regresión inter-temporada del 15%) actualizado jornada a jornada para los 164 clubes.
+- **Poisson Bivariado con Dixon-Coles ($\tau$), Elo y Splits**: Expectativas de gol moduladas por diferencia de Elo ($R_{elo} = 10^{\Delta Elo / 2100}$), splits home/away (55/45) y correlación $\rho$ adaptativa por torneo.
+- **Sobredispersión Binomial Negativa**: Corrige la varianza en córners y tarjetas evitando subestimar colas pesadas y eliminando sesgos disciplinarios.
+- **XGBoost Supervisado (23 Features Predictivas)**: Clasificador multi-clase 1X2 entrenado cronológicamente Point-in-Time con early stopping sobre datos empíricos reales.
 - **PyTorch LSTM**: Red recurrente `MatchSequenceLSTM` entrenada para capturar la inercia temporal y el momentum relativo.
-- **Backtesting Walk-Forward & Value Betting**: Validación out-of-sample (+53.56% ROI vs Bet365, RPS = 0.1888) integrado en API y UI.
+- **Backtesting Walk-Forward Point-in-Time & Value Betting (Flat + 1/4 Kelly)**: Validación out-of-sample con cero fuga temporal y filtro multi-competición integrado en API y UI.
 - **Efecto Game State (In-Play)**: Adapta las tasas de gol esperado por minuto y aceleración de córners en desventaja.
 
 ---
 
 ## ✨ Características Principales
 
-- **Alta Precisión Matemática (v4.0)**: Desempeño predictivo respaldado por 3,525 partidos reales con calibración RPS $\le 0.190$ (estándar Constantinou-Fenton).
-- **Simulador de Apuestas de Valor (Value Betting)**: Identifica y cuantifica discrepancias analíticas entre las probabilidades del modelo y las cuotas de las casas de apuestas (Bet365).
-- **Resolución Instantánea (<10ms)**: Búsqueda y feature engineering ultra-rápido en SQLite para los 122 equipos principales de Europa y América.
-- **Ingestión Jerárquica de URLs en Vivo**: Soporta enlaces de Sofascore o Flashscore, extrayendo telemetría in-play y auto-sincronizando cada 5 minutos.
+- **Alta Precisión Matemática (v4.1)**: Desempeño predictivo respaldado por 4,749 partidos reales en 9 competiciones con reconstrucción Point-in-Time (Cero Look-Ahead Bias), calibración de temperatura ($T=1.08$), modulador bayesiano de paridad para empates competitivos y corrección de sesgo disciplinario en tarjetas.
+- **Simulador de Apuestas de Valor (Value Betting Flat + Kelly 1/4)**: Identifica y cuantifica discrepancias analíticas entre las probabilidades del modelo y las cuotas de Bet365 con selector interactivo de 9 ligas (Flat ROI = +45.42%, Kelly 1/4 ROI = +29.74%).
+- **Resolución Instantánea (<10ms) y Vía Rápida En Vivo (<0.5s)**: Búsqueda y feature engineering ultra-rápido en SQLite para los 164 equipos principales de Europa y América, con líneas de córners totales adaptativas al volumen real en directo.
+- **Ingestión Jerárquica de URLs en Vivo y Auto-Sync Wall-Clock**: Soporta enlaces de Sofascore o Flashscore, extrayendo telemetría in-play y auto-sincronizando cada 5 minutos mediante reloj real inmune al *throttling* de pestañas en segundo plano.
 - **Diseño Dark IDE Minimalista**: Diseñado para alta legibilidad táctica, con paleta oscura elegante, micro-animaciones, gráficos interactivos con Chart.js y tipografía monoespaciada.
 - **Lanzador Automatizado en 1 Clic**: Scripts de arranque con auto-recuperación de procesos para Windows (`iniciar_app.bat`, `iniciar_app.ps1`, `run_app.py`).
 
@@ -141,35 +141,35 @@ analista-deportivo/
 ├── iniciar_app.bat           # Lanzador rápido en 1 clic para Windows (CMD/Batch)
 ├── iniciar_app.ps1           # Lanzador rápido para Windows (PowerShell)
 ├── detener_app.bat           # Detención limpia de servicios en Windows
-├── analista.db               # Base de datos SQLite (3,525 partidos oficiales y 122 clubes)
+├── analista.db               # Base de datos SQLite (4,749 partidos oficiales, 164 clubes y 9 competiciones)
 │
 ├── backend/
 │   ├── requirements.txt      # Dependencias de Python
-│   ├── data/                 # Datasets oficiales CSV de football-data.co.uk
+│   ├── data/                 # Datasets oficiales CSV de football-data.co.uk (9 competiciones)
 │   ├── weights/              # Pesos entrenados de XGBoost (xgb_1x2.json) y LSTM (lstm_momentum.pt)
 │   ├── app/
 │   │   ├── main.py           # Entrada FastAPI, rutas REST y ciclo de vida
 │   │   ├── config.py         # Configuración central y variables de entorno
 │   │   ├── db.py             # Modelos relacionales SQLAlchemy (HistoricalMatch, TeamStatsCache)
 │   │   ├── services/         # Servicios de datos oficiales
-│   │   │   ├── real_data_loader.py # Ingestión de CSVs oficiales y cálculo de Elo dinámico
-│   │   │   └── league_database.py  # Resolución de partidos en <10ms y normalización de alias
-│   │   ├── agent/            # Extracción web autónoma fallback
+│   │   │   ├── real_data_loader.py # Ingestión de CSVs oficiales y cálculo de Elo dinámico Point-in-Time
+│   │   │   └── league_database.py  # Resolución de partidos en <10ms y normalización de alias (164 clubes)
+│   │   ├── agent/            # Extracción web autónoma fallback y vía rápida en vivo (<0.5s)
 │   │   │   ├── collector.py  # Orquestador LangChain / Gemini / Base de Datos
 │   │   │   ├── parser.py     # Parser estructurado de respuestas
 │   │   │   └── scraper.py    # Extracción en tiempo real vía httpx/BeautifulSoup
 │   │   ├── analytics/        # Calibración, entrenamiento y evaluación
-│   │   │   ├── backtest.py   # Motor de Walk-Forward, Value Betting, RPS y Brier
-│   │   │   └── train_models.py # Pipeline de reentrenamiento supervisado sin data leakage
+│   │   │   ├── backtest.py   # Motor de Walk-Forward Point-in-Time, Value Betting (Flat + 1/4 Kelly), RPS y Brier
+│   │   │   └── train_models.py # Pipeline de reentrenamiento supervisado Point-in-Time sin data leakage
 │   │   ├── models/           # Motores predictivos cuantitativos 100% locales
-│   │   │   ├── poisson.py    # Dixon-Coles calibrado con Elo y Splits Home/Away
-│   │   │   ├── tabular_ml.py # Inferencia tabular XGBoost (23 variables)
+│   │   │   ├── poisson.py    # Dixon-Coles calibrado con Elo, Splits Home/Away y córners adaptativos en vivo
+│   │   │   ├── tabular_ml.py # Inferencia tabular XGBoost (23 variables, temperatura T=1.08)
 │   │   │   ├── lstm_net.py   # Red neuronal recurrente LSTM en PyTorch
-│   │   │   └── ensemble.py   # Meta-ensamble bivariado de consenso y veredictos
+│   │   │   └── ensemble.py   # Meta-ensamble bivariado de consenso, modulador de paridad y veredictos
 │   │   └── schemas/          # Modelos de validación Pydantic tipados
 │   │       ├── match.py      # Esquemas de entrada y telemetría en vivo
 │   │       └── prediction.py # Esquemas de salida estructurada y mercados derivados
-│   └── tests/                # 75 pruebas unitarias y suites de integración
+│   └── tests/                # 81 pruebas unitarias y suites de integración v4.1
 │
 └── frontend/
     ├── package.json          # Dependencias y scripts de Node
@@ -281,10 +281,10 @@ detener_app.bat
 
 | Método | Endpoint | Descripción |
 |---|---|---|
-| `POST` | `/api/predict` | Ejecuta la predicción integral pre-match o in-play con ensamble Katakuri v4.0. |
+| `POST` | `/api/predict` | Ejecuta la predicción integral pre-match o in-play con ensamble Katakuri v4.1. |
 | `GET` | `/api/health` | Estado del sistema, modelos cargados y conexión a base de datos. |
 | `GET` | `/api/predictions/recent` | Consulta el historial de análisis almacenados localmente. |
-| `GET` | `/api/backtest/walk-forward` | **(Nuevo en v4.0)** Simulación out-of-sample cronológica y telemetría de Value Betting. |
+| `GET` | `/api/backtest/walk-forward` | **(Mejorado en v4.1)** Simulación out-of-sample cronológica Point-in-Time (Cero Look-Ahead), filtro multi-competición y telemetría de Value Betting (Flat + 1/4 Kelly). |
 | `GET` | `/api/backtest/benchmark` | Ejecuta el benchmark cuantitativo sobre el dataset histórico curado. |
 | `POST` | `/api/backtest/run` | Ejecuta una sesión de backtesting sobre un lote personalizado. |
 | `POST` | `/api/login` | Endpoint de autenticación JWT (opcional). |
@@ -293,13 +293,16 @@ detener_app.bat
 
 ## 🧪 Suite de Pruebas y Backtesting
 
-Para verificar la integridad de la base de datos real, los ratings Elo dinámicos, los modelos ML y la calibración probabilística, ejecuta:
+Para verificar la integridad de la base de datos real (4,749 partidos y 9 competiciones), los ratings Elo dinámicos para 164 clubes, los modelos ML sin fuga temporal y la calibración probabilística v4.1, ejecuta:
 
 ```bash
-# Ejecución de la suite completa de 75 pruebas (100% éxito garantizado):
+# Ejecución de la suite completa de 81 pruebas (100% éxito garantizado):
 .venv\Scripts\python -m unittest discover -s backend/tests
 
-# O ejecutar la suite específica de validación v4.0 (Datos Reales, Elo y Walk-Forward):
+# O ejecutar la suite específica de validación v4.1 (9 Ligas, 4,749 Partidos, Calibración y Kelly):
+.venv\Scripts\python -m unittest backend/tests/test_v41_expanded_leagues_and_calibration.py
+
+# Suite de validación v4.0 (Datos Reales, Elo y Walk-Forward):
 .venv\Scripts\python -m unittest backend/tests/test_v40_real_data_and_walkforward.py
 
 # Benchmark de métricas de calibración (RPS, Brier, Log-Loss, MAE):

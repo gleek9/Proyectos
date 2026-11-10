@@ -4,16 +4,18 @@ import { X, Activity, ShieldCheck, RefreshCw, BarChart3, TrendingUp, Layers } fr
 export default function BacktestModal({ isOpen, onClose }) {
   const [mode, setMode] = useState('walk_forward'); // 'walk_forward' o 'benchmark'
   const [sampleSize, setSampleSize] = useState(100);
+  const [competition, setCompetition] = useState('');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchBacktestData = async (targetMode = mode, targetSize = sampleSize) => {
+  const fetchBacktestData = async (targetMode = mode, targetSize = sampleSize, targetComp = competition) => {
     setLoading(true);
     setError(null);
+    const compQuery = targetComp ? `&competition=${encodeURIComponent(targetComp)}` : '';
     try {
       const endpoint = targetMode === 'walk_forward'
-        ? `/api/backtest/walk-forward?n_matches=${targetSize}`
+        ? `/api/backtest/walk-forward?n_matches=${targetSize}${compQuery}`
         : '/api/backtest/benchmark';
 
       const res = await fetch(endpoint);
@@ -26,7 +28,7 @@ export default function BacktestModal({ isOpen, onClose }) {
       // Fallback a conexión directa local si el proxy Vite tiene problemas
       try {
         const directUrl = targetMode === 'walk_forward'
-          ? `http://127.0.0.1:8000/api/backtest/walk-forward?n_matches=${targetSize}`
+          ? `http://127.0.0.1:8000/api/backtest/walk-forward?n_matches=${targetSize}${compQuery}`
           : 'http://127.0.0.1:8000/api/backtest/benchmark';
         const directRes = await fetch(directUrl);
         if (!directRes.ok) throw new Error(`HTTP ${directRes.status}`);
@@ -42,9 +44,9 @@ export default function BacktestModal({ isOpen, onClose }) {
 
   useEffect(() => {
     if (isOpen) {
-      fetchBacktestData(mode, sampleSize);
+      fetchBacktestData(mode, sampleSize, competition);
     }
-  }, [isOpen, mode, sampleSize]);
+  }, [isOpen, mode, sampleSize, competition]);
 
   if (!isOpen) return null;
 
@@ -56,7 +58,7 @@ export default function BacktestModal({ isOpen, onClose }) {
         <div className="modal-header">
           <div className="modal-title-group">
             <Activity size={18} color="var(--emerald)" />
-            <h2 id="backtest-modal-title" className="modal-title">Katakuri v4.0 · Validación empírica y simulación temporal</h2>
+            <h2 id="backtest-modal-title" className="modal-title">Katakuri v4.1 · Validación empírica Point-in-Time y simulación temporal</h2>
           </div>
           <button className="modal-close-btn" onClick={onClose} aria-label="Cerrar modal">
             <X size={18} />
@@ -65,7 +67,7 @@ export default function BacktestModal({ isOpen, onClose }) {
 
         <div className="modal-body">
           <p className="modal-description">
-            Evaluación matemática y backtesting sobre 3,525 partidos oficiales reales de ligas europeas (football-data.co.uk) con ratings Elo dinámicos y cuotas reales de Bet365.
+            Evaluación matemática Point-in-Time (cero fuga temporal) sobre más de 4,700 partidos oficiales reales de 9 competiciones (football-data.co.uk) con ratings Elo dinámicos y cuotas reales de Bet365.
           </p>
 
           {/* Selector de Pestañas / Modo */}
@@ -88,29 +90,57 @@ export default function BacktestModal({ isOpen, onClose }) {
             </button>
           </div>
 
-          {/* Selector de tamaño de muestra para Walk-Forward */}
+          {/* Selector de tamaño de muestra y liga para Walk-Forward */}
           {mode === 'walk_forward' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-              <span>Tamaño de muestra:</span>
-              {[50, 100, 150, 200].map((size) => (
-                <button
-                  key={size}
-                  type="button"
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>Muestra:</span>
+                {[50, 100, 150, 200].map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    style={{
+                      background: sampleSize === size ? 'var(--emerald)' : 'var(--bg-card)',
+                      color: sampleSize === size ? '#000' : 'var(--text-main)',
+                      border: '1px solid var(--border-dim)',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: '4px',
+                      fontSize: '0.74rem',
+                      cursor: 'pointer',
+                      fontWeight: sampleSize === size ? 'bold' : 'normal'
+                    }}
+                    onClick={() => setSampleSize(size)}
+                  >
+                    {size} partidos
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span>Competición:</span>
+                <select
+                  value={competition}
+                  onChange={(e) => setCompetition(e.target.value)}
                   style={{
-                    background: sampleSize === size ? 'var(--emerald)' : 'var(--bg-card)',
-                    color: sampleSize === size ? '#000' : 'var(--text-main)',
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-main)',
                     border: '1px solid var(--border-dim)',
-                    padding: '0.2rem 0.5rem',
+                    padding: '0.22rem 0.5rem',
                     borderRadius: '4px',
-                    fontSize: '0.74rem',
-                    cursor: 'pointer',
-                    fontWeight: sampleSize === size ? 'bold' : 'normal'
+                    fontSize: '0.74rem'
                   }}
-                  onClick={() => setSampleSize(size)}
                 >
-                  {size} partidos
-                </button>
-              ))}
+                  <option value="">Todas las ligas (9)</option>
+                  <option value="premier_league">Premier League</option>
+                  <option value="laliga">LaLiga</option>
+                  <option value="serie_a">Serie A</option>
+                  <option value="bundesliga">Bundesliga</option>
+                  <option value="ligue_1">Ligue 1</option>
+                  <option value="eredivisie">Eredivisie</option>
+                  <option value="primeira_liga">Primeira Liga</option>
+                  <option value="champions_league">Champions League</option>
+                  <option value="liga_mx">Liga MX</option>
+                </select>
+              </div>
             </div>
           )}
 

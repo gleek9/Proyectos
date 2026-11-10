@@ -81,20 +81,22 @@ export default function LiveNeuralSection({
           </span>
           <input
             id="live-neural-monitored-url"
-            type="url"
+            type="text"
             className="neural-url-input"
             value={matchUrl || ''}
             onChange={(e) => onUrlChange && onUrlChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Pegar URL del partido en vivo (ej: Flashscore, Sofascore)..."
+            autoComplete="off"
+            spellCheck="false"
             style={{ fontSize: '0.78rem' }}
           />
         </div>
 
-        {matchUrl && matchUrl.trim() && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        {Boolean(matchUrl && matchUrl.trim()) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0, position: 'relative', zIndex: 5 }}>
             <a
-              href={matchUrl.startsWith('http') ? matchUrl : `https://${matchUrl}`}
+              href={matchUrl.trim().startsWith('http') ? matchUrl.trim() : `https://${matchUrl.trim()}`}
               target="_blank"
               rel="noopener noreferrer"
               className="neural-url-clear-btn"
@@ -105,10 +107,18 @@ export default function LiveNeuralSection({
             <button
               type="button"
               className="neural-url-clear-btn"
-              onClick={onClearUrl}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onClearUrl) onClearUrl();
+              }}
               title="Quitar URL y volver a modo pre-partido"
             >
-              <X size={14} />
+              <X size={15} />
             </button>
           </div>
         )}

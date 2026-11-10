@@ -252,8 +252,8 @@ class LSTMPredictor:
                 # Calcular tensión o urgencia de gol según marcador actual
                 urgency = 1.0
                 diff = abs(gh - ga)
-                if diff == 1 and elapsed_min >= 60:
-                    urgency = 1.25  # Partido cerrado con remontada en disputa
+                if diff == 1 and 60 <= elapsed_min <= 80:
+                    urgency = 1.12  # Partido cerrado con remontada en disputa
                 elif diff >= 3:
                     urgency = 0.85  # Partido sentenciado
 
@@ -263,7 +263,7 @@ class LSTMPredictor:
                 
                 # Probabilidad de que no haya más goles según la tasa de llegada de la red
                 if time_rem_ratio > 0:
-                    live_no_more_p = float(np.clip(np.exp(-live_rem_goals), 0.02, 0.95))
+                    live_no_more_p = float(np.clip(np.exp(-live_rem_goals), 0.02, 0.99))
                 else:
                     live_no_more_p = 1.0  # Partido finalizado
                 live_more_p = float(1.0 - live_no_more_p)

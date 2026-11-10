@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Fondos: Obsidiana y Carbón Ejecutivo (Cero grises lavados) */
+  --bg-canvas: #090A0D;
+  --bg-surface: #111318;
+  --bg-surface-elevated: #171A21;
+  --bg-glass: rgba(17, 19, 24, 0.82);
+
+  /* Textos: Jerarquía de Alto Contraste */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+
+  /* Acentos de Resaltado: Verde Citi Eléctrico */
+  --accent-primary: #58FF9C;
+  --accent-hover: #42E686;
+  --accent-subtle: rgba(88, 255, 156, 0.12);
+  --accent-glow: rgba(88, 255, 156, 0.25);
+
+  /* Bordes y Divisores: Precisión Técnica */
+  --border-subtle: #1E222B;
+  --border-focus: #58FF9C;
+}
+
+body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Tipografía Mono para datos técnicos, tiempos y métricas */
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Fondo con Cuadrícula Técnica Sutil (Estilo Raycast / Linear) */
+.bg-tech-grid {
+  background-image: linear-gradient(to right, rgba(30, 34, 43, 0.4) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(30, 34, 43, 0.4) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Scrollbar Minimalista */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090A0D;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E222B;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2E3442;
+}
+
+/* Animación sutil de pulso para el monitor de salud */
+@keyframes softPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.95);
+  }
+}
+
+.animate-pulse-green {
+  animation: softPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

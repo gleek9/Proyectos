@@ -35,9 +35,9 @@ async def lifespan(app: FastAPI):
     logger.info("Apagando Katakuri AI API Server...")
 
 app = FastAPI(
-    title="Katakuri v4.0 - Plataforma de Predicción Deportiva de Alta Precisión",
-    description="Motor autónomo de predicción deportiva de alta precisión calibrado sobre 3,525 partidos reales (football-data.co.uk), rating Elo dinámico, Poisson Dixon-Coles, XGBoost y PyTorch LSTM.",
-    version="4.0.0",
+    title="Katakuri v4.1 - Plataforma de Predicción Deportiva de Alta Precisión",
+    description="Motor autónomo de predicción deportiva de alta precisión calibrado sobre más de 4,700 partidos reales (9 competiciones de football-data.co.uk), rating Elo dinámico con regresión entre temporadas, Poisson Dixon-Coles, XGBoost (23 features), PyTorch LSTM y Walk-Forward Point-in-Time.",
+    version="4.1.0",
     lifespan=lifespan
 )
 

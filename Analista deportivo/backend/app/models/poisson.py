@@ -33,17 +33,19 @@ def nbinom_pmf(k: int, mean_val: float, overdispersion: float = 1.35) -> float:
 
 def parse_elapsed_minute(minute_str: Optional[str]) -> int:
     """
-    Parsea de forma robusta cualquier representación de tiempo en vivo ('34'', '2T 68'', 'HT', 'MT', 'Descanso', '1T')
-    y retorna el minuto transcurrido acotado entre 1 y 89.
+    Parsea de forma robusta cualquier representación de tiempo en vivo ('34'', '2T 68'', '90+3'', 'Por terminar', 'HT')
+    y retorna el minuto transcurrido acotado entre 1 y 90.
     """
     if not minute_str:
         return 45
     min_clean = str(minute_str).upper().strip()
     # Partido finalizado: no queda tiempo de juego (90 = expectativa restante nula).
-    # Debe evaluarse antes que el descanso para no caer en el fallback de 45'.
     if re.search(r"\b(FT|FINAL|FINALIZADO|TERMINADO|FIN|ENDED|FULL[\s-]?TIME|AET)\b", min_clean):
         return 90
-    # Coincidencias por palabra completa: evita que "1ST" (primer tiempo) se lea como "ST" (segundo tiempo)
+    # Partido por finalizar / descuento final (90+): queda ~1 minuto residual
+    if re.search(r"(POR\s+TERMINAR|POR\s+FINALIZAR|TIEMPO\s+CUMPLIDO|TRAMO\s+FINAL|AWAITING|90\s*\+)", min_clean):
+        return 89
+    # Coincidencias por palabra completa para descanso
     if re.search(r"\b(MT|HT|DESCANSO|ENTRETIEMPO|HALF[\s-]?TIME)\b", min_clean):
         return 45
     is_first_half = bool(re.search(r"\b(1T|1ST|PT|1ER)\b", min_clean)) or "PRIMER" in min_clean
@@ -58,7 +60,7 @@ def parse_elapsed_minute(minute_str: Optional[str]) -> int:
         if num_match:
             val = int(num_match.group(0))
             return int(np.clip(val if val >= 45 else 45 + val, 1, 89))
-        return 65
+        return 68
     else:
         num_match = re.search(r"\d+", min_clean)
         if num_match:
@@ -67,31 +69,28 @@ def parse_elapsed_minute(minute_str: Optional[str]) -> int:
 
 def calculate_remaining_goal_ratio(elapsed_minutes: int) -> float:
     """
-    Calcula la fracción de expectativa de gol restante en función del minuto actual,
-    basándose en la curva empírica no homogénea de llegada de goles en el fútbol profesional.
-    Distribución acumulada representativa:
-    0'-15': 13.0%, 16'-30': 15.5%, 31'-45': 17.5% (Total 1T: 46.0%)
-    46'-60': 16.5%, 61'-75': 18.5%, 76'-90+': 22.5% (Total 2T: 54.0%)
+    Calcula la fracción de expectativa de gol restante en función del minuto actual.
+    El tiempo transcurrido reduce estrictamente la expectativa residual hacia 0 conforme se acerca el minuto 90.
     """
     if elapsed_minutes >= 90:
         return 0.0  # Partido finalizado: sin expectativa residual
-    minute_anchors = [0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0]
-    cumulative_dist = [0.0, 0.130, 0.285, 0.460, 0.625, 0.775, 1.000]
+    minute_anchors = [0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 85.0, 89.0, 90.0]
+    cumulative_dist = [0.0, 0.130, 0.285, 0.460, 0.625, 0.775, 0.945, 0.988, 1.000]
     m_clamped = float(np.clip(elapsed_minutes, 0, 90))
     passed_ratio = float(np.interp(m_clamped, minute_anchors, cumulative_dist))
-    return max(0.04, 1.0 - passed_ratio)
+    return max(0.01, 1.0 - passed_ratio)
 
 def calculate_remaining_corner_ratio(elapsed_minutes: int) -> float:
     """
-    Fracción de tiempo restante para saques de esquina considerando mayor frecuencia en el 2T.
+    Fracción de tiempo restante para saques de esquina con decaimiento estricto en el tramo final.
     """
     if elapsed_minutes >= 90:
         return 0.0
-    minute_anchors = [0.0, 45.0, 75.0, 90.0]
-    cumulative_dist = [0.0, 0.470, 0.790, 1.000]
+    minute_anchors = [0.0, 45.0, 60.0, 75.0, 85.0, 89.0, 90.0]
+    cumulative_dist = [0.0, 0.480, 0.655, 0.835, 0.945, 0.988, 1.000]
     m_clamped = float(np.clip(elapsed_minutes, 0, 90))
     passed_ratio = float(np.interp(m_clamped, minute_anchors, cumulative_dist))
-    return max(0.04, 1.0 - passed_ratio)
+    return max(0.01, 1.0 - passed_ratio)
 
 def calculate_remaining_card_ratio(elapsed_minutes: int) -> float:
     """
@@ -402,14 +401,14 @@ class DixonColesPoissonModel:
         a_att_shrunk = w_shrink * away_gf + (1.0 - w_shrink) * league_ref
         h_def_shrunk = w_shrink * home_ga + (1.0 - w_shrink) * league_ref
 
-        # 3. Ratios de fuerza relativa adimensional con amortiguamiento elástico dimensionalmente equilibrado (gamma = 0.50)
-        gamma = 0.50
+        # 3. Ratios de fuerza relativa adimensional con amortiguamiento elástico dimensionalmente equilibrado (gamma = 0.52)
+        gamma = 0.52
         att_ratio_h = (max(0.40, h_att_shrunk) / league_ref) ** gamma
         def_ratio_a = (max(0.40, a_def_shrunk) / league_ref) ** gamma
         att_ratio_a = (max(0.40, a_att_shrunk) / league_ref) ** gamma
         def_ratio_h = (max(0.40, h_def_shrunk) / league_ref) ** gamma
 
-        # 3.5. Modulación por Rating Elo Dinámico Oficial (Katakuri v4)
+        # 3.5. Modulación por Rating Elo Dinámico Oficial (Katakuri v4.1)
         elo_h = getattr(home, "elo_rating", None)
         elo_a = getattr(away, "elo_rating", None)
         if elo_h is None or elo_a is None:
@@ -430,9 +429,9 @@ class DixonColesPoissonModel:
         elo_mult_a = 1.0
         if elo_h is not None and elo_a is not None:
             delta_elo = float(elo_h) - float(elo_a)
-            # Factor simétrico conservativo: modula hasta +/- 25% entre élite y colista
+            # Factor simétrico calibrado: modula hasta +/- 26% entre élite y colista (divisor 2100.0)
             elo_diff_clamped = float(np.clip(delta_elo, -400.0, 400.0))
-            elo_mult_h = float(10.0 ** (elo_diff_clamped / 2400.0))
+            elo_mult_h = float(10.0 ** (elo_diff_clamped / 2100.0))
             elo_mult_a = float(1.0 / elo_mult_h)
 
         # 4. Ponderación posicional de ausencias clave
@@ -739,9 +738,22 @@ class DixonColesPoissonModel:
                     game_state_h *= cooling_factor
                     game_state_a *= cooling_factor
 
-            # Escalar lambdas al tiempo restante modulados por ventaja numérica, asedio y estado de juego
-            lambda_home = lambda_base_h * time_remaining_ratio * att_mod_h * def_mod_h * pressure_h * game_state_h
-            mu_away = mu_base_a * time_remaining_ratio * att_mod_a * def_mod_a * pressure_a * game_state_a
+            # -------------------------------------------------------------
+            # Factor 4: Ritmo Real del Partido en Curso y Decaimiento de Cierre
+            # Si el partido tiene baja actividad de córners/llegadas o entra en la recta final, modera la tasa
+            # -------------------------------------------------------------
+            pace_mod = 1.0
+            live_cn_val = getattr(features, "live_corners", None)
+            if live_cn_val is not None and elapsed_min >= 45 and int(live_cn_val) <= 4:
+                pace_mod *= 0.78
+            if elapsed_min > 75:
+                # Decaimiento adicional progresivo en los últimos 15 minutos
+                late_decay = max(0.55, 1.0 - (elapsed_min - 75) * 0.03)
+                pace_mod *= late_decay
+
+            # Escalar lambdas al tiempo restante modulados por ventaja numérica, asedio, estado y ritmo real
+            lambda_home = lambda_base_h * time_remaining_ratio * att_mod_h * def_mod_h * pressure_h * game_state_h * pace_mod
+            mu_away = mu_base_a * time_remaining_ratio * att_mod_a * def_mod_a * pressure_a * game_state_a * pace_mod
         else:
             lambda_home = lambda_base_h
             mu_away = mu_base_a
@@ -806,6 +818,7 @@ class DixonColesPoissonModel:
         no_more_corners_p = 0.0
         more_corners_p = 0.0
         live_corner_lines = []
+        adjusted_corner_lines = []
 
         if is_live:
             # Proyección in-play adaptativa con ritmo empírico observado
@@ -814,27 +827,29 @@ class DixonColesPoissonModel:
             if getattr(features, "live_corners", None) is not None:
                 curr_corners = int(features.live_corners)
                 # Ritmo observado en directo por minuto jugado
-                m_played = max(15, elapsed_min)
+                m_played = max(12.0, float(elapsed_min))
                 observed_rate = curr_corners / m_played
                 expected_rate_pre = expected_corners_base / 90.0
 
-                # Ponderación Bayesiana mixta: a mayor tiempo transcurrido, más confiable es el ritmo en curso
-                w_observed = float(np.clip(elapsed_min / 95.0, 0.20, 0.75))
+                # Ponderación Bayesiana mixta: a mayor minuto transcurrido, el ritmo real domina (hasta 88%)
+                w_observed = float(np.clip(elapsed_min / 85.0, 0.25, 0.88))
                 blended_rate_per_min = w_observed * observed_rate + (1.0 - w_observed) * expected_rate_pre
 
-                rem_mins = max(1, 90 - elapsed_min)
-                # Intensidad empírica según tiempo restante
-                expected_corners_rem = round(blended_rate_per_min * rem_mins * (time_rem_ratio / max(0.01, (rem_mins / 90.0))), 1)
+                rem_mins = max(0.0, 90.0 - float(elapsed_min))
+                # Proyección proporcional a los minutos reales restantes
+                expected_corners_rem = round(blended_rate_per_min * rem_mins, 1)
 
                 # Acoplamiento Táctico de Córners con el Estado del Marcador (Game State Effect - Fase 4)
-                # Si un equipo en desventaja asedia por las bandas en el tramo final, su ritmo de córners se acelera
-                if elapsed_min >= 50:
+                # Solo aplica entre el 50' y el 80'; en los últimos 10 minutos prima estrictamente el reloj
+                if 50 <= elapsed_min <= 80:
                     score_diff = curr_gh - curr_ga
                     if score_diff == -1:  # Local perdiendo por 1 gol
-                        expected_corners_rem = round(expected_corners_rem * min(1.22, 1.0 + (elapsed_min - 50) * 0.005), 1)
+                        expected_corners_rem = round(expected_corners_rem * min(1.14, 1.0 + (elapsed_min - 50) * 0.004), 1)
                     elif score_diff == 1:  # Visitante perdiendo por 1 gol
-                        expected_corners_rem = round(expected_corners_rem * min(1.18, 1.0 + (elapsed_min - 50) * 0.004), 1)
+                        expected_corners_rem = round(expected_corners_rem * min(1.12, 1.0 + (elapsed_min - 50) * 0.003), 1)
 
+                if time_rem_ratio <= 0.0 or elapsed_min >= 90:
+                    expected_corners_rem = 0.0
                 expected_corners = round(curr_corners + expected_corners_rem, 1)
 
                 # Probabilidades Over condicionadas usando Binomial Negativa (alpha = 1.30)
@@ -864,24 +879,54 @@ class DixonColesPoissonModel:
                 over_10_5_corners = nbinom_survival(10, expected_corners, overdispersion=1.20) * 100.0
 
             rem_cn_for_lines = max(0.2, expected_corners_rem) if time_rem_ratio > 0 else 0.0
-            no_more_corners_p = nbinom_pmf(0, rem_cn_for_lines, overdispersion=1.20)
+            no_more_corners_p = nbinom_pmf(0, rem_cn_for_lines, overdispersion=1.20) if time_rem_ratio > 0 else 1.0
             more_corners_p = float(1.0 - no_more_corners_p)
             live_corner_lines = [
                 {"line": "Sin córners adicionales en tiempo restante", "probability": round(no_more_corners_p * 100, 1)},
                 {"line": "+1 córner o más en tiempo restante", "probability": round(more_corners_p * 100, 1)},
-                {"line": "+2 córners o más en tiempo restante", "probability": round(nbinom_survival(1, max(0.05, expected_corners_rem), overdispersion=1.20) * 100, 1)},
-                {"line": "+3 córners o más en tiempo restante", "probability": round(nbinom_survival(2, max(0.05, expected_corners_rem), overdispersion=1.20) * 100, 1)}
+                {"line": "+2 córners o más en tiempo restante", "probability": round((nbinom_survival(1, max(0.05, expected_corners_rem), overdispersion=1.20) * 100 if time_rem_ratio > 0 else 0.0), 1)},
+                {"line": "+3 córners o más en tiempo restante", "probability": round((nbinom_survival(2, max(0.05, expected_corners_rem), overdispersion=1.20) * 100 if time_rem_ratio > 0 else 0.0), 1)}
             ]
 
             # Garantizar monotonía
             over_8_5_corners = min(100.0, max(0.0, over_8_5_corners))
             over_9_5_corners = min(over_8_5_corners, max(0.0, over_9_5_corners))
             over_10_5_corners = min(over_9_5_corners, max(0.0, over_10_5_corners))
+
+            # Generar 3 líneas principales de córners en vivo partiendo SIEMPRE de +1 córner sobre los actuales
+            # Ejemplo: si van 3 córners -> Más de 3.5 córners (+1), Más de 4.5 córners (+2), Más de 5.5 córners (+3)
+            if curr_corners is not None and (time_rem_ratio <= 0.0 or elapsed_min >= 90):
+                adjusted_corner_lines = [
+                    {"line": f"Más de {curr_corners}.5 córners", "probability": 0.0},
+                    {"line": f"Más de {curr_corners + 1}.5 córners", "probability": 0.0},
+                    {"line": f"Más de {curr_corners + 2}.5 córners", "probability": 0.0},
+                ]
+            elif curr_corners is not None:
+                for step_k in (0, 1, 2):
+                    k_val = curr_corners + step_k
+                    needed_k = step_k + 1
+                    ov_p = float(nbinom_survival(needed_k - 1, max(0.02, expected_corners_rem), overdispersion=1.20) * 100.0) if expected_corners_rem > 0.02 else 0.0
+                    ov_p = round(min(100.0, max(0.0, ov_p)), 1)
+                    adjusted_corner_lines.append({
+                        "line": f"Más de {k_val}.5 córners",
+                        "probability": ov_p
+                    })
+            else:
+                adjusted_corner_lines = [
+                    {"line": "Más de 8.5 córners", "probability": round(over_8_5_corners, 1)},
+                    {"line": "Más de 9.5 córners", "probability": round(over_9_5_corners, 1)},
+                    {"line": "Más de 10.5 córners", "probability": round(over_10_5_corners, 1)},
+                ]
         else:
             expected_corners = round(expected_corners_base, 1)
             over_8_5_corners = nbinom_survival(8, expected_corners, overdispersion=1.20) * 100.0
             over_9_5_corners = nbinom_survival(9, expected_corners, overdispersion=1.20) * 100.0
             over_10_5_corners = nbinom_survival(10, expected_corners, overdispersion=1.20) * 100.0
+            adjusted_corner_lines = [
+                {"line": "Más de 8.5 córners", "probability": round(over_8_5_corners, 1)},
+                {"line": "Más de 9.5 córners", "probability": round(over_9_5_corners, 1)},
+                {"line": "Más de 10.5 córners", "probability": round(over_10_5_corners, 1)},
+            ]
 
         # -------------------------------------------------------------
         # Proyección de Tarjetas (Binomial Negativa con sobredispersión alpha = 1.40)
@@ -889,16 +934,17 @@ class DixonColesPoissonModel:
         home_cards = features.home_stats.avg_cards
         away_cards = features.away_stats.avg_cards
         comp_name = getattr(features, "competition", "General") or "General"
-        league_ref_cards = 4.2 if any(k in comp_name.lower() for k in ["liga mx", "copa", "conmebol", "libertadores"]) else 3.8
+        league_ref_cards = 4.2 if any(k in comp_name.lower() for k in ["liga mx", "copa", "conmebol", "libertadores", "primeira", "portugal"]) else 3.7
 
-        raw_cards_sum = home_cards + away_cards
+        # Corrección de sobles puntos de rojas en el promedio crudo (factor 0.92 para alinear con conteo real de tarjetas)
+        raw_cards_sum = (home_cards + away_cards) * 0.92
         if features.h2h.total_matches_analyzed > 0 and features.h2h.avg_total_cards_h2h > 0:
-            observed_cards = raw_cards_sum * 0.60 + (features.h2h.avg_total_cards_h2h) * 0.40
+            observed_cards = raw_cards_sum * 0.65 + (features.h2h.avg_total_cards_h2h * 0.92) * 0.35
         else:
             observed_cards = raw_cards_sum
 
         # Regularización Bayesiana hacia la media disciplinaria de la competición
-        expected_cards = 0.65 * observed_cards + 0.35 * league_ref_cards
+        expected_cards = 0.60 * observed_cards + 0.40 * league_ref_cards
 
         over_3_5_cards = nbinom_survival(3, expected_cards, overdispersion=1.40) * 100.0
         over_4_5_cards = nbinom_survival(4, expected_cards, overdispersion=1.40) * 100.0
@@ -936,7 +982,8 @@ class DixonColesPoissonModel:
                 "expected_remaining_corners": expected_corners_rem if is_live else None,
                 "no_more_corners_pct": round(no_more_corners_p * 100, 1) if is_live else None,
                 "more_corners_pct": round(more_corners_p * 100, 1) if is_live else None,
-                "live_corners_lines": live_corner_lines
+                "live_corners_lines": live_corner_lines,
+                "adjusted_lines": adjusted_corner_lines
             },
             "cards": {
                 "expected_total": round(expected_cards, 1),

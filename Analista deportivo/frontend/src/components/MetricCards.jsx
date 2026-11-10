@@ -5,6 +5,60 @@ export default function MetricCards({ prediction, match, isLive }) {
   const { goals, corners, cards } = prediction;
   const effectiveLive = isLive !== undefined ? isLive : match?.is_live;
 
+  const liveCornersCount =
+    corners?.current_corners !== null && corners?.current_corners !== undefined
+      ? Number(corners.current_corners)
+      : (match?.live_corners !== null && match?.live_corners !== undefined ? Number(match.live_corners) : null);
+
+  const liveGoalsCount =
+    goals?.current_goals !== null && goals?.current_goals !== undefined
+      ? Number(goals.current_goals)
+      : null;
+
+  // Líneas de goles en vivo: parten siempre de +1 gol adicional respecto a los goles actuales del partido
+  const goalDisplayLines = (() => {
+    if (effectiveLive && liveGoalsCount !== null && goals?.plus_1_goal_pct !== undefined && goals?.plus_1_goal_pct !== null) {
+      return [
+        { line: `Más de ${(liveGoalsCount + 0.5).toFixed(1)} goles`, probability: Number(goals.plus_1_goal_pct).toFixed(1) },
+        { line: `Más de ${(liveGoalsCount + 1.5).toFixed(1)} goles`, probability: Number(goals.plus_2_goals_pct ?? 0).toFixed(1) },
+        { line: `Más de ${(liveGoalsCount + 2.5).toFixed(1)} goles`, probability: Number(goals.plus_3_goals_pct ?? 0).toFixed(1) },
+      ];
+    }
+    return [
+      { line: 'Más de 1.5 goles', probability: goals.over_1_5_pct },
+      { line: 'Más de 2.5 goles', probability: goals.over_2_5_pct },
+      { line: 'Más de 3.5 goles', probability: goals.over_3_5_pct },
+    ];
+  })();
+
+  // Líneas de córners en vivo: parten SIEMPRE de +1 córner más de los que hay actualmente en el partido
+  // Ejemplo: si hay 3 córners -> Más de 3.5 córners (+1), Más de 4.5 córners (+2), Más de 5.5 córners (+3)
+  const cornerDisplayLines = (() => {
+    if (effectiveLive && liveCornersCount !== null) {
+      if (Array.isArray(corners?.adjusted_lines) && corners.adjusted_lines.length >= 3) {
+        return corners.adjusted_lines.slice(0, 3);
+      }
+      if (Array.isArray(corners?.live_corners_lines) && corners.live_corners_lines.length >= 4) {
+        return [1, 2, 3].map((step) => {
+          const lineThreshold = liveCornersCount + step - 0.5;
+          const rawOver = Number(corners.live_corners_lines[step]?.probability ?? 0);
+          return {
+            line: `Más de ${lineThreshold.toFixed(1)} córners`,
+            probability: Number(rawOver.toFixed(1)),
+          };
+        });
+      }
+    }
+    if (Array.isArray(corners?.adjusted_lines) && corners.adjusted_lines.length >= 3) {
+      return corners.adjusted_lines.slice(0, 3);
+    }
+    return [
+      { line: 'Más de 8.5 córners', probability: Number(corners?.over_8_5_pct ?? 0).toFixed(1) },
+      { line: 'Más de 9.5 córners', probability: Number(corners?.over_9_5_pct ?? 0).toFixed(1) },
+      { line: 'Más de 10.5 córners', probability: Number(corners?.over_10_5_pct ?? 0).toFixed(1) },
+    ];
+  })();
+
   return (
     <div className="metrics-grid">
       {/* 1. Panel de Goles */}
@@ -49,18 +103,12 @@ export default function MetricCards({ prediction, match, isLive }) {
         </div>
 
         <div className="submetrics-list">
-          <div className="submetric-row">
-            <span className="submetric-key">Más de 1.5 goles:</span>
-            <span className="submetric-val">{goals.over_1_5_pct}%</span>
-          </div>
-          <div className="submetric-row">
-            <span className="submetric-key">Más de 2.5 goles:</span>
-            <span className="submetric-val highlight">{goals.over_2_5_pct}%</span>
-          </div>
-          <div className="submetric-row">
-            <span className="submetric-key">Más de 3.5 goles:</span>
-            <span className="submetric-val">{goals.over_3_5_pct}%</span>
-          </div>
+          {goalDisplayLines.map((item, idx) => (
+            <div key={idx} className="submetric-row">
+              <span className="submetric-key">{item.line}:</span>
+              <span className={`submetric-val${idx === 1 ? ' highlight' : ''}`}>{item.probability}%</span>
+            </div>
+          ))}
           <div className="submetric-row">
             <span className="submetric-key">Ambos equipos anotan (Sí):</span>
             <span className="submetric-val highlight">{goals.both_teams_to_score_pct}%</span>
@@ -108,18 +156,16 @@ export default function MetricCards({ prediction, match, isLive }) {
         </div>
 
         <div className="submetrics-list">
-          <div className="submetric-row">
-            <span className="submetric-key">Más de 8.5 córners:</span>
-            <span className="submetric-val">{corners.over_8_5_pct}%</span>
-          </div>
-          <div className="submetric-row">
-            <span className="submetric-key">Más de 9.5 córners:</span>
-            <span className="submetric-val highlight">{corners.over_9_5_pct}%</span>
-          </div>
-          <div className="submetric-row">
-            <span className="submetric-key">Más de 10.5 córners:</span>
-            <span className="submetric-val">{corners.over_10_5_pct}%</span>
-          </div>
+          {cornerDisplayLines.map((item, idx) => (
+            <div key={idx} className="submetric-row">
+              <span className="submetric-key">
+                {String(item.line).endsWith(':') ? item.line : `${item.line}:`}
+              </span>
+              <span className={`submetric-val${idx === 1 ? ' highlight' : ''}`}>
+                {item.probability}%
+              </span>
+            </div>
+          ))}
         </div>
 
         <div className="metric-verdict" style={{ borderColor: 'var(--azure)' }}>

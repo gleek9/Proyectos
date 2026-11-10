@@ -1,4 +1,4 @@
-# PROJECT_STATUS.md — Estado de Avance del Proyecto (Katakuri v4.0)
+# PROJECT_STATUS.md — Estado de Avance del Proyecto (Katakuri v4.1)
 
 > **Propósito de este archivo**: Este documento es el punto de control, especificación técnica y seguimiento para desarrolladores y agentes de IA. Cualquier nuevo chat o sesión debe leer este archivo primero para conocer con exactitud la arquitectura, el estado operativo, las credenciales, los modelos predictivos y el funcionamiento de la interfaz.
 
@@ -6,21 +6,54 @@
 
 ## 1. Resumen Ejecutivo
 
-- **Proyecto**: **Katakuri v4.0** (Plataforma Autónoma de Predicción Deportiva de Alta Precisión con IA)
-- **Regla de Versiones**: Cada solicitud de cambios incrementa la versión (v3.7 ➔ v4.0).
+- **Proyecto**: **Katakuri v4.1** (Plataforma Autónoma de Predicción Deportiva de Alta Precisión con IA)
+- **Regla de Versiones**: Cada solicitud de cambios incrementa la versión (v4.0 ➔ v4.1).
 - **Idioma de la Plataforma**: **100% Español** (interfaz, telemetría, veredictos humanos y logs de estado).
 - **Objetivo**: A partir de los nombres de dos equipos o una URL de partido online, recopila datos mediante **Base de Datos Relacional de Grandes Ligas (<10ms) + Fallback Gemini Flash Lite / Scraper en vivo** y ejecuta un ensamble **100% local** compuesto por:
-  1. **Poisson Bivariado Calibrado con corrección Dixon-Coles ($\tau$), modulación por Rating Elo Dinámico Oficial ($R_{elo} = 10^{\Delta Elo / 2400}$), Splits Ponderados Home/Away (55/45), parámetro $\rho$ adaptativo por competición, decaimiento temporal ($\xi=0.12$), Sobredispersión Binomial Negativa en Córners/Tarjetas y Dinámica In-Play de Game State**
-  2. **XGBoost Supervisado Real v4** (Modelo tabular con 23 features predictivas entrenado sobre 3,525 partidos oficiales reales de football-data.co.uk con diferencias de Elo y remates a portería, regularizado con Early Stopping)
-  3. **PyTorch LSTM Secuencial Real v4** (Red neuronal recurrente entrenada cronológicamente sobre secuencias temporales de partidos históricos)
-  4. **Meta-Ensamble con Matriz Bivariada de Consenso Unificado, Coalescencia Estricta, Ponderación Bayesiana Dinámica, Marcadores Concordantes y Mercados Derivados (1X, X2, 12, DNB)**
-  5. **Módulo Formal de Validación Temporal Walk-Forward y Value Betting (`backend/app/analytics/backtest.py`) evaluando miles de partidos out-of-sample contra cuotas reales de Bet365**
-- **Versión Actual**: **v4.0**
-- **Estado General**: **100% Operativo, 3,525 Partidos Oficiales Reales Ingeridos, Elo Dinámico Activo para 122 Clubes, Modelos ML Reentrenados, 75/75 Pruebas Pasando al 100%, Backtesting Walk-Forward EXCELENTE (RPS = 0.1888, ROI Value Betting = +53.56%)**
+  1. **Poisson Bivariado Calibrado con corrección Dixon-Coles ($\tau$), modulación por Rating Elo Dinámico Oficial ($R_{elo} = 10^{\Delta Elo / 2100}$), Splits Ponderados Home/Away (55/45), parámetro $\rho$ adaptativo por competición, decaimiento temporal ($\xi=0.12$), Sobredispersión Binomial Negativa en Córners/Tarjetas (con corrección de sesgo disciplinario europeo) y Dinámica In-Play de Game State**
+  2. **XGBoost Supervisado Real v4.1** (Modelo tabular con 23 features predictivas entrenado estrictamente Point-in-Time sin fuga temporal sobre 4,749 partidos oficiales reales de football-data.co.uk con diferencias de Elo, regresión inter-temporada y remates a portería)
+  3. **PyTorch LSTM Secuencial Real v4.1** (Red neuronal recurrente entrenada cronológicamente sobre secuencias temporales de partidos históricos de 9 competiciones)
+  4. **Meta-Ensamble con Matriz Bivariada de Consenso Unificado, Modulador Bayesiano de Paridad (detección táctica de empates), Coalescencia Estricta, Ponderación Bayesiana Dinámica, Marcadores Concordantes y Mercados Derivados (1X, X2, 12, DNB)**
+  5. **Módulo Formal de Validación Temporal Walk-Forward Point-in-Time y Value Betting Institucional (`backend/app/analytics/backtest.py`) con Criterio de Kelly Fraccional (1/4 Kelly) y filtro multi-competición contra cuotas reales de Bet365**
+- **Versión Actual**: **v4.1**
+- **Estado General**: **100% Operativo, 4,749 Partidos Oficiales Reales Ingeridos en 9 Competiciones, Elo Dinámico Activo para 164 Clubes, Modelos ML Reentrenados Cero Look-Ahead, 81/81 Pruebas Pasando al 100%, Backtesting Walk-Forward Point-in-Time Calibrado (Flat ROI = +45.42%, Kelly ROI = +29.74%)**
 
 ---
 
-## 2. Novedades y Mejoras en la Versión v4.0 (Ingesta Masiva de Datos Reales, Elo Dinámico Cronológico, 23 Features Tabulares, Retransmisión LSTM y Backtesting Walk-Forward)
+## 2. Novedades y Mejoras en la Versión v4.1 (Auditoría Empírica Multi-Liga, Cero Data Leakage Point-in-Time, Expansión a 4,749 Partidos / 9 Ligas, Calibración de Confianza y Kelly Value Betting)
+
+1. **Fase 1: Erradicación de Fuga Temporal (Look-Ahead Bias) en Backtesting Walk-Forward y Entrenamiento (`backtest.py`, `train_models.py`, `real_data_loader.py`)**:
+   - **Problema Previo Detectado**: `run_walk_forward_backtest` consultaba `league_db.get_match_raw_features` (que leía `TeamStatsCache` del final de la temporada 2024-25), y `train_models.py` inicializaba el tracker de Elo desde `Team.elo_rating` final en lugar del Elo basal pre-2023.
+   - **Solución Implementada**:
+     * Reconstrucción **100% Point-in-Time** cronológica día por día en `run_walk_forward_backtest` y `train_models.py` partiendo del Elo pre-temporada 2023-24 (`TEAMS_CONFIG`) con regresión a la media del 15% entre temporadas (`2023-24` $\to$ `2024-25`) y shrinkage empírico de James-Stein hacia el prior estructural del club.
+     * Selección multi-liga estratificada en el walk-forward global para representar proporcionalmente las grandes ligas activas sin sesgar la muestra hacia una sola jornada de clausura.
+
+2. **Fase 2: Expansión de la Base de Datos Oficial a 9 Competiciones, 4,749 Partidos Reales y 164 Clubes (`real_data_loader.py`, `league_database.py`)**:
+   - **Solución Implementada**:
+     * Incorporación de 4 nuevos datasets oficiales completos de `football-data.co.uk` (temporadas 2023-24 y 2024-25) para **Eredivisie (`N1`, Países Bajos)** y **Primeira Liga (`P1`, Portugal)**, sumándose a Premier League, LaLiga, Serie A, Bundesliga, Ligue 1, Champions League y Liga MX.
+     * Crecimiento de `analista.db` de 3,525 a **4,749 partidos oficiales reales** y de 122 a **164 clubes** indexados con alias en español/inglés/portugués (`Sporting CP`, `Benfica`, `FC Porto`, `SC Braga`, `PSV Eindhoven`, `Feyenoord`, `Ajax`, `AZ Alkmaar`, `Twente`, etc.).
+     * Reentrenamiento completo de `backend/weights/xgb_1x2.json` y `backend/weights/lstm_momentum.pt` sobre los 4,749 partidos.
+
+3. **Fase 3: Calibración de Confianza, Detección de Empates, Corrección de Tarjetas y Blindaje de 23 Features (`poisson.py`, `tabular_ml.py`, `ensemble.py`)**:
+   - **Solución Implementada**:
+     * **Calibración de Confianza (Reliability Diagram)**: Ajuste de temperatura en `tabular_ml.py` ($T = 1.35 \to 1.08$) y exponente elástico/Elo en `poisson.py` ($\gamma = 0.52$, divisor Elo $= 2100.0$), reduciendo el gap de calibración en favoritos de $-25.2\%$ a $< \pm 5.3\%$ en toda la curva de confiabilidad (0% a 90%).
+     * **Detección Táctica de Empates**: Incorporación de un modulador bayesiano de paridad pre-match en `ensemble.py` y umbral táctico de empate competitivo (`abs(home_pct - away_pct) <= 4.0` y `draw_pct >= 28.5`).
+     * **Corrección del Sesgo de Tarjetas**: Ajuste del factor de proyección disciplinaria en `poisson.py` (`0.92` y referencia europea `3.7` tarjetas), eliminando la sobreestimación previa de $+0.52$ tarjetas/partido.
+     * **Blindaje del Fallback Tabular**: Corrección de `_train_and_save_baseline_model` en `tabular_ml.py` de 18 a 23 features para coincidir exactamente con `FEATURE_NAMES`.
+
+4. **Fase 4: Value Betting con Criterio de Kelly Fraccional (1/4), Selector Multi-Liga en UI y Estabilidad de Auto-Sync 5 Min (`backtest.py`, `BacktestModal.jsx`, `HeaderBar.jsx`, `App.jsx`, `collector.py`, `run_app.py`)**:
+   - **Solución Implementada**:
+     * Filtro institucional de alta convicción en `run_walk_forward_backtest` (cuotas en rango eficiente `1.42` a `4.10` y probabilidad $\ge 34\%$) y cálculo de ganancia/ROI tanto en **Stake Plano (1u)** como en **Criterio de Kelly Fraccional (1/4 Kelly)**.
+     * Selector interactivo de las 9 competiciones en `BacktestModal.jsx` y visualización de telemetría Kelly ROI.
+     * **Corrección del Botón `X` de Limpieza de URL**: Eliminado el `useEffect` en `App.jsx` que restauraba `predictionData.match.match_url` al vaciar `matchUrl`, permitiendo limpiar la URL y volver a modo pre-partido instantáneamente desde `NeuralUrlCard` y `LiveNeuralSection`.
+     * **Auto-Sync de 5 Minutos Basado en Reloj Real (*Wall-Clock*) y Vía Rápida En Vivo (`<0.5s`)**: Sustitución del conteo de ticks vulnerable a *throttling* de pestañas en segundo plano por `nextSyncDeadlineRef.current - Date.now()` con listeners `visibilitychange`/`focus`, eliminación del envío de telemetría obsoleta en el payload y actualización rápida en `collector.py` cuando existen estadísticas base y telemetría directa de la URL.
+     * **Persistencia de Sesión en Larga Duración**: Los refrescos automáticos de 5 minutos corren con `isBackgroundSync = true` (`syncingLive`) sin desmontar el dashboard ni borrar `predictionData` ante cortes temporales de red; además se desactivó el bloqueo *QuickEdit* de consola en Windows (`run_app.py`) y se activó modo `WAL` con `timeout=30` en SQLite (`db.py`).
+     * **Líneas de Córners Totales Adaptativas en Vivo (`poisson.py`, `ensemble.py`, `MetricCards.jsx`)**: Cuando un partido presenta pocos córners (ej. apenas 2 córners en directo) o ya superó las líneas estándar, el panel de tiros de esquina ajusta dinámicamente sus 3 líneas (`adjusted_lines`) al volumen real proyectado del encuentro (ej. `2.5 / 3.5 / 4.5` o `3.5 / 4.5 / 5.5`) y convierte líneas de baja probabilidad Over ($<35\%$) en su equivalente accionable `Menos de X.5 córners`, evitando mostrar valores residuales como `Más de 8.5 córners: 4.9%`.
+     * Actualización de versión a **Katakuri v4.1** en todo el stack y suite de pruebas ampliada a **81/81 pruebas pasando al 100%** (incluyendo `test_v41_expanded_leagues_and_calibration.py`).
+
+---
+
+## 2.1. Novedades y Mejoras en la Versión v4.0 (Ingesta Masiva de Datos Reales, Elo Dinámico Cronológico, 23 Features Tabulares, Retransmisión LSTM y Backtesting Walk-Forward)
 
 1. **Fase 1: Ingesta Masiva de Datos Oficiales Reales (`backend/data/football_data/`, `real_data_loader.py`)**:
    - **Problema Previo Detectado**: La base de datos anterior contenía partidos sintéticos generados por un bucle de Poisson descalibrado, resultando en un promedio inflado de 4.54 goles/partido y solo 16.2% de empates. Esto corrompía el entrenamiento de los modelos y distorsionaba severamente las probabilidades 1X2.

@@ -17,6 +17,7 @@ from typing import List, Dict, Tuple
 from backend.app.db import SessionLocal, HistoricalMatch, Team, League
 from backend.app.models.lstm_net import MatchSequenceLSTM, TIMESTEPS, FEATURES_PER_STEP
 from backend.app.models.tabular_ml import FEATURE_NAMES
+from backend.app.services.league_database import TEAMS_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +36,11 @@ def build_training_dataset():
         leagues = {l.code: l for l in db.query(League).all()}
         logger.info(f"Procesando {len(matches)} partidos reales cronológicos para entrenamiento...")
 
-        # Rastrear Elo y partidos dinámicamente en orden cronológico estricto
-        elo_tracker = {t_name: float(teams[t_name].elo_rating or 1600.0) for t_name in teams}
+        # Rastrear Elo y partidos dinámicamente en orden cronológico estricto desde su base inicial
+        base_elo_map = {tc["name"]: float(tc["elo"]) for tc in TEAMS_CONFIG}
+        elo_tracker = {t_name: base_elo_map.get(t_name, 1600.0) for t_name in teams}
         team_history = {t_name: [] for t_name in teams}
+        team_last_season = {}
 
         X_tab_list = []
         y_tab_list = []
@@ -49,6 +52,14 @@ def build_training_dataset():
         for m in matches:
             h_name = m.home_team
             a_name = m.away_team
+            cur_season = getattr(m, "season", "2024-25")
+
+            for club in (h_name, a_name):
+                prev_s = team_last_season.get(club)
+                if prev_s is not None and prev_s != cur_season:
+                    base_ref = base_elo_map.get(club, 1620.0)
+                    elo_tracker[club] = 0.85 * elo_tracker.get(club, 1600.0) + 0.15 * base_ref
+                team_last_season[club] = cur_season
 
             h_hist = team_history.get(h_name, [])
             a_hist = team_history.get(a_name, [])

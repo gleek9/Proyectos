@@ -84,6 +84,26 @@ LEAGUES_CONFIG = [
         "avg_corners": 9.4,
         "avg_cards": 4.6,
         "rho": -0.11
+    },
+    {
+        "code": "eredivisie",
+        "name": "Eredivisie",
+        "country": "Países Bajos",
+        "avg_goals": 1.52,
+        "home_adv": 1.14,
+        "avg_corners": 10.2,
+        "avg_cards": 3.4,
+        "rho": -0.04
+    },
+    {
+        "code": "primeira_liga",
+        "name": "Primeira Liga",
+        "country": "Portugal",
+        "avg_goals": 1.33,
+        "home_adv": 1.15,
+        "avg_corners": 9.9,
+        "avg_cards": 4.8,
+        "rho": -0.10
     }
 ]
 
@@ -146,7 +166,20 @@ TEAMS_CONFIG = [
     {"name": "Guadalajara", "league": "liga_mx", "elo": 1570.0, "aliases": "guadalajara,chivas,rebaño sagrado"},
     {"name": "Toluca", "league": "liga_mx", "elo": 1580.0, "aliases": "toluca,diablos rojos"},
     {"name": "Pachuca", "league": "liga_mx", "elo": 1560.0, "aliases": "pachuca,tuzos"},
-    {"name": "Pumas UNAM", "league": "liga_mx", "elo": 1540.0, "aliases": "pumas,pumas unam,universidad"}
+    {"name": "Pumas UNAM", "league": "liga_mx", "elo": 1540.0, "aliases": "pumas,pumas unam,universidad"},
+
+    # Eredivisie
+    {"name": "PSV Eindhoven", "league": "eredivisie", "elo": 1850.0, "aliases": "psv,psv eindhoven,boeren"},
+    {"name": "Feyenoord", "league": "eredivisie", "elo": 1810.0, "aliases": "feyenoord,feyenoord rotterdam"},
+    {"name": "Ajax", "league": "eredivisie", "elo": 1760.0, "aliases": "ajax,afc ajax,ajax amsterdam"},
+    {"name": "AZ Alkmaar", "league": "eredivisie", "elo": 1710.0, "aliases": "az,az alkmaar,alkmaar"},
+    {"name": "Twente", "league": "eredivisie", "elo": 1720.0, "aliases": "twente,fc twente"},
+
+    # Primeira Liga
+    {"name": "Sporting CP", "league": "primeira_liga", "elo": 1860.0, "aliases": "sporting,sporting cp,sporting lisbon,sporting lisboa,sporting de lisboa,sp lisbon,leoes"},
+    {"name": "Benfica", "league": "primeira_liga", "elo": 1840.0, "aliases": "benfica,sl benfica,aguias"},
+    {"name": "FC Porto", "league": "primeira_liga", "elo": 1820.0, "aliases": "porto,fc porto,oporto,dragoes"},
+    {"name": "SC Braga", "league": "primeira_liga", "elo": 1730.0, "aliases": "braga,sc braga,sp braga,sporting braga"}
 ]
 
 class LeagueDatabaseService:

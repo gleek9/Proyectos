@@ -132,7 +132,7 @@ class MetaEnsembleEngine:
 
         # 1. Ganador y coberturas recomendadas
         diff = home_pct - away_pct
-        draw_dominant = draw_pct >= home_pct and draw_pct >= away_pct
+        draw_dominant = (draw_pct >= home_pct and draw_pct >= away_pct) or (abs(diff) <= 4.0 and draw_pct >= 28.5)
 
         if home_pct >= 55.0:
             winner_verdict = f"Favorito claro: {home_team} ({home_pct}% de probabilidad)"
@@ -325,6 +325,15 @@ class MetaEnsembleEngine:
             lstm_res["winner_probs"]["away_win"] * wl
         )
 
+        # Modulador Bayesiano de Paridad y Calibración de Confianza Pre-Match (Katakuri v4.1)
+        if not is_live:
+            import math
+            p_lh = float(p_res.get("lambda_home", 1.35))
+            p_ma = float(p_res.get("mu_away", 1.20))
+            # En duelos cerrados y de baja asimetría esperada, reforzar suavemente la masa de empate
+            parity_boost = 1.0 + 0.06 * math.exp(-((p_lh - p_ma) ** 2) / 0.20)
+            raw_draw_p *= parity_boost
+
         final_home_p, final_draw_p, final_away_p = self._normalize_probs(raw_home_p, raw_draw_p, raw_away_p)
 
         # -------------------------------------------------------------
@@ -360,7 +369,7 @@ class MetaEnsembleEngine:
         # Reparto consensual de goles restantes entre local y visitante
         # (con el partido terminado no se inyecta ningún piso de goles residuales)
         match_finished = is_live and calculate_remaining_goal_ratio(elapsed_min) <= 0.0
-        rem_goals_combined = 0.0 if match_finished else max(0.08, exp_goals_combined - curr_tot_goals)
+        rem_goals_combined = 0.0 if match_finished else max(0.01, exp_goals_combined - curr_tot_goals)
         p_lambda_h = float(p_res.get("lambda_home", 1.30))
         p_mu_a = float(p_res.get("mu_away", 1.15))
         tot_p_lambdas = max(0.1, p_lambda_h + p_mu_a)
@@ -491,6 +500,11 @@ class MetaEnsembleEngine:
                 for item in p_res["corners"].get("live_corners_lines", [])
             ]
 
+        adjusted_corner_lines = [
+            LiveCornerLine(line=item["line"], probability=item["probability"])
+            for item in p_res["corners"].get("adjusted_lines", [])
+        ]
+
         # -------------------------------------------------------------
         # Veredictos Humanos y Factores Clave
         # -------------------------------------------------------------
@@ -599,7 +613,8 @@ class MetaEnsembleEngine:
                     expected_remaining_corners=p_res["corners"].get("expected_remaining_corners") if is_live else None,
                     no_more_corners_pct=p_res["corners"].get("no_more_corners_pct") if is_live else None,
                     more_corners_pct=p_res["corners"].get("more_corners_pct") if is_live else None,
-                    live_corners_lines=live_corner_lines if is_live else []
+                    live_corners_lines=live_corner_lines if is_live else [],
+                    adjusted_lines=adjusted_corner_lines
                 ),
                 cards=CardsPrediction(
                     expected_total=p_res["cards"]["expected_total"],

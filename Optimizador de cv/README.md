@@ -1,14 +1,15 @@
-# Cuva — Optimizador de CV & Auditor ATS con Inteligencia Artificial
+# Cuva v1.4 — Optimizador de CV & Auditor ATS con Inteligencia Artificial
 
 <p align="center">
-  <img src="assets/icon.png" alt="Cuva Logo" width="120" height="120" style="border-radius: 20px;"/>
+  <img src="assets/icon.ico" alt="Cuva Logo" width="96" height="96" style="border-radius: 20px;"/>
 </p>
 
 <p align="center">
-  <strong>Herramienta de escritorio nativa para Windows diseñada para adaptar currículums a ofertas de trabajo en segundos, auditar viabilidad laboral con precisión quirúrgica y generar PDFs listos para sistemas ATS.</strong>
+  <strong>Herramienta de escritorio nativa para Windows (v1.4) diseñada para adaptar currículums a ofertas de trabajo en segundos, auditar viabilidad laboral con precisión quirúrgica y generar PDFs listos para sistemas ATS.</strong>
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Version-v1.4-00F0FF?style=for-the-badge" alt="Version v1.4"/>
   <img src="https://img.shields.io/badge/Platform-Windows%20x64-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Windows"/>
   <img src="https://img.shields.io/badge/AI%20Engine-Google%20Gemini%203.0%2B%20Flash-00F0FF?style=for-the-badge&logo=googlegemini&logoColor=white" alt="Gemini"/>
   <img src="https://img.shields.io/badge/Design-Cyber--Obsidian%202026-07080B?style=for-the-badge&logo=css3&logoColor=00F0FF" alt="Design 2026"/>
@@ -92,7 +93,7 @@ graph TD
 
 Tu trayectoria profesional es información sensible. Por ello, Cuva opera bajo el principio de **Zero-Leakage Assurance**:
 
-1. **Base de Datos 100% Local:** Tu información se almacena exclusivamente en tu computadora en un archivo local `cuva.db` (SQLite3).
+1. **Base de Datos 100% Local:** Tu información se almacena exclusivamente en tu computadora en un archivo local `cv_optimizer.db` (SQLite3).
 2. **Sin Servidores Intermedios:** Cuva no tiene servidores en la nube propios ni recolecta telemetría. La conexión es directa entre tu equipo y los endpoints oficiales de Google Gemini mediante tu propia API Key.
 3. **Adaptación Ética:** La IA nunca inventa experiencia laboral falsa, cargos que no tuviste ni títulos académicos inexistentes. Su función es reorganizar la jerarquía de tus habilidades, destacar logros pertinentes y alinear la terminología con los requisitos exactos de la oferta.
 
@@ -119,12 +120,13 @@ Cuva implementa un lenguaje visual moderno y sofisticado:
 | :--- | :--- | :--- |
 | **Ventana y Enlace Nativo** | `Python` + `PyWebView` | Interfaz web responsiva ejecutada en un runtime de escritorio nativo de Windows. |
 | **Frontend** | `HTML5` + `Vanilla CSS` + `JS` | Cero dependencias pesadas, carga instantánea y microanimaciones ligeras de 60 FPS. |
-| **Base de Datos** | `SQLite3` (`src/database.py`) | Almacenamiento transaccional de clave API, perfil original y vacantes analizadas. |
-| **Cerebro de IA** | `google-genai` (`src/gemini_service.py`) | Extracción estructurada (JSON), comparación ATS y rotación inteligente de cuota Gemini Flash. |
-| **Ingesta de Documentos** | `pypdf`, `pdfplumber`, `python-docx` (`src/cv_parser.py`) | Extracción limpia de texto estructurado de currículums. |
-| **Scraping Web** | `trafilatura`, `BeautifulSoup4` (`src/web_scraper.py`) | Extracción limpia de ofertas laborales web con sanitización de texto. |
+| **Base de Datos** | `SQLite3` (`src/database.py`) | Almacenamiento transaccional de clave API, perfil original y vacantes analizadas (`data/cv_optimizer.db`). |
+| **Cerebro de IA** | `google-genai` (`src/gemini_service.py`) | Extracción estructurada (JSON), comparación ATS y rotación inteligente de cuota Gemini 3.0+ Flash. |
+| **Evaluador y Adaptador ATS** | `Python` (`src/match_evaluator.py`, `src/cv_tailor.py`) | Auditoría de compatibilidad (umbral ≥ 75%, residencia cumplida) y reescritura ética del perfil. |
+| **Ingesta de Documentos** | `pypdf`, `pdfplumber`, `python-docx` (`src/document_parser.py`) | Extracción limpia de texto estructurado de currículums PDF y DOCX (con soporte Drag & Drop). |
+| **Scraping Web** | `trafilatura`, `BeautifulSoup4` (`src/job_scraper.py`) | Extracción limpia de ofertas laborales web con fallback automático a pegado directo. |
 | **Generador de PDF** | `ReportLab` (`src/pdf_generator.py`) | Compilación de currículums ATS limpios, elegantes y escalables. |
-| **Empaquetado** | `PyInstaller` (`main.spec`) | Compilación a un único archivo binario `.exe` autónomo sin consola. |
+| **Empaquetado** | `PyInstaller` (`main.spec`) | Compilación a un único archivo binario `dist/Cuva.exe` autónomo sin consola. |
 
 ---
 
@@ -205,22 +207,25 @@ dist/Cuva.exe
 ## 📂 Estructura del Proyecto
 
 ```text
-├── assets/                  # Recursos gráficos (icon.ico, icon.png)
-├── dist/                    # Directorio de distribución con Cuva.exe
+├── assets/                  # Recursos gráficos (icon.ico)
+├── data/                    # Base de datos SQLite local (cv_optimizer.db)
+├── dist/                    # Directorio de distribución con ejecutable Cuva.exe
 ├── src/                     # Código fuente modular en Python
-│   ├── api_bridge.py        # Puente JS-Python expuesto a PyWebView
-│   ├── config.py            # Constantes, rutas y umbrales (75% match)
-│   ├── cv_parser.py         # Extractor de texto de archivos PDF y DOCX
+│   ├── api_bridge.py        # Puente JS-Python expuesto a PyWebView (incluye Drag & Drop)
+│   ├── config.py            # Constantes, rutas y umbrales (MIN_MATCH_THRESHOLD = 75.0)
+│   ├── cv_tailor.py         # Motor de adaptación y reescritura ética del CV hacia la vacante
 │   ├── database.py          # Gestor de base de datos SQLite local
+│   ├── document_parser.py   # Extractor de texto de archivos PDF y DOCX
 │   ├── gemini_service.py    # Integración con Gemini 3.0+ Flash y rotación de cuota
+│   ├── job_scraper.py       # Extractor web de vacantes laborales con fallback
+│   ├── match_evaluator.py   # Comparador de afinidad ATS (≥75%) y regla de residencia
 │   ├── pdf_generator.py     # Generador de PDFs profesionales ATS con ReportLab
-│   ├── web_scraper.py       # Extractor web de vacantes laborales
 │   └── ui/                  # Frontend Web
 │       ├── app.js           # Lógica interactiva de usuario y llamadas a la API
 │       ├── index.html       # Estructura semántica con Google Fonts 2026
-│       └── style.css        # Sistema de diseño Cyber-Obsidian & Precision Neon
+│       └── style.css        # Sistema de diseño Cyber-Obsidian & Precision Neon 2026
 ├── AGENTS.md                # Reglas de gobierno, UX y arquitectura del sistema
-├── PROJECT_STATUS.md        # Bitácora histórica de fases y versiones
+├── PROJECT_STATUS.md        # Bitácora histórica de fases y versiones (hasta v1.4)
 ├── README.md                # Documentación oficial del proyecto
 ├── main.py                  # Punto de entrada de la aplicación
 ├── main.spec                # Archivo de especificación de PyInstaller

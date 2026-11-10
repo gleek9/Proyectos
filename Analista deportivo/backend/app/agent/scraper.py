@@ -299,7 +299,11 @@ class SportsWebScraper:
         telemetry: Dict[str, Any] = {}
         text_lines: List[str] = []
         client = self._get_client()
-        headers = {"x-fsign": "SW9D1eZo"}
+        headers = {
+            "x-fsign": "SW9D1eZo",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache"
+        }
         try:
             # 1. Feed dc_1_{mid} (Marcador principal, penaltis y estado de partido)
             r_dc = client.get(f"https://global.flashscore.ninja/2/x/feed/dc_1_{mid}", headers=headers)
@@ -352,11 +356,33 @@ class SportsWebScraper:
             db_code = dc_pairs.get("DB", "")
             minute_str = status_map.get(db_code, "En juego" if score_str else None)
 
-            # Buscar minuto más reciente en incidencias si está en juego
-            if sui_text and db_code in ["2", "12", "13"]:
-                inc_mins = re.findall(r"IB÷(\d{1,2})'", sui_text)
-                if inc_mins:
-                    minute_str = f"{inc_mins[-1]}'"
+            # Calcular minuto exacto por timestamp de inicio del partido (DC) o periodo (DD/AD) en Flashscore
+            # En Flashscore Ninja: DC es el timestamp Unix de inicio del partido; en el 2T (db_code == '13'),
+            # han transcurrido ~17 minutos adicionales de descanso + descuento del 1T respecto al inicio (DC).
+            ko_ts_raw = dc_pairs.get("DC") or dc_pairs.get("AD")
+            if db_code == "45":
+                minute_str = "90+'"
+            elif ko_ts_raw and str(ko_ts_raw).isdigit() and db_code in ["2", "12", "13"]:
+                elapsed_from_ko = max(1, int((time.time() - int(ko_ts_raw)) // 60))
+                if db_code == "12":
+                    minute_str = f"{min(45, elapsed_from_ko)}'"
+                elif db_code in ["13", "2"]:
+                    m_calc = max(46, elapsed_from_ko - 17)
+                    if m_calc >= 90:
+                        minute_str = f"90+{min(9, m_calc - 90)}'"
+                    else:
+                        minute_str = f"{m_calc}'"
+
+            # Buscar minuto más reciente en incidencias (incluyendo tiempo añadido 90+3' / 45+2') si supera el estimado
+            if sui_text and db_code in ["2", "12", "13", "45"]:
+                inc_matches = re.findall(r"IB÷(\d{1,2})(?:\+(\d{1,2}))?'", sui_text)
+                if inc_matches:
+                    base_inc, extra_inc = inc_matches[-1]
+                    last_inc_val = int(base_inc)
+                    cur_m_match = re.match(r"^(\d{1,2})", str(minute_str or "0"))
+                    cur_m = int(cur_m_match.group(1)) if cur_m_match else 0
+                    if last_inc_val > cur_m or (last_inc_val == 90 and extra_inc):
+                        minute_str = f"{base_inc}+{extra_inc}'" if extra_inc else f"{base_inc}'"
 
             if score_str:
                 telemetry["score"] = score_str
@@ -545,20 +571,20 @@ class SportsWebScraper:
                         except Exception:
                             continue
 
-                # Detección de minuto en vivo
+                # Detección de minuto en vivo (soporta 85', 90+3', MM:SS, 'minuto 85' y estados de cierre)
                 detected_minute = None
                 min_match = re.search(
-                    r"\b([1-9][0-9]?)\s*[\'’]\b|\b(?:minuto|min\.?)\s*([1-9][0-9]?)\b|\b(1T|2T|HT|Descanso|Entretiempo)\b",
+                    r"\b([1-9][0-9]?)(?:\+(\d{1,2}))?\s*[\'’](?!\w)|\b(?:minuto|min\.?)\s*([1-9][0-9]?)(?:\+(\d{1,2}))?\b|\b(Por\s+terminar|Por\s+finalizar|1T|2T|HT|Descanso|Entretiempo|Finalizado)\b",
                     all_search_text,
                     re.IGNORECASE
                 )
                 if min_match:
                     if min_match.group(1):
-                        detected_minute = f"{min_match.group(1)}'"
-                    elif min_match.group(2):
-                        detected_minute = f"{min_match.group(2)}'"
+                        detected_minute = f"{min_match.group(1)}+{min_match.group(2)}'" if min_match.group(2) else f"{min_match.group(1)}'"
                     elif min_match.group(3):
-                        detected_minute = min_match.group(3).upper()
+                        detected_minute = f"{min_match.group(3)}+{min_match.group(4)}'" if min_match.group(4) else f"{min_match.group(3)}'"
+                    elif min_match.group(5):
+                        detected_minute = min_match.group(5).upper()
 
                 # Detección de córners en vivo
                 detected_corners = None

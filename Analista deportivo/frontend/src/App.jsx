@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './styles/ide-theme.css';
 
 import HeaderBar from './components/HeaderBar';
@@ -27,29 +27,34 @@ export default function App() {
   const isLiveActive = Boolean(matchUrl && matchUrl.trim());
 
   const [loading, setLoading] = useState(false);
+  const [syncingLive, setSyncingLive] = useState(false);
   const [error, setError] = useState(null);
   const [predictionData, setPredictionData] = useState(null);
   const [syncCountdown, setSyncCountdown] = useState(SYNC_INTERVAL_SECONDS);
-  const [liveScore, setLiveScore] = useState(null);
-  const [liveMinute, setLiveMinute] = useState(null);
-  const [liveCorners, setLiveCorners] = useState(null);
   const [isBacktestOpen, setIsBacktestOpen] = useState(false);
 
   const countdownIntervalRef = useRef(null);
+  const nextSyncDeadlineRef = useRef(null);
+  const isSyncingRef = useRef(false);
 
   const extractTeamsFromUrl = (url) => {
     if (!url) return null;
     try {
       const clean = url.trim().toLowerCase();
-      const slugMatch = clean.match(/(?:partido|match)\/([a-z0-9-]+?)(?:\/|$|\?)/i) ||
+      const slugMatch = clean.match(/(?:partido|match|football|game|encuentro)\/([a-z0-9-]+?)(?:\/|$|\?)/i) ||
                         clean.match(/sofascore\.com\/(?:[a-z]{2}\/)?([a-z0-9-]+?)(?:\/[a-zA-Z0-9]+|\/|$)/i);
       const slug = slugMatch ? slugMatch[1] : '';
       if (slug && slug.includes('-')) {
         let parts = [];
         if (slug.includes('-vs-')) {
           parts = slug.split('-vs-');
+        } else if (slug.includes('-v-')) {
+          parts = slug.split('-v-');
         } else {
-          const raw = slug.split('-');
+          let raw = slug.split('-');
+          if (raw.length > 2 && /^\d+$/.test(raw[raw.length - 1])) {
+            raw = raw.slice(0, -1);
+          }
           if (raw.length === 2) {
             parts = raw;
           } else if (raw.length > 2) {
@@ -90,28 +95,49 @@ export default function App() {
     }
   };
 
-  const handleClearUrl = () => {
+  const handleClearUrl = useCallback(() => {
     setMatchUrl('');
     localStorage.removeItem('katakuri_match_url');
-    setLiveScore(null);
-    setLiveMinute(null);
-    setLiveCorners(null);
-  };
+    setSyncCountdown(SYNC_INTERVAL_SECONDS);
+    nextSyncDeadlineRef.current = null;
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    // Limpiar match_url del estado de predicción actual para que no re-active el modo en vivo ni restaure la URL
+    setPredictionData((prev) => {
+      if (!prev || !prev.match) return prev;
+      return {
+        ...prev,
+        match: {
+          ...prev.match,
+          match_url: null,
+          is_live: false,
+          live_score: null,
+          live_minute: null,
+          live_corners: null
+        }
+      };
+    });
+  }, []);
 
-  const runAnalysis = async (
+  const runAnalysis = useCallback(async (
     targetHome = homeTeam,
     targetAway = awayTeam,
     force = false,
-    customMatchUrl = matchUrl
+    customMatchUrl = matchUrl,
+    isBackgroundSync = false
   ) => {
+    if (isSyncingRef.current && isBackgroundSync) return;
+
     const activeUrl = customMatchUrl !== undefined ? customMatchUrl : matchUrl;
-    let trimmedUrl = activeUrl ? activeUrl.trim() : '';
+    const trimmedUrl = activeUrl ? activeUrl.trim() : '';
 
     let cleanHome = (targetHome || '').trim();
     let cleanAway = (targetAway || '').trim();
 
-    // Si hay una URL activa, la URL manda sobre cualquier equipo ingresado previamente
-    if (trimmedUrl) {
+    // Si hay una URL activa y no es un refresco de fondo con equipos oficiales ya resueltos, extraer equipos de la URL
+    if (trimmedUrl && (!isBackgroundSync || !cleanHome || !cleanAway)) {
       const urlTeams = extractTeamsFromUrl(trimmedUrl);
       if (urlTeams) {
         cleanHome = urlTeams.home;
@@ -125,50 +151,55 @@ export default function App() {
 
     const isLive = Boolean(trimmedUrl);
 
-    // Si la URL o los equipos cambiaron respecto al análisis actual, resetear telemetría previa
-    if (predictionData && (
-      (trimmedUrl && trimmedUrl !== predictionData.match?.match_url) ||
-      (!trimmedUrl && (cleanHome !== predictionData.match?.home_team || cleanAway !== predictionData.match?.away_team))
+    // Solo limpiar el dashboard si el usuario cambió manualmente a otro partido distinto (nunca en auto-sync de fondo)
+    if (!isBackgroundSync && predictionData && (
+      (trimmedUrl && predictionData.match?.match_url && trimmedUrl !== predictionData.match.match_url) ||
+      (!trimmedUrl && (
+        cleanHome.toLowerCase() !== (predictionData.match?.home_team || '').toLowerCase() ||
+        cleanAway.toLowerCase() !== (predictionData.match?.away_team || '').toLowerCase()
+      ))
     )) {
-      setLiveScore(null);
-      setLiveMinute(null);
-      setLiveCorners(null);
       setPredictionData(null);
     }
 
-    setLoading(true);
-    setError(null);
+    isSyncingRef.current = true;
+    if (isBackgroundSync) {
+      setSyncingLive(true);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
 
+    // Importante: Cuando hay URL en vivo (trimmedUrl), NO enviar live_score/live_minute/live_corners viejos
+    // para obligar al backend a extraer el minuto, marcador y córners frescos de la URL en tiempo real.
     const payload = {
       home_team: cleanHome || '',
       away_team: cleanAway || '',
-      competition: 'General',
-      force_refresh: force || isLive,
+      competition: predictionData?.match?.competition || 'General',
+      force_refresh: true,
       is_live: isLive,
       match_url: trimmedUrl || ''
     };
-
-    if (isLive) {
-      if (liveScore) payload.live_score = liveScore;
-      if (liveMinute) payload.live_minute = liveMinute;
-      if (liveCorners !== null && liveCorners !== undefined) {
-        payload.live_corners = liveCorners;
-      }
-    }
 
     try {
       let res;
       try {
         res = await fetch(`${API_BASE}/api/predict`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache'
+          },
           body: JSON.stringify(payload)
         });
       } catch {
         // Fallback a conexión directa si falla la petición proxy de red
         res = await fetch('http://127.0.0.1:8000/api/predict', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache'
+          },
           body: JSON.stringify(payload)
         });
       }
@@ -178,7 +209,10 @@ export default function App() {
         await new Promise(r => setTimeout(r, 1200));
         res = await fetch('http://127.0.0.1:8000/api/predict', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache'
+          },
           body: JSON.stringify(payload)
         }).catch(() => res);
       }
@@ -202,6 +236,7 @@ export default function App() {
 
       const data = await res.json();
       setPredictionData(data);
+      setError(null);
 
       // Si la IA determinó el orden oficial de local y visitante, reflejarlo en los inputs
       if (data?.match?.home_team && data?.match?.away_team) {
@@ -209,96 +244,103 @@ export default function App() {
         setAwayTeam(data.match.away_team);
       }
 
-      // Sincronizar marcador y estado devuelto
-      if (data?.match) {
-        if (data.match.live_score) {
-          setLiveScore(data.match.live_score);
-        }
-        if (data.match.live_minute) {
-          setLiveMinute(data.match.live_minute);
-        }
-        if (data.match.live_corners !== undefined && data.match.live_corners !== null) {
-          setLiveCorners(data.match.live_corners);
-        } else if (data.prediction?.corners?.current_corners !== undefined) {
-          setLiveCorners(data.prediction.corners.current_corners);
-        }
+      // Reiniciar el reloj de 5 minutos exactos tras cada sincronización exitosa en vivo
+      if (isLive) {
+        nextSyncDeadlineRef.current = Date.now() + SYNC_INTERVAL_SECONDS * 1000;
+        setSyncCountdown(SYNC_INTERVAL_SECONDS);
       }
     } catch (err) {
-      if (err.message === 'Failed to fetch') {
+      // Si es una sincronización automática de fondo, NO cerrar ni borrar la sesión activa en pantalla;
+      // programar reintento automático en 30 segundos y mantener los datos visibles.
+      if (isBackgroundSync && predictionData) {
+        console.warn('⚠️ Auto-Sync: Fallo temporal de red al refrescar, reintentando en 30s sin cerrar sesión:', err.message);
+        nextSyncDeadlineRef.current = Date.now() + 30 * 1000;
+        setSyncCountdown(30);
+      } else if (err.message === 'Failed to fetch') {
         setError('No se pudo establecer conexión con el servidor backend (http://127.0.0.1:8000). Comprueba que el servidor esté activo.');
       } else {
         setError(err.message || 'Error conectando con el motor predictivo.');
       }
     } finally {
+      isSyncingRef.current = false;
       setLoading(false);
+      setSyncingLive(false);
     }
-  };
+  }, [homeTeam, awayTeam, matchUrl, predictionData]);
 
-  // Sincronizar telemetría y nombres oficiales devueltos por el backend
-  useEffect(() => {
-    if (predictionData?.match) {
-      if (predictionData.match.home_team) {
-        setHomeTeam(predictionData.match.home_team);
-      }
-      if (predictionData.match.away_team) {
-        setAwayTeam(predictionData.match.away_team);
-      }
-      if (predictionData.match.match_url && !matchUrl) {
-        setMatchUrl(predictionData.match.match_url);
-        localStorage.setItem('katakuri_match_url', predictionData.match.match_url);
-      }
-      if (predictionData.match.live_score) setLiveScore(predictionData.match.live_score);
-      if (predictionData.match.live_minute) setLiveMinute(predictionData.match.live_minute);
-      if (predictionData.match.live_corners !== undefined && predictionData.match.live_corners !== null) {
-        setLiveCorners(predictionData.match.live_corners);
-      } else if (predictionData.prediction?.corners?.current_corners !== undefined) {
-        setLiveCorners(predictionData.prediction.corners.current_corners);
-      }
-    }
-  }, [predictionData, matchUrl]);
+  // Temporizador de cuenta regresiva basado en reloj real (Wall-Clock Time) inmune al throttling de pestañas en segundo plano
+  const hasPrediction = Boolean(predictionData);
+  const homeCurrent = predictionData?.match?.home_team || homeTeam;
+  const awayCurrent = predictionData?.match?.away_team || awayTeam;
 
-  // Temporizador de cuenta regresiva para Auto-Sync (1 segundo por tick, solo en vivo)
   useEffect(() => {
-    if (!isLiveActive || !predictionData) {
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    if (!isLiveActive || !hasPrediction) {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      nextSyncDeadlineRef.current = null;
       setSyncCountdown(SYNC_INTERVAL_SECONDS);
       return;
     }
 
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    if (!nextSyncDeadlineRef.current) {
+      nextSyncDeadlineRef.current = Date.now() + SYNC_INTERVAL_SECONDS * 1000;
+    }
 
-    countdownIntervalRef.current = setInterval(() => {
-      setSyncCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
-    }, 1000);
+    const checkAndTick = () => {
+      if (!nextSyncDeadlineRef.current) return;
+      const remainingMs = nextSyncDeadlineRef.current - Date.now();
+      const remainingSecs = Math.max(0, Math.ceil(remainingMs / 1000));
+      setSyncCountdown(remainingSecs);
+
+      if (remainingSecs === 0 && !isSyncingRef.current) {
+        // Reprogramar inmediatamente el siguiente ciclo de 5 minutos y lanzar refresco en segundo plano
+        nextSyncDeadlineRef.current = Date.now() + SYNC_INTERVAL_SECONDS * 1000;
+        setSyncCountdown(SYNC_INTERVAL_SECONDS);
+        runAnalysis(homeCurrent, awayCurrent, true, matchUrl, true);
+      }
+    };
+
+    countdownIntervalRef.current = setInterval(checkAndTick, 1000);
+
+    // Si el usuario vuelve a la pestaña después de varios minutos, sincronizar al instante si ya venció el plazo
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        checkAndTick();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
 
     return () => {
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
       }
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
     };
-  }, [isLiveActive, predictionData]);
-
-  // Disparar sincronización automática cuando el contador llega a 0 (solo en vivo)
-  const homeCurrent = predictionData?.match?.home_team;
-  const awayCurrent = predictionData?.match?.away_team;
-  useEffect(() => {
-    if (syncCountdown === 0 && isLiveActive && homeCurrent && awayCurrent && !loading) {
-      console.log('⏰ Auto-Sync: 5 minutos cumplidos. Refrescando datos en vivo desde la URL online...');
-      setSyncCountdown(SYNC_INTERVAL_SECONDS);
-      runAnalysis(homeCurrent, awayCurrent, true, matchUrl);
-    }
-  }, [syncCountdown, isLiveActive, homeCurrent, awayCurrent, loading, matchUrl]);
+  }, [isLiveActive, hasPrediction, homeCurrent, awayCurrent, matchUrl, runAnalysis]);
 
   return (
     <div className="app-container" style={{ position: 'relative' }}>
-      {/* 1. Header con Controles tipo IDE Limpio e Indicador Katakuri v3.5 */}
+      {/* 1. Header con Controles tipo IDE Limpio e Indicador Katakuri v4.1 */}
       <HeaderBar
         homeTeam={homeTeam}
         setHomeTeam={setHomeTeam}
         awayTeam={awayTeam}
         setAwayTeam={setAwayTeam}
-        onRunAnalysis={() => runAnalysis(homeTeam, awayTeam, true)}
+        onRunAnalysis={() => runAnalysis(homeTeam, awayTeam, true, matchUrl, false)}
+        onForceLiveSync={() => {
+          if (isLiveActive && hasPrediction && !loading && !syncingLive) {
+            nextSyncDeadlineRef.current = Date.now() + SYNC_INTERVAL_SECONDS * 1000;
+            setSyncCountdown(SYNC_INTERVAL_SECONDS);
+            runAnalysis(homeCurrent, awayCurrent, true, matchUrl, true);
+          }
+        }}
         loading={loading}
+        syncingLive={syncingLive}
         isLive={isLiveActive}
         syncCountdown={predictionData ? syncCountdown : null}
         matchUrl={matchUrl}
@@ -314,11 +356,11 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. Estado de Carga / Inferencia */}
+      {/* 4. Estado de Carga Inicial */}
       {loading && (
         <div className="state-box">
           <div className="terminal-spinner"></div>
-          <div className="state-title">Pipeline predictivo Katakuri v4.0</div>
+          <div className="state-title">Pipeline predictivo Katakuri v4.1</div>
           <div className="state-sub">
             {isLiveActive
               ? 'Rastreando datos en vivo desde la URL online, extrayendo telemetría y ejecutando Red Neuronal LSTM...'
@@ -327,7 +369,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 5. Dashboard Completo de Resultados */}
+      {/* 5. Dashboard Completo de Resultados (permanece montado durante auto-sync cada 5 min) */}
       {!loading && predictionData && (
         <>
           {/* Tarjeta Principal de Ganador (1X2) */}
@@ -346,14 +388,14 @@ export default function App() {
               matchUrl={matchUrl}
               onUrlChange={handleUrlChange}
               onClearUrl={handleClearUrl}
-              onRunAnalysis={() => runAnalysis(homeTeam, awayTeam, true)}
+              onRunAnalysis={() => runAnalysis(homeTeam, awayTeam, true, matchUrl, false)}
             />
           ) : (
             <NeuralUrlCard
               matchUrl={matchUrl}
               onUrlChange={handleUrlChange}
               onClearUrl={handleClearUrl}
-              onRunAnalysis={() => runAnalysis(homeTeam, awayTeam, true)}
+              onRunAnalysis={() => runAnalysis(homeTeam, awayTeam, true, matchUrl, false)}
               isLive={false}
             />
           )}
@@ -385,7 +427,7 @@ export default function App() {
             matchUrl={matchUrl}
             onUrlChange={handleUrlChange}
             onClearUrl={handleClearUrl}
-            onRunAnalysis={() => runAnalysis(homeTeam, awayTeam, true)}
+            onRunAnalysis={() => runAnalysis(homeTeam, awayTeam, true, matchUrl, false)}
             isLive={isLiveActive}
           />
 

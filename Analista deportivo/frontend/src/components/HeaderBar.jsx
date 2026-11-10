@@ -7,7 +7,9 @@ export default function HeaderBar({
   awayTeam,
   setAwayTeam,
   onRunAnalysis,
+  onForceLiveSync,
   loading,
+  syncingLive,
   isLive,
   syncCountdown,
   matchUrl,
@@ -63,7 +65,7 @@ export default function HeaderBar({
               : 'Modo pre-partido estándar: agrega una URL para activar telemetría en vivo'
           }
         >
-          <span className="brand-title">Katakuri v4.0</span>
+          <span className="brand-title">Katakuri v4.1</span>
           <span className="brand-sub"> · Analista Deportivo</span>
         </div>
 
@@ -73,10 +75,22 @@ export default function HeaderBar({
           {/* Indicador de Auto-Sincronización Cada 5 Minutos */}
           <div
             className="sync-timer-compact"
-            title="Sincronización automática cada 5 min (Búsqueda web con IA + Modelos predictivos Dixon-Coles, XGBoost y LSTM)"
+            onClick={() => {
+              if (onForceLiveSync && isLive && !loading && !syncingLive) {
+                onForceLiveSync();
+              }
+            }}
+            style={{ cursor: isLive && !loading && !syncingLive ? 'pointer' : 'default' }}
+            title={
+              isLive
+                ? 'Sincronización automática cada 5 min activa (Haz clic para refrescar telemetría en vivo ahora)'
+                : 'Sincronización automática cada 5 min (activa al ingresar URL de partido en directo)'
+            }
           >
-            <span className={`dot-status ${loading ? 'busy' : ''}`}></span>
-            <span className="sync-compact-time">{formatCountdown(syncCountdown)}</span>
+            <span className={`dot-status ${loading || syncingLive ? 'busy' : ''}`}></span>
+            <span className="sync-compact-time">
+              {syncingLive ? 'Sync...' : formatCountdown(syncCountdown)}
+            </span>
           </div>
 
           {/* Botón de Calibración / Backtest */}

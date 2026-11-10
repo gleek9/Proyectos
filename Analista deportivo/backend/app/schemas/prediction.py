@@ -71,13 +71,14 @@ class CornersPrediction(BaseModel):
     over_9_5_pct: float = Field(..., description="Probabilidad de más de 9.5 córners (%)")
     over_10_5_pct: float = Field(..., description="Probabilidad de más de 10.5 córners (%)")
     human_verdict: str = Field(..., description="Veredicto humano sobre tiros de esquina")
-    # Campos dinámicos en vivo
+    # Campos dinámicos en vivo y líneas adaptativas al volumen real del partido
     is_live: Optional[bool] = Field(False, description="Indica si corresponde a partido en vivo")
     current_corners: Optional[int] = Field(None, description="Córners acumulados en el partido hasta el momento")
     expected_remaining_corners: Optional[float] = Field(None, description="Córners adicionales esperados en el tiempo restante")
     no_more_corners_pct: Optional[float] = Field(None, description="Probabilidad de no haber más córners en el tiempo restante")
     more_corners_pct: Optional[float] = Field(None, description="Probabilidad de nuevos córners en el tiempo restante")
     live_corners_lines: Optional[List[LiveCornerLine]] = Field(default_factory=list, description="Líneas dinámicas de córners en vivo")
+    adjusted_lines: Optional[List[LiveCornerLine]] = Field(default_factory=list, description="Líneas principales de córners totales adaptadas al ritmo real del partido")
 
 class CardsPrediction(BaseModel):
     expected_total: float = Field(..., description="Total esperado de tarjetas en el encuentro")

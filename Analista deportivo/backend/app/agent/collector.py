@@ -118,12 +118,51 @@ class MatchDataCollector:
         previous_features = self.get_latest_raw_features(home_clean, away_clean) if (home_clean and away_clean) else None
         effective_live = bool(clean_url) or (is_live if is_live is not None else (previous_features.is_live if previous_features else False))
 
-        # Consulta de alta velocidad en Base de Datos de Ligas Grandes (Fase 1 - Katakuri v3.7)
-        if not effective_live and not clean_url and home_clean and away_clean and not force_refresh:
-            db_features = league_db.get_match_raw_features(home_clean, away_clean, competition)
-            if db_features:
-                logger.info(f"⚡ Partido resuelto instantáneamente desde BD local oficial: {db_features.home_team} vs {db_features.away_team}")
-                return db_features
+        # Consulta de alta velocidad en Base de Datos de Ligas Grandes (Fase 1 - Katakuri v3.7+)
+        db_features = league_db.get_match_raw_features(home_clean, away_clean, competition) if (home_clean and away_clean) else None
+        if not effective_live and not clean_url and db_features:
+            logger.info(f"⚡ Partido resuelto instantáneamente desde BD local oficial: {db_features.home_team} vs {db_features.away_team}")
+            return db_features
+
+        # Vía rápida para Modo En Vivo (Auto-Sync 5 min): si tenemos estadísticas base (BD oficial o estado previo)
+        # y la URL devuelve telemetría en directo (Sofascore API / Flashscore Feed / Web), actualizar en <0.5s sin bloqueo LLM
+        base_live_features = db_features or previous_features
+        if effective_live and clean_url and base_live_features is not None:
+            self.scraper.scrape_url_content(clean_url)
+            fast_telem = self.scraper.get_last_url_telemetry()
+            if fast_telem and (fast_telem.get("score") or fast_telem.get("minute")):
+                logger.info(f"⚡ Auto-Sync En Vivo Rápido (<0.5s) con telemetría fresca de URL: {fast_telem}")
+                raw_features = base_live_features.model_copy(deep=True)
+                raw_features.is_live = True
+                raw_features.match_url = clean_url
+                if fast_telem.get("home_team") and fast_telem.get("away_team"):
+                    raw_features.home_team = str(fast_telem["home_team"]).strip()
+                    raw_features.away_team = str(fast_telem["away_team"]).strip()
+                if fast_telem.get("score"):
+                    raw_features.live_score = str(fast_telem["score"]).strip()
+                if fast_telem.get("minute"):
+                    raw_features.live_minute = str(fast_telem["minute"]).strip()
+                if fast_telem.get("corners") is not None:
+                    raw_features.live_corners = int(fast_telem["corners"])
+                elif previous_features and previous_features.live_corners is not None:
+                    raw_features.live_corners = previous_features.live_corners
+                if fast_telem.get("red_cards_home") is not None:
+                    raw_features.live_red_cards_home = int(fast_telem["red_cards_home"])
+                if fast_telem.get("red_cards_away") is not None:
+                    raw_features.live_red_cards_away = int(fast_telem["red_cards_away"])
+                if fast_telem.get("shots_on_target_home") is not None:
+                    raw_features.live_shots_on_target_home = int(fast_telem["shots_on_target_home"])
+                if fast_telem.get("shots_on_target_away") is not None:
+                    raw_features.live_shots_on_target_away = int(fast_telem["shots_on_target_away"])
+                if fast_telem.get("possession_home") is not None:
+                    raw_features.live_possession_home = float(fast_telem["possession_home"])
+                if fast_telem.get("possession_away") is not None:
+                    raw_features.live_possession_away = float(fast_telem["possession_away"])
+                if not raw_features.live_score:
+                    raw_features.live_score = (previous_features.live_score if previous_features and previous_features.live_score else "0 - 0")
+                if not raw_features.live_minute:
+                    raw_features.live_minute = (previous_features.live_minute if previous_features and previous_features.live_minute else "En juego")
+                return raw_features
 
         logger.info(f"Iniciando búsqueda web para {home_clean} vs {away_clean} (en vivo: {effective_live}, url: {clean_url})...")
         search_context = self.scraper.gather_match_context(
@@ -166,6 +205,18 @@ class MatchDataCollector:
                 raw_features.live_possession_home = float(url_telem["possession_home"])
             if url_telem.get("possession_away") is not None:
                 raw_features.live_possession_away = float(url_telem["possession_away"])
+
+        # Si en un refresco en vivo la fuente web no reportó minuto nuevo y quedó anclado al minuto numérico previo, avanzar +5'
+        if effective_live and previous_features and getattr(previous_features, "live_minute", None):
+            import re
+            prev_m_str = str(previous_features.live_minute).strip()
+            curr_m_str = str(raw_features.live_minute or "").strip()
+            if curr_m_str == prev_m_str and not url_telem.get("minute"):
+                m_num = re.match(r"^(\d{1,2})\s*[\'’]?$", prev_m_str)
+                if m_num:
+                    val_m = int(m_num.group(1))
+                    if 1 <= val_m < 90 and val_m != 45:
+                        raw_features.live_minute = f"{min(90, val_m + 5)}'"
 
         # Aplicar datos explícitos enviados por el cliente si están presentes y no hay datos del scraper
         if is_live is not None:

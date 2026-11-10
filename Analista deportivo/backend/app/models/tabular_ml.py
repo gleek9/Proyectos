@@ -85,7 +85,13 @@ class TabularPredictor:
         np.random.seed(42)
         n_samples = 4000
 
-        # Simular features representativas
+        # Simular features representativas (23 features completas)
+        elo_h_sim = np.random.normal(1680.0, 110.0, n_samples)
+        elo_a_sim = np.random.normal(1680.0, 110.0, n_samples)
+        elo_diff_sim = (elo_h_sim - elo_a_sim + 65.0) / 100.0
+        home_elo_sc = elo_h_sim / 1000.0
+        away_elo_sc = elo_a_sim / 1000.0
+
         home_win_rates = np.random.uniform(0.1, 0.9, n_samples)
         away_win_rates = np.random.uniform(0.1, 0.9, n_samples)
         home_scored = np.random.uniform(0.8, 3.2, n_samples)
@@ -96,6 +102,9 @@ class TabularPredictor:
         home_diff = home_scored - home_conceded
         away_diff = away_scored - away_conceded
         delta_diff = home_diff - away_diff
+
+        home_sot = home_scored * 2.8 + np.random.normal(0.5, 0.6, n_samples)
+        away_sot = away_scored * 2.6 + np.random.normal(0.4, 0.6, n_samples)
 
         h2h_home = np.random.uniform(0.1, 0.6, n_samples)
         h2h_away = np.random.uniform(0.1, 0.5, n_samples)
@@ -110,8 +119,10 @@ class TabularPredictor:
         cards = np.random.uniform(2.5, 6.5, n_samples)
 
         X_sim = np.column_stack([
+            elo_diff_sim, home_elo_sc, away_elo_sc,
             home_win_rates, away_win_rates, home_diff, away_diff, delta_diff,
             home_scored, away_scored, home_conceded, away_conceded,
+            home_sot, away_sot,
             h2h_home, h2h_away, h2h_draw, h2h_goals,
             home_absences, away_absences, home_adv,
             corners, cards
@@ -281,10 +292,10 @@ class TabularPredictor:
             )
 
             current_total = gh + ga
-            rem_goals_tabular = float(tot_goals_est * time_rem_ratio * 0.95)
+            rem_goals_tabular = float(tot_goals_est * time_rem_ratio * 0.90)
             tot_goals_est = max(float(current_total), current_total + rem_goals_tabular)
             if time_rem_ratio > 0:
-                no_more_p_tab = float(np.clip(np.exp(-rem_goals_tabular), 0.02, 0.95))
+                no_more_p_tab = float(np.clip(np.exp(-rem_goals_tabular), 0.02, 0.99))
             else:
                 no_more_p_tab = 1.0  # Partido finalizado
             more_p_tab = float(1.0 - no_more_p_tab)
@@ -296,8 +307,8 @@ class TabularPredictor:
         p_away /= tot
 
         if not is_live:
-            # Calibración de temperatura para regularizar polarización excesiva en rachas asimétricas
-            T = 1.35
+            # Calibración de temperatura equilibrada (Katakuri v4.1: T=1.08 evita subestimar favoritos claros)
+            T = 1.08
             log_p = np.log(np.clip([p_home, p_draw, p_away], 1e-6, 1.0)) / T
             e_p = np.exp(log_p - np.max(log_p))
             e_sum = np.sum(e_p)

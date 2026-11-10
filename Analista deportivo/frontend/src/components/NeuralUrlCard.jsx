@@ -56,20 +56,20 @@ export default function NeuralUrlCard({
         <Globe size={15} color={isLive ? 'var(--red)' : 'var(--cyan)'} style={{ flexShrink: 0 }} />
         <input
           id="neural-match-url-input"
-          type="url"
+          type="text"
           className="neural-url-input"
-          value={matchUrl}
-          onChange={(e) => onUrlChange(e.target.value)}
+          value={matchUrl || ''}
+          onChange={(e) => onUrlChange && onUrlChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Pega aquí la URL del partido (Flashscore, Sofascore) para activar el modo en directo..."
           autoComplete="off"
           spellCheck="false"
         />
 
-        {matchUrl && matchUrl.trim() && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+        {Boolean(matchUrl && matchUrl.trim()) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0, position: 'relative', zIndex: 5 }}>
             <a
-              href={matchUrl.startsWith('http') ? matchUrl : `https://${matchUrl}`}
+              href={matchUrl.trim().startsWith('http') ? matchUrl.trim() : `https://${matchUrl.trim()}`}
               target="_blank"
               rel="noopener noreferrer"
               className="neural-url-clear-btn"
@@ -80,10 +80,18 @@ export default function NeuralUrlCard({
             <button
               type="button"
               className="neural-url-clear-btn"
-              onClick={onClearUrl}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onClearUrl) onClearUrl();
+              }}
               title="Limpiar URL y volver a modo pre-partido"
             >
-              <X size={14} />
+              <X size={15} />
             </button>
           </div>
         )}

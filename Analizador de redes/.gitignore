@@ -1,0 +1,59 @@
+# Variables de Entorno y Secretos
+.env
+.env.*
+!.env.example
+
+# Entornos Virtuales de Python y Caché
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+
+# Node.js / Next.js / Frontend
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+out/
+frontend/out/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# Base de Datos Local SQLite
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+/data/*.db
+/data/*.sqlite
+/data/*.sqlite3
+backend/*.db
+
+# Archivos Temporales Multimedia (yt-dlp / transcripción)
+/tmp_media/
+backend/tmp_media/
+*.mp4
+*.mp3
+*.wav
+*.m4a
+*.webm
+*.part
+*.ytdl
+
+# Sistema Operativo y Editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

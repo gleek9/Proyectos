@@ -6,10 +6,10 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
 from backend.app.config import settings
 
-# Engine para SQLite
+# Engine para SQLite con timeout extendido para sesiones largas y auto-sync concurrente
 engine = create_engine(
     settings.DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args={"check_same_thread": False, "timeout": 30}
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -115,6 +115,8 @@ def init_db():
     try:
         with engine.connect() as conn:
             from sqlalchemy import text
+            conn.execute(text("PRAGMA journal_mode=WAL"))
+            conn.execute(text("PRAGMA synchronous=NORMAL"))
             result = conn.execute(text("PRAGMA table_info(match_predictions)"))
             cols_preds = [row[1] for row in result.fetchall()]
             if "match_url" not in cols_preds:

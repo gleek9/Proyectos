@@ -25,7 +25,9 @@ DATASET_SOURCES = {
     "laliga": [("SP1", "2324"), ("SP1", "2425")],
     "serie_a": [("I1", "2324"), ("I1", "2425")],
     "bundesliga": [("D1", "2324"), ("D1", "2425")],
-    "ligue_1": [("F1", "2324"), ("F1", "2425")]
+    "ligue_1": [("F1", "2324"), ("F1", "2425")],
+    "eredivisie": [("N1", "2324"), ("N1", "2425")],
+    "primeira_liga": [("P1", "2324"), ("P1", "2425")]
 }
 
 # Normalización de nombres de equipos de football-data a nombres canónicos limpios
@@ -69,7 +71,16 @@ TEAM_NAME_MAP = {
     # Ligue 1
     "Paris SG": "PSG",
     "St Etienne": "Saint-Etienne",
-    "Le Havre": "Le Havre"
+    "Le Havre": "Le Havre",
+
+    # Eredivisie & Primeira Liga
+    "PSV": "PSV Eindhoven",
+    "AZ": "AZ Alkmaar",
+    "Sp Lisbon": "Sporting CP",
+    "Sporting": "Sporting CP",
+    "Porto": "FC Porto",
+    "Sp Braga": "SC Braga",
+    "Guimaraes": "Vitoria Guimaraes"
 }
 
 def parse_football_data_date(date_str: str) -> str:
@@ -355,13 +366,13 @@ def populate_real_database_and_compute_elo(db=None):
             all_league_teams.add((m["away"], m["league"]))
 
         for t_name, l_code in all_league_teams:
+            base_cfg = next((tc for tc in TEAMS_CONFIG if tc["name"] == t_name), None)
             if t_name not in existing_teams:
-                # Buscar si hay alias en TEAMS_CONFIG
-                base_cfg = next((tc for tc in TEAMS_CONFIG if tc["name"] == t_name), None)
                 aliases = base_cfg["aliases"] if base_cfg else t_name.lower()
                 elo_init = base_cfg["elo"] if base_cfg else 1600.0
+                cfg_league = base_cfg["league"] if base_cfg else l_code
                 new_t = Team(
-                    league_code=l_code,
+                    league_code=cfg_league,
                     name=t_name,
                     canonical_name=t_name,
                     aliases=aliases,
@@ -369,21 +380,37 @@ def populate_real_database_and_compute_elo(db=None):
                 )
                 db.add(new_t)
                 existing_teams[t_name] = new_t
+            elif base_cfg is not None:
+                existing_teams[t_name].aliases = base_cfg["aliases"]
+                existing_teams[t_name].league_code = base_cfg["league"]
         db.commit()
 
-        # 5. Inicializar ratings Elo
+        # 5. Inicializar ratings Elo a los valores base pre-temporada 2023-24
+        base_elo_map = {tc["name"]: float(tc["elo"]) for tc in TEAMS_CONFIG}
         elo_tracker = {}
         for t in db.query(Team).all():
-            elo_tracker[t.name] = float(t.elo_rating or 1600.0)
+            init_val = base_elo_map.get(t.name, 1600.0)
+            t.elo_rating = init_val
+            elo_tracker[t.name] = init_val
 
         # Seguimiento móvil por equipo de partidos jugados
         team_match_history = {t_name: [] for t_name in elo_tracker}
+        team_last_season = {}
 
-        # 6. Insertar partidos y actualizar Elo cronológicamente
+        # 6. Insertar partidos y actualizar Elo cronológicamente (con regresión suave de entre-temporada)
         db_match_objects = []
         for m in real_matches:
             h_name = m["home"]
             a_name = m["away"]
+            cur_season = m["season"]
+
+            for club in (h_name, a_name):
+                prev_s = team_last_season.get(club)
+                if prev_s is not None and prev_s != cur_season:
+                    # Regresión a la media del 15% al cambiar de temporada (estándar ClubElo / FIFA)
+                    base_ref = base_elo_map.get(club, 1620.0)
+                    elo_tracker[club] = 0.85 * elo_tracker.get(club, 1600.0) + 0.15 * base_ref
+                team_last_season[club] = cur_season
 
             cur_elo_h = elo_tracker.get(h_name, 1600.0)
             cur_elo_a = elo_tracker.get(a_name, 1600.0)
