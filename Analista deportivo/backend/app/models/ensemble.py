@@ -33,9 +33,9 @@ def _coalesce(value, fallback):
 class MetaEnsembleEngine:
     def __init__(
         self,
-        weight_poisson: float = 0.40,
-        weight_xgboost: float = 0.35,
-        weight_lstm: float = 0.25
+        weight_poisson: float = 0.50,
+        weight_xgboost: float = 0.38,
+        weight_lstm: float = 0.12
     ):
         self.w_poisson = weight_poisson
         self.w_xgb = weight_xgboost
@@ -330,9 +330,31 @@ class MetaEnsembleEngine:
             import math
             p_lh = float(p_res.get("lambda_home", 1.35))
             p_ma = float(p_res.get("mu_away", 1.20))
-            # En duelos cerrados y de baja asimetría esperada, reforzar suavemente la masa de empate
-            parity_boost = 1.0 + 0.06 * math.exp(-((p_lh - p_ma) ** 2) / 0.20)
+            tot_l = p_lh + p_ma
+            # En duelos cerrados y de baja asimetría/bajo-medio goleo esperado, reforzar la masa de empate
+            low_scoring_factor = max(0.75, min(1.30, 2.75 / max(1.60, tot_l)))
+            parity_boost = 1.0 + (0.11 * low_scoring_factor) * math.exp(-((p_lh - p_ma) ** 2) / 0.18)
             raw_draw_p *= parity_boost
+
+            # Anclaje Bayesiano con Prior de Mercado (cuando existen cuotas pre-partido válidas)
+            mkt_h = getattr(raw, "market_home_odds", None)
+            mkt_d = getattr(raw, "market_draw_odds", None)
+            mkt_a = getattr(raw, "market_away_odds", None)
+            if mkt_h and mkt_d and mkt_a and mkt_h > 1.0 and mkt_d > 1.0 and mkt_a > 1.0:
+                inv_h, inv_d, inv_a = 1.0 / float(mkt_h), 1.0 / float(mkt_d), 1.0 / float(mkt_a)
+                overround = inv_h + inv_d + inv_a
+                p_mkt_h = (inv_h / overround) * 100.0
+                p_mkt_d = (inv_d / overround) * 100.0
+                p_mkt_a = (inv_a / overround) * 100.0
+                tot_mod = raw_home_p + raw_draw_p + raw_away_p
+                if tot_mod > 0:
+                    mod_h = (raw_home_p / tot_mod) * 100.0
+                    mod_d = (raw_draw_p / tot_mod) * 100.0
+                    mod_a = (raw_away_p / tot_mod) * 100.0
+                    w_mkt = 0.65
+                    raw_home_p = w_mkt * p_mkt_h + (1.0 - w_mkt) * mod_h
+                    raw_draw_p = w_mkt * p_mkt_d + (1.0 - w_mkt) * mod_d
+                    raw_away_p = w_mkt * p_mkt_a + (1.0 - w_mkt) * mod_a
 
         final_home_p, final_draw_p, final_away_p = self._normalize_probs(raw_home_p, raw_draw_p, raw_away_p)
 

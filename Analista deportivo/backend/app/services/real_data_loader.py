@@ -19,15 +19,15 @@ logger = logging.getLogger(__name__)
 
 DATA_DIR = os.path.join("backend", "data", "football_data")
 
-# Mapeo de ligas a códigos y temporadas
+# Mapeo de ligas a códigos y temporadas (incluye temporada 2022-23 de calentamiento para eliminar sesgo retrospectivo de Elo)
 DATASET_SOURCES = {
-    "premier_league": [("E0", "2324"), ("E0", "2425")],
-    "laliga": [("SP1", "2324"), ("SP1", "2425")],
-    "serie_a": [("I1", "2324"), ("I1", "2425")],
-    "bundesliga": [("D1", "2324"), ("D1", "2425")],
-    "ligue_1": [("F1", "2324"), ("F1", "2425")],
-    "eredivisie": [("N1", "2324"), ("N1", "2425")],
-    "primeira_liga": [("P1", "2324"), ("P1", "2425")]
+    "premier_league": [("E0", "2223"), ("E0", "2324"), ("E0", "2425")],
+    "laliga": [("SP1", "2223"), ("SP1", "2324"), ("SP1", "2425")],
+    "serie_a": [("I1", "2223"), ("I1", "2324"), ("I1", "2425")],
+    "bundesliga": [("D1", "2223"), ("D1", "2324"), ("D1", "2425")],
+    "ligue_1": [("F1", "2223"), ("F1", "2324"), ("F1", "2425")],
+    "eredivisie": [("N1", "2223"), ("N1", "2324"), ("N1", "2425")],
+    "primeira_liga": [("P1", "2223"), ("P1", "2324"), ("P1", "2425")]
 }
 
 # Normalización de nombres de equipos de football-data a nombres canónicos limpios
@@ -205,13 +205,107 @@ CURATED_LIGA_MX_MATCHES = [
     {"league": "liga_mx", "season": "2024-25", "date": "2024-11-10", "home": "Toluca", "away": "América", "hg": 4, "ag": 0, "hst": 9, "ast": 4, "hc": 5, "ac": 6, "hy": 2, "ay": 3, "hr": 0, "ar": 0, "b365h": 2.30, "b365d": 3.40, "b365a": 2.95},
 ]
 
+CURATED_WOMENS_MATCHES = [
+    # Liga F Femenina (España)
+    {"league": "liga_f", "season": "2023-24", "date": "2023-11-19", "home": "Barcelona F", "away": "Real Madrid F", "hg": 5, "ag": 0, "hst": 11, "ast": 1, "hc": 9, "ac": 2, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.14, "b365d": 7.50, "b365a": 13.00},
+    {"league": "liga_f", "season": "2023-24", "date": "2024-01-21", "home": "Real Madrid F", "away": "Atletico Madrid F", "hg": 2, "ag": 1, "hst": 7, "ast": 4, "hc": 6, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.75, "b365d": 3.60, "b365a": 4.20},
+    {"league": "liga_f", "season": "2023-24", "date": "2024-02-14", "home": "Barcelona F", "away": "Levante F", "hg": 1, "ag": 1, "hst": 9, "ast": 3, "hc": 11, "ac": 2, "hy": 1, "ay": 3, "hr": 0, "ar": 0, "b365h": 1.08, "b365d": 9.50, "b365a": 19.00},
+    {"league": "liga_f", "season": "2023-24", "date": "2024-03-10", "home": "Real Sociedad F", "away": "Barcelona F", "hg": 1, "ag": 7, "hst": 3, "ast": 14, "hc": 3, "ac": 9, "hy": 2, "ay": 0, "hr": 0, "ar": 0, "b365h": 15.00, "b365d": 8.00, "b365a": 1.12},
+    {"league": "liga_f", "season": "2023-24", "date": "2024-03-24", "home": "Real Madrid F", "away": "Barcelona F", "hg": 0, "ag": 3, "hst": 2, "ast": 9, "hc": 3, "ac": 8, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 8.50, "b365d": 5.50, "b365a": 1.25},
+    {"league": "liga_f", "season": "2023-24", "date": "2024-04-13", "home": "Atletico Madrid F", "away": "Athletic Bilbao F", "hg": 3, "ag": 0, "hst": 7, "ast": 3, "hc": 6, "ac": 4, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.55, "b365d": 3.90, "b365a": 5.40},
+    {"league": "liga_f", "season": "2023-24", "date": "2024-04-28", "home": "Barcelona F", "away": "Madrid CFF", "hg": 8, "ag": 0, "hst": 16, "ast": 1, "hc": 12, "ac": 1, "hy": 0, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.05, "b365d": 11.00, "b365a": 23.00},
+    {"league": "liga_f", "season": "2023-24", "date": "2024-05-05", "home": "Sevilla F", "away": "Real Betis F", "hg": 2, "ag": 0, "hst": 6, "ast": 3, "hc": 6, "ac": 4, "hy": 2, "ay": 3, "hr": 0, "ar": 0, "b365h": 1.70, "b365d": 3.70, "b365a": 4.40},
+    {"league": "liga_f", "season": "2023-24", "date": "2024-05-12", "home": "Athletic Bilbao F", "away": "Real Sociedad F", "hg": 2, "ag": 1, "hst": 6, "ast": 4, "hc": 5, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.90, "b365d": 3.40, "b365a": 3.75},
+    {"league": "liga_f", "season": "2023-24", "date": "2024-05-19", "home": "Valencia F", "away": "Levante F", "hg": 1, "ag": 2, "hst": 4, "ast": 6, "hc": 4, "ac": 7, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 3.40, "b365d": 3.50, "b365a": 1.95},
+    {"league": "liga_f", "season": "2024-25", "date": "2024-09-13", "home": "Barcelona F", "away": "Real Sociedad F", "hg": 3, "ag": 1, "hst": 10, "ast": 2, "hc": 9, "ac": 2, "hy": 1, "ay": 1, "hr": 0, "ar": 0, "b365h": 1.07, "b365d": 10.00, "b365a": 21.00},
+    {"league": "liga_f", "season": "2024-25", "date": "2024-09-22", "home": "Real Betis F", "away": "Real Madrid F", "hg": 0, "ag": 3, "hst": 2, "ast": 8, "hc": 3, "ac": 8, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 11.00, "b365d": 6.00, "b365a": 1.18},
+    {"league": "liga_f", "season": "2024-25", "date": "2024-09-29", "home": "Barcelona F", "away": "Granada F", "hg": 10, "ag": 1, "hst": 18, "ast": 2, "hc": 11, "ac": 1, "hy": 0, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.03, "b365d": 13.00, "b365a": 29.00},
+    {"league": "liga_f", "season": "2024-25", "date": "2024-10-05", "home": "Madrid CFF", "away": "Athletic Bilbao F", "hg": 1, "ag": 2, "hst": 4, "ast": 5, "hc": 5, "ac": 6, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.40, "b365d": 3.30, "b365a": 2.70},
+    {"league": "liga_f", "season": "2024-25", "date": "2024-10-13", "home": "Real Madrid F", "away": "Atletico Madrid F", "hg": 1, "ag": 1, "hst": 6, "ast": 4, "hc": 7, "ac": 4, "hy": 2, "ay": 3, "hr": 0, "ar": 0, "b365h": 1.80, "b365d": 3.50, "b365a": 4.10},
+    {"league": "liga_f", "season": "2024-25", "date": "2024-10-20", "home": "Levante F", "away": "Barcelona F", "hg": 1, "ag": 4, "hst": 3, "ast": 11, "hc": 3, "ac": 9, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 13.00, "b365d": 7.00, "b365a": 1.14},
+    {"league": "liga_f", "season": "2024-25", "date": "2024-11-02", "home": "Sevilla F", "away": "Valencia F", "hg": 3, "ag": 1, "hst": 6, "ast": 3, "hc": 6, "ac": 4, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.85, "b365d": 3.50, "b365a": 3.90},
+    {"league": "liga_f", "season": "2024-25", "date": "2024-11-09", "home": "Atletico Madrid F", "away": "Barcelona F", "hg": 0, "ag": 3, "hst": 2, "ast": 9, "hc": 3, "ac": 8, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 7.50, "b365d": 4.80, "b365a": 1.33},
+    {"league": "liga_f", "season": "2024-25", "date": "2024-11-16", "home": "Real Madrid F", "away": "Barcelona F", "hg": 0, "ag": 4, "hst": 3, "ast": 10, "hc": 4, "ac": 8, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 6.50, "b365d": 4.60, "b365a": 1.38},
+
+    # Women's Super League (Inglaterra)
+    {"league": "wsl", "season": "2023-24", "date": "2023-12-10", "home": "Arsenal F", "away": "Chelsea F", "hg": 4, "ag": 1, "hst": 8, "ast": 4, "hc": 6, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.50, "b365d": 3.50, "b365a": 2.50},
+    {"league": "wsl", "season": "2023-24", "date": "2024-01-21", "home": "Chelsea F", "away": "Manchester United F", "hg": 3, "ag": 1, "hst": 7, "ast": 4, "hc": 7, "ac": 4, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.55, "b365d": 4.00, "b365a": 5.25},
+    {"league": "wsl", "season": "2023-24", "date": "2024-02-16", "home": "Chelsea F", "away": "Manchester City F", "hg": 0, "ag": 1, "hst": 5, "ast": 4, "hc": 7, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.85, "b365d": 3.60, "b365a": 3.80},
+    {"league": "wsl", "season": "2023-24", "date": "2024-03-15", "home": "Chelsea F", "away": "Arsenal F", "hg": 3, "ag": 1, "hst": 8, "ast": 4, "hc": 6, "ac": 5, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.95, "b365d": 3.50, "b365a": 3.50},
+    {"league": "wsl", "season": "2023-24", "date": "2024-03-23", "home": "Manchester City F", "away": "Manchester United F", "hg": 3, "ag": 1, "hst": 8, "ast": 3, "hc": 8, "ac": 4, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.62, "b365d": 3.90, "b365a": 4.75},
+    {"league": "wsl", "season": "2023-24", "date": "2024-04-21", "home": "Brighton F", "away": "Everton F", "hg": 1, "ag": 2, "hst": 4, "ast": 5, "hc": 5, "ac": 5, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 2.30, "b365d": 3.40, "b365a": 2.85},
+    {"league": "wsl", "season": "2023-24", "date": "2024-05-01", "home": "Liverpool F", "away": "Chelsea F", "hg": 4, "ag": 3, "hst": 6, "ast": 7, "hc": 5, "ac": 8, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 6.50, "b365d": 4.50, "b365a": 1.40},
+    {"league": "wsl", "season": "2023-24", "date": "2024-05-05", "home": "Manchester City F", "away": "Arsenal F", "hg": 1, "ag": 2, "hst": 5, "ast": 6, "hc": 6, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.90, "b365d": 3.60, "b365a": 3.60},
+    {"league": "wsl", "season": "2023-24", "date": "2024-05-18", "home": "Manchester United F", "away": "Chelsea F", "hg": 0, "ag": 6, "hst": 3, "ast": 11, "hc": 4, "ac": 7, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 4.20, "b365d": 3.90, "b365a": 1.72},
+    {"league": "wsl", "season": "2023-24", "date": "2024-05-18", "home": "Aston Villa F", "away": "Manchester City F", "hg": 1, "ag": 2, "hst": 3, "ast": 9, "hc": 3, "ac": 8, "hy": 1, "ay": 1, "hr": 0, "ar": 0, "b365h": 8.00, "b365d": 5.25, "b365a": 1.30},
+    {"league": "wsl", "season": "2024-25", "date": "2024-09-20", "home": "Chelsea F", "away": "Aston Villa F", "hg": 1, "ag": 0, "hst": 6, "ast": 3, "hc": 7, "ac": 4, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.22, "b365d": 6.00, "b365a": 10.00},
+    {"league": "wsl", "season": "2024-25", "date": "2024-09-22", "home": "Arsenal F", "away": "Manchester City F", "hg": 2, "ag": 2, "hst": 6, "ast": 5, "hc": 6, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.15, "b365d": 3.50, "b365a": 3.00},
+    {"league": "wsl", "season": "2024-25", "date": "2024-09-29", "home": "Tottenham F", "away": "Aston Villa F", "hg": 2, "ag": 2, "hst": 5, "ast": 5, "hc": 6, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.10, "b365d": 3.40, "b365a": 3.20},
+    {"league": "wsl", "season": "2024-25", "date": "2024-10-06", "home": "Tottenham F", "away": "Liverpool F", "hg": 2, "ag": 3, "hst": 5, "ast": 6, "hc": 5, "ac": 6, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.30, "b365d": 3.40, "b365a": 2.85},
+    {"league": "wsl", "season": "2024-25", "date": "2024-10-12", "home": "Arsenal F", "away": "Chelsea F", "hg": 1, "ag": 2, "hst": 5, "ast": 5, "hc": 7, "ac": 4, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.40, "b365d": 3.40, "b365a": 2.70},
+    {"league": "wsl", "season": "2024-25", "date": "2024-10-20", "home": "West Ham F", "away": "Arsenal F", "hg": 0, "ag": 2, "hst": 2, "ast": 7, "hc": 3, "ac": 8, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 9.00, "b365d": 5.25, "b365a": 1.28},
+    {"league": "wsl", "season": "2024-25", "date": "2024-11-03", "home": "Everton F", "away": "Chelsea F", "hg": 0, "ag": 5, "hst": 2, "ast": 10, "hc": 2, "ac": 8, "hy": 1, "ay": 1, "hr": 0, "ar": 0, "b365h": 11.00, "b365d": 6.00, "b365a": 1.20},
+    {"league": "wsl", "season": "2024-25", "date": "2024-11-08", "home": "Arsenal F", "away": "Brighton F", "hg": 5, "ag": 0, "hst": 10, "ast": 2, "hc": 9, "ac": 3, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.28, "b365d": 5.50, "b365a": 8.50},
+    {"league": "wsl", "season": "2024-25", "date": "2024-11-10", "home": "Liverpool F", "away": "Chelsea F", "hg": 0, "ag": 3, "hst": 2, "ast": 8, "hc": 3, "ac": 7, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 6.50, "b365d": 4.33, "b365a": 1.44},
+    {"league": "wsl", "season": "2024-25", "date": "2024-11-16", "home": "Chelsea F", "away": "Manchester City F", "hg": 2, "ag": 0, "hst": 6, "ast": 3, "hc": 6, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.95, "b365d": 3.50, "b365a": 3.50},
+
+    # UEFA Women's Champions League (UWCL) y Ligas Europeas Femeninas
+    {"league": "uwcl", "season": "2023-24", "date": "2023-11-15", "home": "Bayern Munich F", "away": "Roma F", "hg": 2, "ag": 2, "hst": 7, "ast": 5, "hc": 8, "ac": 4, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.55, "b365d": 4.20, "b365a": 5.00},
+    {"league": "uwcl", "season": "2023-24", "date": "2023-11-23", "home": "Paris FC F", "away": "Real Madrid F", "hg": 2, "ag": 1, "hst": 5, "ast": 6, "hc": 4, "ac": 7, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.90, "b365d": 3.50, "b365a": 2.20},
+    {"league": "uwcl", "season": "2023-24", "date": "2023-12-13", "home": "Barcelona F", "away": "Eintracht Frankfurt F", "hg": 2, "ag": 0, "hst": 9, "ast": 2, "hc": 8, "ac": 3, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.12, "b365d": 8.00, "b365a": 15.00},
+    {"league": "uwcl", "season": "2023-24", "date": "2024-01-24", "home": "Ajax F", "away": "PSG F", "hg": 0, "ag": 4, "hst": 2, "ast": 9, "hc": 3, "ac": 8, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 5.50, "b365d": 4.33, "b365a": 1.48},
+    {"league": "uwcl", "season": "2023-24", "date": "2024-01-31", "home": "Benfica F", "away": "Barcelona F", "hg": 4, "ag": 4, "hst": 6, "ast": 11, "hc": 4, "ac": 9, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 11.00, "b365d": 6.50, "b365a": 1.18},
+    {"league": "uwcl", "season": "2023-24", "date": "2024-03-19", "home": "Ajax F", "away": "Chelsea F", "hg": 0, "ag": 3, "hst": 2, "ast": 8, "hc": 3, "ac": 7, "hy": 1, "ay": 1, "hr": 0, "ar": 0, "b365h": 6.50, "b365d": 4.50, "b365a": 1.40},
+    {"league": "uwcl", "season": "2023-24", "date": "2024-03-20", "home": "Benfica F", "away": "Lyon F", "hg": 1, "ag": 2, "hst": 3, "ast": 8, "hc": 4, "ac": 7, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 8.50, "b365d": 5.25, "b365a": 1.28},
+    {"league": "uwcl", "season": "2023-24", "date": "2024-04-20", "home": "Barcelona F", "away": "Chelsea F", "hg": 0, "ag": 1, "hst": 4, "ast": 3, "hc": 8, "ac": 3, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.33, "b365d": 5.00, "b365a": 7.50},
+    {"league": "uwcl", "season": "2023-24", "date": "2024-04-20", "home": "Lyon F", "away": "PSG F", "hg": 3, "ag": 2, "hst": 9, "ast": 5, "hc": 8, "ac": 4, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.50, "b365d": 4.20, "b365a": 5.50},
+    {"league": "uwcl", "season": "2023-24", "date": "2024-04-27", "home": "Chelsea F", "away": "Barcelona F", "hg": 0, "ag": 2, "hst": 3, "ast": 6, "hc": 4, "ac": 6, "hy": 2, "ay": 2, "hr": 0, "ar": 1, "b365h": 3.80, "b365d": 3.75, "b365a": 1.80},
+    {"league": "uwcl", "season": "2023-24", "date": "2024-04-28", "home": "PSG F", "away": "Lyon F", "hg": 1, "ag": 2, "hst": 4, "ast": 7, "hc": 5, "ac": 6, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 3.10, "b365d": 3.60, "b365a": 2.05},
+    {"league": "uwcl", "season": "2023-24", "date": "2024-05-25", "home": "Barcelona F", "away": "Lyon F", "hg": 2, "ag": 0, "hst": 6, "ast": 3, "hc": 6, "ac": 5, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.80, "b365d": 3.60, "b365a": 4.00},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-09-18", "home": "Juventus F", "away": "PSG F", "hg": 3, "ag": 1, "hst": 6, "ast": 5, "hc": 5, "ac": 6, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 3.20, "b365d": 3.50, "b365a": 2.05},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-09-25", "home": "Sporting CP F", "away": "Real Madrid F", "hg": 1, "ag": 2, "hst": 3, "ast": 7, "hc": 4, "ac": 7, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 4.50, "b365d": 3.90, "b365a": 1.65},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-10-08", "home": "Roma F", "away": "Wolfsburg F", "hg": 1, "ag": 0, "hst": 5, "ast": 4, "hc": 6, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.80, "b365d": 3.50, "b365a": 2.25},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-10-08", "home": "Chelsea F", "away": "Real Madrid F", "hg": 3, "ag": 2, "hst": 7, "ast": 5, "hc": 6, "ac": 4, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.44, "b365d": 4.50, "b365a": 6.00},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-10-09", "home": "Bayern Munich F", "away": "Arsenal F", "hg": 5, "ag": 2, "hst": 9, "ast": 5, "hc": 6, "ac": 6, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.05, "b365d": 3.50, "b365a": 3.20},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-10-09", "home": "Manchester City F", "away": "Barcelona F", "hg": 2, "ag": 0, "hst": 5, "ast": 6, "hc": 5, "ac": 7, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 4.50, "b365d": 4.00, "b365a": 1.65},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-10-16", "home": "Juventus F", "away": "Bayern Munich F", "hg": 0, "ag": 2, "hst": 3, "ast": 7, "hc": 4, "ac": 7, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 3.80, "b365d": 3.60, "b365a": 1.85},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-10-17", "home": "Twente F", "away": "Chelsea F", "hg": 1, "ag": 3, "hst": 3, "ast": 8, "hc": 4, "ac": 8, "hy": 1, "ay": 1, "hr": 0, "ar": 0, "b365h": 8.00, "b365d": 5.00, "b365a": 1.30},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-10-17", "home": "Wolfsburg F", "away": "Lyon F", "hg": 0, "ag": 2, "hst": 4, "ast": 7, "hc": 5, "ac": 6, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 3.10, "b365d": 3.60, "b365a": 2.05},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-10-25", "home": "Eintracht Frankfurt F", "away": "Bayer Leverkusen F", "hg": 2, "ag": 2, "hst": 6, "ast": 5, "hc": 6, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.75, "b365d": 3.70, "b365a": 4.10},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-11-03", "home": "Inter F", "away": "AC Milan F", "hg": 1, "ag": 1, "hst": 5, "ast": 4, "hc": 6, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.15, "b365d": 3.30, "b365a": 3.10},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-11-09", "home": "Fiorentina F", "away": "Juventus F", "hg": 0, "ag": 3, "hst": 3, "ast": 8, "hc": 4, "ac": 7, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 3.90, "b365d": 3.60, "b365a": 1.80},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-11-10", "home": "AC Milan F", "away": "Fiorentina F", "hg": 1, "ag": 2, "hst": 4, "ast": 5, "hc": 5, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.40, "b365d": 3.30, "b365a": 2.70},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-11-13", "home": "Roma F", "away": "Lyon F", "hg": 0, "ag": 3, "hst": 3, "ast": 9, "hc": 4, "ac": 7, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 5.50, "b365d": 4.20, "b365a": 1.50},
+    {"league": "uwcl", "season": "2024-25", "date": "2024-11-13", "home": "Real Madrid F", "away": "Twente F", "hg": 7, "ag": 0, "hst": 13, "ast": 2, "hc": 9, "ac": 2, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.25, "b365d": 5.75, "b365a": 9.50},
+
+    # Liga MX Femenil (México)
+    {"league": "liga_mx_femenil", "season": "2023-24", "date": "2023-11-27", "home": "Tigres UANL F", "away": "América F", "hg": 0, "ag": 0, "hst": 5, "ast": 4, "hc": 6, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.95, "b365d": 3.40, "b365a": 3.50},
+    {"league": "liga_mx_femenil", "season": "2023-24", "date": "2024-03-15", "home": "Monterrey F", "away": "Tigres UANL F", "hg": 0, "ag": 0, "hst": 4, "ast": 5, "hc": 5, "ac": 6, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.40, "b365d": 3.30, "b365a": 2.70},
+    {"league": "liga_mx_femenil", "season": "2023-24", "date": "2024-03-17", "home": "Guadalajara F", "away": "América F", "hg": 2, "ag": 1, "hst": 6, "ast": 5, "hc": 5, "ac": 6, "hy": 3, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.75, "b365d": 3.40, "b365a": 2.30},
+    {"league": "liga_mx_femenil", "season": "2023-24", "date": "2024-04-20", "home": "Pachuca F", "away": "Tigres UANL F", "hg": 1, "ag": 1, "hst": 5, "ast": 5, "hc": 6, "ac": 6, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.60, "b365d": 3.40, "b365a": 2.45},
+    {"league": "liga_mx_femenil", "season": "2023-24", "date": "2024-05-27", "home": "Monterrey F", "away": "América F", "hg": 2, "ag": 1, "hst": 6, "ast": 5, "hc": 6, "ac": 5, "hy": 2, "ay": 3, "hr": 0, "ar": 0, "b365h": 2.15, "b365d": 3.30, "b365a": 3.10},
+    {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-07-07", "home": "Cruz Azul F", "away": "América F", "hg": 2, "ag": 1, "hst": 5, "ast": 6, "hc": 4, "ac": 7, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 5.50, "b365d": 4.20, "b365a": 1.50},
+    {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-08-19", "home": "Tigres UANL F", "away": "Pumas UNAM F", "hg": 3, "ag": 1, "hst": 8, "ast": 3, "hc": 7, "ac": 3, "hy": 1, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.30, "b365d": 5.00, "b365a": 8.00},
+    {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-09-01", "home": "Pachuca F", "away": "Monterrey F", "hg": 0, "ag": 0, "hst": 4, "ast": 4, "hc": 5, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.30, "b365d": 3.30, "b365a": 2.85},
+    {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-09-15", "home": "América F", "away": "Guadalajara F", "hg": 7, "ag": 0, "hst": 13, "ast": 2, "hc": 8, "ac": 3, "hy": 1, "ay": 3, "hr": 0, "ar": 0, "b365h": 1.65, "b365d": 3.80, "b365a": 4.50},
+    {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-09-23", "home": "Monterrey F", "away": "América F", "hg": 2, "ag": 4, "hst": 5, "ast": 8, "hc": 5, "ac": 6, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.25, "b365d": 3.40, "b365a": 2.90},
+    {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-10-06", "home": "Tigres UANL F", "away": "América F", "hg": 0, "ag": 1, "hst": 4, "ast": 5, "hc": 6, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.00, "b365d": 3.40, "b365a": 3.40},
+    {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-10-13", "home": "Guadalajara F", "away": "Atlas F", "hg": 3, "ag": 1, "hst": 7, "ast": 3, "hc": 6, "ac": 4, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 1.65, "b365d": 3.75, "b365a": 4.50},
+    {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-10-18", "home": "Juárez F", "away": "Pachuca F", "hg": 2, "ag": 1, "hst": 5, "ast": 5, "hc": 5, "ac": 6, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.80, "b365d": 3.40, "b365a": 2.30},
+    {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-11-01", "home": "Toluca F", "away": "Monterrey F", "hg": 1, "ag": 0, "hst": 4, "ast": 5, "hc": 4, "ac": 6, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 4.20, "b365d": 3.70, "b365a": 1.72},
+    {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-11-08", "home": "Pumas UNAM F", "away": "Tigres UANL F", "hg": 0, "ag": 0, "hst": 3, "ast": 6, "hc": 4, "ac": 6, "hy": 2, "ay": 1, "hr": 0, "ar": 0, "b365h": 4.50, "b365d": 3.80, "b365a": 1.65},
+    {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-11-15", "home": "América F", "away": "Tigres UANL F", "hg": 1, "ag": 1, "hst": 6, "ast": 5, "hc": 6, "ac": 5, "hy": 2, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.10, "b365d": 3.30, "b365a": 3.20},
+    {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-11-25", "home": "Monterrey F", "away": "Tigres UANL F", "hg": 3, "ag": 2, "hst": 7, "ast": 6, "hc": 6, "ac": 5, "hy": 3, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.35, "b365d": 3.30, "b365a": 2.80},
+]
+
 def load_all_real_matches() -> List[Dict]:
     """Carga y parsea todos los partidos oficiales de las fuentes reales."""
     all_matches = []
 
     for league_code, sources in DATASET_SOURCES.items():
         for code, season_code in sources:
-            season_label = "2023-24" if season_code == "2324" else "2024-25"
+            season_map = {"2223": "2022-23", "2324": "2023-24", "2425": "2024-25"}
+            season_label = season_map.get(season_code, "2024-25")
             rows = fetch_or_load_csv(code, season_code)
             for r in rows:
                 try:
@@ -316,6 +410,29 @@ def load_all_real_matches() -> List[Dict]:
             "b365a": m.get("b365a")
         })
 
+    for m in CURATED_WOMENS_MATCHES:
+        all_matches.append({
+            "league": m["league"],
+            "season": m["season"],
+            "date": m["date"],
+            "home": m["home"],
+            "away": m["away"],
+            "hg": m["hg"],
+            "ag": m["ag"],
+            "res": "W" if m["hg"] > m["ag"] else ("D" if m["hg"] == m["ag"] else "L"),
+            "hst": m["hst"],
+            "ast": m["ast"],
+            "hc": m["hc"],
+            "ac": m["ac"],
+            "hy": m["hy"],
+            "ay": m["ay"],
+            "hr": m["hr"],
+            "ar": m["ar"],
+            "b365h": m.get("b365h"),
+            "b365d": m.get("b365d"),
+            "b365a": m.get("b365a")
+        })
+
     # Ordenar cronológicamente por fecha de forma estricta
     all_matches.sort(key=lambda x: (x["date"], x["league"], x["home"]))
     logger.info(f"Cargados {len(all_matches)} partidos reales ordenados cronológicamente.")
@@ -358,9 +475,11 @@ def populate_real_database_and_compute_elo(db=None):
         db.query(TeamStatsCache).delete()
         db.commit()
 
-        # 4. Asegurar catálogo de equipos (incorporando los nuevos de las 5 grandes ligas)
+        # 4. Asegurar catálogo de equipos (incorporando los nuevos de las grandes ligas masculinas y femeninas)
         existing_teams = {t.name: t for t in db.query(Team).all()}
         all_league_teams = set()
+        for tc in TEAMS_CONFIG:
+            all_league_teams.add((tc["name"], tc["league"]))
         for m in real_matches:
             all_league_teams.add((m["home"], m["league"]))
             all_league_teams.add((m["away"], m["league"]))
@@ -385,8 +504,8 @@ def populate_real_database_and_compute_elo(db=None):
                 existing_teams[t_name].league_code = base_cfg["league"]
         db.commit()
 
-        # 5. Inicializar ratings Elo a los valores base pre-temporada 2023-24
-        base_elo_map = {tc["name"]: float(tc["elo"]) for tc in TEAMS_CONFIG}
+        # 5. Inicializar ratings Elo a los valores base pre-2022-23 sin sesgo retrospectivo
+        base_elo_map = get_honest_initial_elo_map()
         elo_tracker = {}
         for t in db.query(Team).all():
             init_val = base_elo_map.get(t.name, 1600.0)
@@ -397,7 +516,7 @@ def populate_real_database_and_compute_elo(db=None):
         team_match_history = {t_name: [] for t_name in elo_tracker}
         team_last_season = {}
 
-        # 6. Insertar partidos y actualizar Elo cronológicamente (con regresión suave de entre-temporada)
+        # 6. Insertar partidos y actualizar Elo cronológicamente (con regresión neutral a 1650.0 entre temporadas)
         db_match_objects = []
         for m in real_matches:
             h_name = m["home"]
@@ -407,9 +526,8 @@ def populate_real_database_and_compute_elo(db=None):
             for club in (h_name, a_name):
                 prev_s = team_last_season.get(club)
                 if prev_s is not None and prev_s != cur_season:
-                    # Regresión a la media del 15% al cambiar de temporada (estándar ClubElo / FIFA)
-                    base_ref = base_elo_map.get(club, 1620.0)
-                    elo_tracker[club] = 0.85 * elo_tracker.get(club, 1600.0) + 0.15 * base_ref
+                    # Regresión a la media neutral de liga (1650.0) del 15% al cambiar de temporada (cero sesgo retrospectivo)
+                    elo_tracker[club] = 0.85 * elo_tracker.get(club, 1600.0) + 0.15 * 1650.0
                 team_last_season[club] = cur_season
 
             cur_elo_h = elo_tracker.get(h_name, 1600.0)
@@ -424,6 +542,8 @@ def populate_real_database_and_compute_elo(db=None):
 
             cards_h = m["hy"] + m["hr"] * 2
             cards_a = m["ay"] + m["ar"] * 2
+            cn_tot = m["hc"] + m["ac"]
+            cr_tot = cards_h + cards_a
 
             hm = HistoricalMatch(
                 league_code=m["league"],
@@ -446,13 +566,14 @@ def populate_real_database_and_compute_elo(db=None):
             )
             db_match_objects.append(hm)
 
-            # Guardar en historial móvil para reconstrucción de stats
+            # Guardar en historial móvil para reconstrucción unificada de stats
             if h_name in team_match_history:
                 team_match_history[h_name].append({
                     "opp": a_name, "was_home": True, "date": m["date"],
                     "gf": m["hg"], "ga": m["ag"], "res": m["res"],
                     "hst": m["hst"], "ast": m["ast"],
-                    "cn": m["hc"], "cr": cards_h
+                    "cn": m["hc"], "cn_opp": m["ac"], "cr": cards_h,
+                    "cn_tot": cn_tot, "cr_tot": cr_tot
                 })
             if a_name in team_match_history:
                 team_match_history[a_name].append({
@@ -460,14 +581,30 @@ def populate_real_database_and_compute_elo(db=None):
                     "gf": m["ag"], "ga": m["hg"],
                     "res": "W" if m["res"] == "L" else ("L" if m["res"] == "W" else "D"),
                     "hst": m["ast"], "ast": m["hst"],
-                    "cn": m["ac"], "cr": cards_a
+                    "cn": m["ac"], "cn_opp": m["hc"], "cr": cards_a,
+                    "cn_tot": cn_tot, "cr_tot": cr_tot
                 })
 
         db.bulk_save_objects(db_match_objects)
         db.commit()
         logger.info(f"Guardados {len(db_match_objects)} partidos reales oficiales en SQLite.")
 
-        # 7. Actualizar Team.elo_rating y TeamStatsCache
+        # 6.5. Actualizar promedios empíricos reales por liga desde los partidos oficiales cargados
+        for l_obj in db.query(League).all():
+            lg_matches = [m for m in real_matches if m["league"] == l_obj.code]
+            if len(lg_matches) >= 30:
+                tot_g = sum(m["hg"] + m["ag"] for m in lg_matches) / len(lg_matches)
+                l_obj.avg_goals = round(tot_g / 2.0, 2)
+                cn_valid = [m["hc"] + m["ac"] for m in lg_matches if (m["hc"] + m["ac"]) > 0]
+                if cn_valid:
+                    l_obj.avg_corners = round(sum(cn_valid) / len(cn_valid), 1)
+                cr_valid = [(m["hy"] + m["hr"] * 2 + m["ay"] + m["ar"] * 2) for m in lg_matches if (m["hy"] + m["ay"]) > 0]
+                if cr_valid:
+                    l_obj.avg_cards = round(sum(cr_valid) / len(cr_valid), 1)
+        db.commit()
+
+        # 7. Actualizar Team.elo_rating y TeamStatsCache usando la misma lógica Point-in-Time unificada
+        league_map = {l.code: l for l in db.query(League).all()}
         for t in db.query(Team).all():
             final_elo = round(elo_tracker.get(t.name, 1600.0), 1)
             t.elo_rating = final_elo
@@ -476,6 +613,9 @@ def populate_real_database_and_compute_elo(db=None):
             if not hist:
                 continue
 
+            l_obj = league_map.get(t.league_code)
+            def_goals = l_obj.avg_goals if l_obj else 1.35
+
             last_15 = hist[-15:]
             last_10 = hist[-10:]
             last_5 = hist[-5:]
@@ -483,23 +623,34 @@ def populate_real_database_and_compute_elo(db=None):
             gf_all = [x["gf"] for x in last_15]
             ga_all = [x["ga"] for x in last_15]
             cn_all = [x["cn"] for x in last_15]
+            cn_opp_all = [x.get("cn_opp", 4.5) for x in last_15]
             cr_all = [x["cr"] for x in last_15]
             sot_for_all = [x["hst"] for x in last_15]
             sot_against_all = [x["ast"] for x in last_15]
 
-            # Splits de local y visitante
+            # Shrinkage empírico de James-Stein hacia el prior estructural (idéntico a entrenamiento y walk-forward)
+            elo_diff_t = (final_elo - 1650.0) / 400.0
+            prior_gf = max(0.7, def_goals * (1.0 + 0.18 * elo_diff_t))
+            prior_ga = max(0.6, def_goals * (1.0 - 0.15 * elo_diff_t))
+
+            raw_gf = sum(gf_all) / len(gf_all)
+            raw_ga = sum(ga_all) / len(ga_all)
+            shrunk_gf = round(0.75 * raw_gf + 0.25 * prior_gf, 2)
+            shrunk_ga = round(0.75 * raw_ga + 0.25 * prior_ga, 2)
+
+            # Splits de local y visitante con el mismo shrinkage
             home_matches = [x for x in hist if x["was_home"]][-10:]
             away_matches = [x for x in hist if not x["was_home"]][-10:]
 
-            h_gf = round(sum(x["gf"] for x in home_matches) / max(1, len(home_matches)), 2) if home_matches else round(sum(gf_all) / len(gf_all), 2)
-            h_ga = round(sum(x["ga"] for x in home_matches) / max(1, len(home_matches)), 2) if home_matches else round(sum(ga_all) / len(ga_all), 2)
-            a_gf = round(sum(x["gf"] for x in away_matches) / max(1, len(away_matches)), 2) if away_matches else round(sum(gf_all) / len(gf_all), 2)
-            a_ga = round(sum(x["ga"] for x in away_matches) / max(1, len(away_matches)), 2) if away_matches else round(sum(ga_all) / len(ga_all), 2)
+            h_gf = round(0.75 * (sum(x["gf"] for x in home_matches) / len(home_matches)) + 0.25 * prior_gf, 2) if home_matches else shrunk_gf
+            h_ga = round(0.75 * (sum(x["ga"] for x in home_matches) / len(home_matches)) + 0.25 * prior_ga, 2) if home_matches else shrunk_ga
+            a_gf = round(0.75 * (sum(x["gf"] for x in away_matches) / len(away_matches)) + 0.25 * prior_gf, 2) if away_matches else shrunk_gf
+            a_ga = round(0.75 * (sum(x["ga"] for x in away_matches) / len(away_matches)) + 0.25 * prior_ga, 2) if away_matches else shrunk_ga
 
             w5 = sum(1 for x in last_5 if x["res"] == "W")
             wr_5 = round(w5 / max(1, len(last_5)), 2)
 
-            # JSON estructurado para el ensamble
+            # JSON estructurado para el ensamble (con cards_total = tarjetas totales del partido)
             matches_json = []
             for x in reversed(last_10):  # Más reciente primero
                 matches_json.append({
@@ -510,15 +661,15 @@ def populate_real_database_and_compute_elo(db=None):
                     "result": x["res"],
                     "date": x["date"],
                     "corners_for": x["cn"],
-                    "cards_total": x["cr"]
+                    "cards_total": x.get("cr_tot", x["cr"] * 2)
                 })
 
             cache_obj = TeamStatsCache(
                 team_name=t.name,
                 league_code=t.league_code,
                 elo_rating=final_elo,
-                avg_goals_scored=round(sum(gf_all) / len(gf_all), 2),
-                avg_goals_conceded=round(sum(ga_all) / len(ga_all), 2),
+                avg_goals_scored=shrunk_gf,
+                avg_goals_conceded=shrunk_ga,
                 home_goals_scored=h_gf,
                 home_goals_conceded=h_ga,
                 away_goals_scored=a_gf,
@@ -526,6 +677,7 @@ def populate_real_database_and_compute_elo(db=None):
                 avg_shots_target_for=round(sum(sot_for_all) / len(sot_for_all), 1),
                 avg_shots_target_against=round(sum(sot_against_all) / len(sot_against_all), 1),
                 avg_corners=round(sum(cn_all) / len(cn_all), 1),
+                avg_corners_conceded=round(sum(cn_opp_all) / len(cn_opp_all), 1),
                 avg_cards=round(sum(cr_all) / len(cr_all), 1),
                 win_rate_last_5=wr_5,
                 last_matches_json=matches_json,
@@ -538,6 +690,159 @@ def populate_real_database_and_compute_elo(db=None):
     finally:
         if local_session:
             db.close()
+
+
+def get_honest_initial_elo_map() -> Dict[str, float]:
+    """
+    Retorna el mapa de ratings Elo iniciales pre-temporada 2022-23 sin sesgo retrospectivo.
+    Clubes que tuvieron temporadas revelación en 2023-24 (como Bayer Leverkusen, Girona o Stuttgart)
+    parten de su nivel histórico previo real y ganan su Elo exclusivamente a través de sus resultados en cancha.
+    """
+    from backend.app.services.league_database import TEAMS_CONFIG
+    base_map = {tc["name"]: float(tc["elo"]) for tc in TEAMS_CONFIG}
+    base_map.update({
+        "Bayer Leverkusen": 1775.0,
+        "Girona": 1640.0,
+        "Stuttgart": 1650.0,
+        "Aston Villa": 1730.0,
+    })
+    return base_map
+
+
+def build_point_in_time_match_features(
+    h_name: str,
+    a_name: str,
+    comp_name: str,
+    cur_elo_h: float,
+    cur_elo_a: float,
+    h_hist: List[Dict],
+    a_hist: List[Dict],
+    def_goals: float = 1.35,
+    def_corners: float = 9.5,
+    def_cards: float = 4.0,
+):
+    """
+    Constructor canónico unificado de MatchRawFeatures Point-in-Time.
+    Usado de forma idéntica por el pipeline de entrenamiento (train_models.py) y por la
+    evaluación Walk-Forward (backtest.py) para garantizar cero desajuste entre entrenamiento y producción.
+    """
+    from backend.app.schemas.match import MatchRawFeatures, TeamFormStats, HeadToHeadStats, PreviousMatch
+
+    if len(h_hist) < 2 or len(a_hist) < 2:
+        return MatchRawFeatures(
+            home_team=h_name,
+            away_team=a_name,
+            competition=comp_name,
+            home_stats=TeamFormStats(team_name=h_name, avg_goals_scored=def_goals * 1.05, avg_goals_conceded=def_goals * 0.95, elo_rating=round(cur_elo_h, 1)),
+            away_stats=TeamFormStats(team_name=a_name, avg_goals_scored=def_goals * 0.95, avg_goals_conceded=def_goals * 1.05, elo_rating=round(cur_elo_a, 1)),
+            h2h=HeadToHeadStats(total_matches_analyzed=0, avg_total_goals_h2h=def_goals * 2.0)
+        )
+
+    last_15_h = h_hist[-15:]
+    last_15_a = a_hist[-15:]
+    last_10_h = last_15_h[-10:]
+    last_10_a = last_15_a[-10:]
+    last_5_h = last_15_h[-5:]
+    last_5_a = last_15_a[-5:]
+
+    home_matches_h = [x for x in h_hist if x["was_home"]][-10:]
+    away_matches_a = [x for x in a_hist if not x["was_home"]][-10:]
+
+    elo_diff_h = (cur_elo_h - 1650.0) / 400.0
+    elo_diff_a = (cur_elo_a - 1650.0) / 400.0
+    prior_h_gf = max(0.7, def_goals * (1.0 + 0.18 * elo_diff_h))
+    prior_h_ga = max(0.6, def_goals * (1.0 - 0.15 * elo_diff_h))
+    prior_a_gf = max(0.7, def_goals * (1.0 + 0.18 * elo_diff_a))
+    prior_a_ga = max(0.6, def_goals * (1.0 - 0.15 * elo_diff_a))
+
+    raw_h_gf = sum(x["gf"] for x in last_15_h) / len(last_15_h)
+    raw_h_ga = sum(x["ga"] for x in last_15_h) / len(last_15_h)
+    raw_a_gf = sum(x["gf"] for x in last_15_a) / len(last_15_a)
+    raw_a_ga = sum(x["ga"] for x in last_15_a) / len(last_15_a)
+
+    h_gf = round(0.75 * raw_h_gf + 0.25 * prior_h_gf, 2)
+    h_ga = round(0.75 * raw_h_ga + 0.25 * prior_h_ga, 2)
+    a_gf = round(0.75 * raw_a_gf + 0.25 * prior_a_gf, 2)
+    a_ga = round(0.75 * raw_a_ga + 0.25 * prior_a_ga, 2)
+
+    h_home_gf = round(0.75 * (sum(x["gf"] for x in home_matches_h) / len(home_matches_h)) + 0.25 * prior_h_gf, 2) if home_matches_h else h_gf
+    h_home_ga = round(0.75 * (sum(x["ga"] for x in home_matches_h) / len(home_matches_h)) + 0.25 * prior_h_ga, 2) if home_matches_h else h_ga
+    a_away_gf = round(0.75 * (sum(x["gf"] for x in away_matches_a) / len(away_matches_a)) + 0.25 * prior_a_gf, 2) if away_matches_a else a_gf
+    a_away_ga = round(0.75 * (sum(x["ga"] for x in away_matches_a) / len(away_matches_a)) + 0.25 * prior_a_ga, 2) if away_matches_a else a_ga
+
+    h_prev_objs = [
+        PreviousMatch(
+            opponent=x["opp"], was_home=x["was_home"], goals_for=int(x["gf"]), goals_against=int(x["ga"]),
+            result=x["res"], corners_for=float(x["cn"]), cards_total=float(x.get("cr_tot", x["cr"] * 2))
+        ) for x in reversed(last_10_h)
+    ]
+    a_prev_objs = [
+        PreviousMatch(
+            opponent=x["opp"], was_home=x["was_home"], goals_for=int(x["gf"]), goals_against=int(x["ga"]),
+            result=x["res"], corners_for=float(x["cn"]), cards_total=float(x.get("cr_tot", x["cr"] * 2))
+        ) for x in reversed(last_10_a)
+    ]
+
+    past_h2h = [x for x in h_hist if x["opp"] == a_name][-8:]
+    if past_h2h:
+        h_w = sum(1 for x in past_h2h if x["res"] == "W")
+        a_w = sum(1 for x in past_h2h if x["res"] == "L")
+        drw = sum(1 for x in past_h2h if x["res"] == "D")
+        h2h_g = round(sum(x["gf"] + x["ga"] for x in past_h2h) / len(past_h2h), 2)
+        h2h_cn = round(sum(x.get("cn_tot", x["cn"] * 2) for x in past_h2h) / len(past_h2h), 1)
+        h2h_cr = round(sum(x.get("cr_tot", x["cr"] * 2) for x in past_h2h) / len(past_h2h), 1)
+    else:
+        h_w, a_w, drw = 0, 0, 0
+        h2h_g = round(def_goals * 2.0, 2)
+        h2h_cn = def_corners
+        h2h_cr = def_cards
+
+    return MatchRawFeatures(
+        home_team=h_name,
+        away_team=a_name,
+        competition=comp_name,
+        is_live=False,
+        home_stats=TeamFormStats(
+            team_name=h_name,
+            avg_goals_scored=h_gf,
+            avg_goals_conceded=h_ga,
+            avg_corners=round(sum(x["cn"] for x in last_15_h) / len(last_15_h), 1),
+            avg_corners_conceded=round(sum(x.get("cn_opp", 4.5) for x in last_15_h) / len(last_15_h), 1),
+            avg_cards=round(sum(x["cr"] for x in last_15_h) / len(last_15_h), 1),
+            win_rate_last_5=round(sum(1 for x in last_5_h if x["res"] == "W") / len(last_5_h), 2),
+            last_matches=h_prev_objs,
+            elo_rating=round(cur_elo_h, 1),
+            home_goals_scored=h_home_gf,
+            home_goals_conceded=h_home_ga,
+            avg_shots_target_for=round(sum(x["hst"] for x in last_15_h) / len(last_15_h), 1),
+            avg_shots_target_against=round(sum(x["ast"] for x in last_15_h) / len(last_15_h), 1)
+        ),
+        away_stats=TeamFormStats(
+            team_name=a_name,
+            avg_goals_scored=a_gf,
+            avg_goals_conceded=a_ga,
+            avg_corners=round(sum(x["cn"] for x in last_15_a) / len(last_15_a), 1),
+            avg_corners_conceded=round(sum(x.get("cn_opp", 4.8) for x in last_15_a) / len(last_15_a), 1),
+            avg_cards=round(sum(x["cr"] for x in last_15_a) / len(last_15_a), 1),
+            win_rate_last_5=round(sum(1 for x in last_5_a if x["res"] == "W") / len(last_5_a), 2),
+            last_matches=a_prev_objs,
+            elo_rating=round(cur_elo_a, 1),
+            away_goals_scored=a_away_gf,
+            away_goals_conceded=a_away_ga,
+            avg_shots_target_for=round(sum(x["hst"] for x in last_15_a) / len(last_15_a), 1),
+            avg_shots_target_against=round(sum(x["ast"] for x in last_15_a) / len(last_15_a), 1)
+        ),
+        h2h=HeadToHeadStats(
+            total_matches_analyzed=len(past_h2h),
+            home_team_wins=h_w,
+            away_team_wins=a_w,
+            draws=drw,
+            avg_total_goals_h2h=h2h_g,
+            avg_total_corners_h2h=h2h_cn,
+            avg_total_cards_h2h=h2h_cr
+        )
+    )
+
 
 if __name__ == "__main__":
     populate_real_database_and_compute_elo()

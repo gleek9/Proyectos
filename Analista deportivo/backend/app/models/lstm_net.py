@@ -138,12 +138,12 @@ class LSTMPredictor:
         features_list = []
         n_available = len(matches)
 
-        # Si no hay partidos disponibles, rellenar con valores medios
+        # Si no hay partidos disponibles, rellenar con valores medios neutros (res_code = 0.0)
         if n_available == 0:
             for step in range(TIMESTEPS):
                 features_list.append([
                     default_scored, default_conceded, default_scored - default_conceded,
-                    0.2, 0.5, 5.0 / 10.0, 2.0 / 5.0, (step + 1) / 10.0
+                    0.0, 0.5, 5.0 / 10.0, 2.5 / 5.0, (step + 1) / 10.0
                 ])
         else:
             # Revertir para orden cronológico si vienen ordenados del más reciente al más antiguo
@@ -154,7 +154,7 @@ class LSTMPredictor:
             for p in range(pad_needed):
                 features_list.append([
                     default_scored, default_conceded, default_scored - default_conceded,
-                    0.2, 0.5, 5.0 / 10.0, 2.0 / 5.0, (p + 1) / 10.0
+                    0.0, 0.5, 5.0 / 10.0, 2.5 / 5.0, (p + 1) / 10.0
                 ])
 
             for idx, m in enumerate(ordered_matches):

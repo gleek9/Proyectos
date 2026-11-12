@@ -104,6 +104,46 @@ LEAGUES_CONFIG = [
         "avg_corners": 9.9,
         "avg_cards": 4.8,
         "rho": -0.10
+    },
+    {
+        "code": "liga_f",
+        "name": "Liga F Femenina",
+        "country": "España",
+        "avg_goals": 1.58,
+        "home_adv": 1.13,
+        "avg_corners": 9.4,
+        "avg_cards": 3.2,
+        "rho": -0.07
+    },
+    {
+        "code": "wsl",
+        "name": "Women's Super League",
+        "country": "Inglaterra",
+        "avg_goals": 1.62,
+        "home_adv": 1.12,
+        "avg_corners": 9.8,
+        "avg_cards": 3.1,
+        "rho": -0.06
+    },
+    {
+        "code": "uwcl",
+        "name": "Champions Femenina",
+        "country": "Europa",
+        "avg_goals": 1.68,
+        "home_adv": 1.12,
+        "avg_corners": 9.7,
+        "avg_cards": 3.3,
+        "rho": -0.06
+    },
+    {
+        "code": "liga_mx_femenil",
+        "name": "Liga MX Femenil",
+        "country": "México",
+        "avg_goals": 1.64,
+        "home_adv": 1.15,
+        "avg_corners": 9.3,
+        "avg_cards": 3.6,
+        "rho": -0.07
     }
 ]
 
@@ -113,7 +153,7 @@ TEAMS_CONFIG = [
     {"name": "Manchester City", "league": "premier_league", "elo": 1960.0, "aliases": "man city,manchester city,mcfc,city"},
     {"name": "Arsenal", "league": "premier_league", "elo": 1920.0, "aliases": "arsenal,afc,gunners"},
     {"name": "Liverpool", "league": "premier_league", "elo": 1940.0, "aliases": "liverpool,lfc,reds"},
-    {"name": "Aston Villa", "league": "premier_league", "elo": 1780.0, "aliases": "aston villa,villa,avfc"},
+    {"name": "Aston Villa", "league": "premier_league", "elo": 1730.0, "aliases": "aston villa,villa,avfc"},
     {"name": "Tottenham", "league": "premier_league", "elo": 1770.0, "aliases": "tottenham,tottenham hotspur,spurs,thfc"},
     {"name": "Chelsea", "league": "premier_league", "elo": 1790.0, "aliases": "chelsea,cfc,blues"},
     {"name": "Newcastle", "league": "premier_league", "elo": 1760.0, "aliases": "newcastle,newcastle united,magpies"},
@@ -129,7 +169,7 @@ TEAMS_CONFIG = [
     {"name": "Real Sociedad", "league": "laliga", "elo": 1760.0, "aliases": "real sociedad,la real,txuri-urdin"},
     {"name": "Villarreal", "league": "laliga", "elo": 1750.0, "aliases": "villarreal,submarino amarillo"},
     {"name": "Real Betis", "league": "laliga", "elo": 1730.0, "aliases": "real betis,betis,béticos"},
-    {"name": "Girona", "league": "laliga", "elo": 1740.0, "aliases": "girona,girona fc"},
+    {"name": "Girona", "league": "laliga", "elo": 1640.0, "aliases": "girona,girona fc"},
     {"name": "Sevilla", "league": "laliga", "elo": 1690.0, "aliases": "sevilla,sevilla fc,palanganas"},
     {"name": "Valencia", "league": "laliga", "elo": 1660.0, "aliases": "valencia,valencia cf,che"},
 
@@ -145,10 +185,10 @@ TEAMS_CONFIG = [
 
     # Bundesliga
     {"name": "Bayern Munich", "league": "bundesliga", "elo": 1930.0, "aliases": "bayern,bayern munich,bayern münchen,bavaria"},
-    {"name": "Bayer Leverkusen", "league": "bundesliga", "elo": 1900.0, "aliases": "leverkusen,bayer leverkusen,werkself"},
+    {"name": "Bayer Leverkusen", "league": "bundesliga", "elo": 1775.0, "aliases": "leverkusen,bayer leverkusen,werkself"},
     {"name": "Borussia Dortmund", "league": "bundesliga", "elo": 1820.0, "aliases": "dortmund,borussia dortmund,bvb"},
     {"name": "RB Leipzig", "league": "bundesliga", "elo": 1810.0, "aliases": "leipzig,rb leipzig,red bull leipzig"},
-    {"name": "Stuttgart", "league": "bundesliga", "elo": 1760.0, "aliases": "stuttgart,vfb stuttgart"},
+    {"name": "Stuttgart", "league": "bundesliga", "elo": 1650.0, "aliases": "stuttgart,vfb stuttgart"},
     {"name": "Eintracht Frankfurt", "league": "bundesliga", "elo": 1730.0, "aliases": "frankfurt,eintracht frankfurt,eintracht"},
 
     # Ligue 1
@@ -179,12 +219,93 @@ TEAMS_CONFIG = [
     {"name": "Sporting CP", "league": "primeira_liga", "elo": 1860.0, "aliases": "sporting,sporting cp,sporting lisbon,sporting lisboa,sporting de lisboa,sp lisbon,leoes"},
     {"name": "Benfica", "league": "primeira_liga", "elo": 1840.0, "aliases": "benfica,sl benfica,aguias"},
     {"name": "FC Porto", "league": "primeira_liga", "elo": 1820.0, "aliases": "porto,fc porto,oporto,dragoes"},
-    {"name": "SC Braga", "league": "primeira_liga", "elo": 1730.0, "aliases": "braga,sc braga,sp braga,sporting braga"}
+    {"name": "SC Braga", "league": "primeira_liga", "elo": 1730.0, "aliases": "braga,sc braga,sp braga,sporting braga"},
+
+    # Liga F Femenina (España)
+    {"name": "Barcelona F", "league": "liga_f", "elo": 2030.0, "aliases": "barcelona f,barcelona w,fc barcelona f,fc barcelona w,barcelona fem,barcelona femenino,barcelona femenil,barcelona women,barca f,barca w,barça f,barça w"},
+    {"name": "Real Madrid F", "league": "liga_f", "elo": 1840.0, "aliases": "real madrid f,real madrid w,madrid f,madrid w,real madrid fem,real madrid femenino,real madrid femenil,real madrid women"},
+    {"name": "Atletico Madrid F", "league": "liga_f", "elo": 1800.0, "aliases": "atletico madrid f,atletico madrid w,atleti f,atleti w,atletico de madrid f,atletico de madrid w,atletico madrid femenino,atletico madrid femenil,atletico madrid women"},
+    {"name": "Athletic Bilbao F", "league": "liga_f", "elo": 1740.0, "aliases": "athletic bilbao f,athletic bilbao w,athletic club f,athletic club w,bilbao f,bilbao w,athletic bilbao femenino,athletic femenino"},
+    {"name": "Real Sociedad F", "league": "liga_f", "elo": 1720.0, "aliases": "real sociedad f,real sociedad w,la real f,la real w,real sociedad femenino,real sociedad femenil"},
+    {"name": "Levante F", "league": "liga_f", "elo": 1730.0, "aliases": "levante f,levante w,levante ud f,levante ud w,levante femenino,levante women"},
+    {"name": "Madrid CFF", "league": "liga_f", "elo": 1710.0, "aliases": "madrid cff,madrid cff f,madrid cff w,madrid club de futbol femenino"},
+    {"name": "Sevilla F", "league": "liga_f", "elo": 1680.0, "aliases": "sevilla f,sevilla w,sevilla fc f,sevilla fc w,sevilla femenino,sevilla femenil"},
+    {"name": "Valencia F", "league": "liga_f", "elo": 1650.0, "aliases": "valencia f,valencia w,valencia cf f,valencia cf w,valencia femenino"},
+    {"name": "Real Betis F", "league": "liga_f", "elo": 1640.0, "aliases": "real betis f,real betis w,betis f,betis w,real betis feminas,betis femenino"},
+
+    # Women's Super League (Inglaterra)
+    {"name": "Chelsea F", "league": "wsl", "elo": 1960.0, "aliases": "chelsea f,chelsea w,chelsea women,chelsea fc women,chelsea ladies,chelsea femenino,chelsea femenil"},
+    {"name": "Manchester City F", "league": "wsl", "elo": 1920.0, "aliases": "manchester city f,manchester city w,man city f,man city w,manchester city women,man city women,manchester city femenino,manchester city femenil"},
+    {"name": "Arsenal F", "league": "wsl", "elo": 1910.0, "aliases": "arsenal f,arsenal w,arsenal women,arsenal fc women,arsenal ladies,arsenal femenino,arsenal femenil"},
+    {"name": "Manchester United F", "league": "wsl", "elo": 1820.0, "aliases": "manchester united f,manchester united w,man united f,man united w,man utd f,man utd w,manchester united women,man united women,manchester united femenino"},
+    {"name": "Liverpool F", "league": "wsl", "elo": 1760.0, "aliases": "liverpool f,liverpool w,liverpool women,liverpool fc women,liverpool ladies,liverpool femenino"},
+    {"name": "Tottenham F", "league": "wsl", "elo": 1730.0, "aliases": "tottenham f,tottenham w,tottenham hotspur f,tottenham hotspur w,tottenham women,spurs f,spurs w,spurs women,tottenham femenino"},
+    {"name": "Aston Villa F", "league": "wsl", "elo": 1710.0, "aliases": "aston villa f,aston villa w,villa f,villa w,aston villa women,aston villa femenino"},
+    {"name": "Brighton F", "league": "wsl", "elo": 1690.0, "aliases": "brighton f,brighton w,brighton women,brighton and hove albion w,brighton femenino"},
+    {"name": "Everton F", "league": "wsl", "elo": 1680.0, "aliases": "everton f,everton w,everton women,everton ladies,everton femenino"},
+    {"name": "West Ham F", "league": "wsl", "elo": 1660.0, "aliases": "west ham f,west ham w,west ham united f,west ham united w,west ham women,west ham femenino"},
+
+    # Champions Femenina / Grandes de Europa (Francia, Alemania, Italia, Portugal, Países Bajos)
+    {"name": "Lyon F", "league": "uwcl", "elo": 1990.0, "aliases": "lyon f,lyon w,olympique lyonnais f,olympique lyonnais w,ol feminin,lyon feminin,lyon femenino,lyon femenil,lyon women"},
+    {"name": "PSG F", "league": "uwcl", "elo": 1890.0, "aliases": "psg f,psg w,paris saint-germain f,paris saint-germain w,paris sg f,paris sg w,psg feminin,psg femenino,psg femenil,psg women"},
+    {"name": "Paris FC F", "league": "uwcl", "elo": 1780.0, "aliases": "paris fc f,paris fc w,paris fc feminin,paris fc women,paris fc femenino"},
+    {"name": "Bayern Munich F", "league": "uwcl", "elo": 1920.0, "aliases": "bayern munich f,bayern munich w,bayern f,bayern w,bayern munchen f,bayern munchen w,bayern frauen,bayern munich women,bayern femenino,bayern femenil"},
+    {"name": "Wolfsburg F", "league": "uwcl", "elo": 1900.0, "aliases": "wolfsburg f,wolfsburg w,vfl wolfsburg f,vfl wolfsburg w,wolfsburg frauen,wolfsburg women,wolfsburgo f,wolfsburgo w,wolfsburg femenino"},
+    {"name": "Eintracht Frankfurt F", "league": "uwcl", "elo": 1810.0, "aliases": "eintracht frankfurt f,eintracht frankfurt w,frankfurt f,frankfurt w,eintracht frankfurt frauen,frankfurt women,frankfurt femenino"},
+    {"name": "Bayer Leverkusen F", "league": "uwcl", "elo": 1750.0, "aliases": "bayer leverkusen f,bayer leverkusen w,leverkusen f,leverkusen w,leverkusen frauen,leverkusen women,leverkusen femenino"},
+    {"name": "Juventus F", "league": "uwcl", "elo": 1830.0, "aliases": "juventus f,juventus w,juve f,juve w,juventus women,juventus femminile,juventus femenino,juventus femenil"},
+    {"name": "Roma F", "league": "uwcl", "elo": 1820.0, "aliases": "roma f,roma w,as roma f,as roma w,roma women,roma femminile,roma femenino,roma femenil"},
+    {"name": "Inter F", "league": "uwcl", "elo": 1760.0, "aliases": "inter f,inter w,inter milan f,inter milan w,inter women,inter femminile,inter femenino"},
+    {"name": "AC Milan F", "league": "uwcl", "elo": 1750.0, "aliases": "ac milan f,ac milan w,milan f,milan w,ac milan women,milan femminile,milan femenino"},
+    {"name": "Fiorentina F", "league": "uwcl", "elo": 1740.0, "aliases": "fiorentina f,fiorentina w,fiorentina women,fiorentina femminile,fiorentina femenino"},
+    {"name": "Benfica F", "league": "uwcl", "elo": 1800.0, "aliases": "benfica f,benfica w,sl benfica f,sl benfica w,benfica women,benfica femenino,benfica femenil"},
+    {"name": "Sporting CP F", "league": "uwcl", "elo": 1740.0, "aliases": "sporting cp f,sporting cp w,sporting f,sporting w,sporting lisbon w,sporting femenino"},
+    {"name": "Ajax F", "league": "uwcl", "elo": 1770.0, "aliases": "ajax f,ajax w,afc ajax f,afc ajax w,ajax women,ajax vrouwen,ajax femenino"},
+    {"name": "Twente F", "league": "uwcl", "elo": 1750.0, "aliases": "twente f,twente w,fc twente f,fc twente w,twente women,twente vrouwen,twente femenino"},
+
+    # Liga MX Femenil (México)
+    {"name": "Tigres UANL F", "league": "liga_mx_femenil", "elo": 1820.0, "aliases": "tigres uanl f,tigres uanl w,tigres f,tigres w,tigres femenil,tigres uanl femenil,tigres femenino,las amazonas,amazonas"},
+    {"name": "América F", "league": "liga_mx_femenil", "elo": 1800.0, "aliases": "america f,america w,américa f,américa w,club america f,club america w,america femenil,américa femenil,club america femenil,america femenino"},
+    {"name": "Monterrey F", "league": "liga_mx_femenil", "elo": 1790.0, "aliases": "monterrey f,monterrey w,rayadas,rayadas de monterrey,monterrey femenil,cf monterrey f,cf monterrey w,monterrey femenino"},
+    {"name": "Pachuca F", "league": "liga_mx_femenil", "elo": 1750.0, "aliases": "pachuca f,pachuca w,tuzas,pachuca femenil,cf pachuca f,cf pachuca w,pachuca femenino"},
+    {"name": "Guadalajara F", "league": "liga_mx_femenil", "elo": 1740.0, "aliases": "guadalajara f,guadalajara w,chivas f,chivas w,chivas femenil,guadalajara femenil,cd guadalajara f,cd guadalajara w,guadalajara femenino"},
+    {"name": "Pumas UNAM F", "league": "liga_mx_femenil", "elo": 1660.0, "aliases": "pumas unam f,pumas unam w,pumas f,pumas w,pumas femenil,pumas unam femenil,pumas femenino"},
+    {"name": "Cruz Azul F", "league": "liga_mx_femenil", "elo": 1630.0, "aliases": "cruz azul f,cruz azul w,cruz azul femenil,cruz azul femenino"},
+    {"name": "Toluca F", "league": "liga_mx_femenil", "elo": 1650.0, "aliases": "toluca f,toluca w,toluca femenil,deportivo toluca f,toluca femenino"},
+    {"name": "Juárez F", "league": "liga_mx_femenil", "elo": 1670.0, "aliases": "juarez f,juarez w,juárez f,juárez w,fc juarez f,fc juarez w,juarez femenil,bravas,bravas de juarez"},
+    {"name": "Atlas F", "league": "liga_mx_femenil", "elo": 1640.0, "aliases": "atlas f,atlas w,atlas femenil,atlas fc f,atlas femenino"}
 ]
 
 class LeagueDatabaseService:
     def __init__(self):
         self._ensure_seeded()
+
+    def _is_womens_query(self, text: str) -> bool:
+        """
+        Detecta si una consulta o nombre de equipo corresponde a fútbol femenino
+        (sufijos 'F' o 'W' de Flashscore/Sofascore, 'Femenil', 'Femenino', 'Women', 'Frauen', 'Femminile', etc.).
+        """
+        if not text:
+            return False
+        t = text.lower().strip()
+        replacements = [('á', 'a'), ('é', 'e'), ('í', 'i'), ('ó', 'o'), ('ú', 'u'), ('ü', 'u'), ('ñ', 'n')]
+        for a, b in replacements:
+            t = t.replace(a, b)
+        # Sufijos explícitos en Flashscore/Sofascore: "Barcelona F", "Chelsea W", "Real Madrid (F)", "Arsenal (W)"
+        if re.search(r"(?:\s+|[(\[/])(f|w)(?:[)\]]|\s*)$", t):
+            return True
+        # Palabras clave de categoría femenina o apodos exclusivos femeniles
+        if re.search(r"\b(femenil|femenino|femenina|feminas|feminin|femminile|vrouwen|frauen|women|womens|ladies|fem|madrid cff|rayadas|amazonas|tuzas|bravas)\b", t):
+            return True
+        return False
+
+    def _clean_club_base(self, text: str) -> str:
+        """Limpia tanto prefijos de club como marcadores femeninos para comparar la raíz del club dentro de su categoría."""
+        t = self._clean_str(text)
+        t = re.sub(r"(?:\s+|[(\[/])(f|w)(?:[)\]]|\s*)$", "", t).strip()
+        t = re.sub(r"\b(femenil|femenino|femenina|feminas|feminin|femminile|vrouwen|frauen|women|womens|ladies|fem)\b", "", t).strip()
+        t = re.sub(r"\s+", " ", t)
+        return t
 
     def _clean_str(self, text: str) -> str:
         if not text:
@@ -194,8 +315,10 @@ class LeagueDatabaseService:
         replacements = [('á', 'a'), ('é', 'e'), ('í', 'i'), ('ó', 'o'), ('ú', 'u'), ('ü', 'u'), ('ñ', 'n')]
         for a, b in replacements:
             t = t.replace(a, b)
+        # Quitar paréntesis/corchetes alrededor de sufijos F/W: "Barcelona (F)" -> "barcelona f"
+        t = re.sub(r"[(\[]\s*(f|w|fem|femenil|femenino|women)\s*[)\]]", r" \1", t)
         # Quitar prefijos comunes
-        t = re.sub(r"\b(fc|cf|club|deportivo|real|cd)\b", "", t).strip()
+        t = re.sub(r"\b(fc|cf|club|deportivo|real|cd|ud|sc|sl|afc|vfl|as)\b", "", t).strip()
         t = re.sub(r"\s+", " ", t)
         return t
 
@@ -204,8 +327,9 @@ class LeagueDatabaseService:
         db = SessionLocal()
         try:
             m_count = db.query(HistoricalMatch).count()
-            if m_count < 500:
-                logger.info("Base de datos de ligas vacía o incompleta. Cargando datos reales de ligas...")
+            womens_league = db.query(League).filter(League.code == "liga_f").first()
+            if m_count < 500 or not womens_league:
+                logger.info("Base de datos de ligas vacía o sin soporte femenil. Actualizando datos reales de ligas...")
                 from backend.app.services.real_data_loader import populate_real_database_and_compute_elo
                 populate_real_database_and_compute_elo(db)
         except Exception as e:
@@ -394,11 +518,13 @@ class LeagueDatabaseService:
         logger.info("Caché analítica de equipos actualizada exitosamente.")
 
     def normalize_team(self, query: str, db=None) -> Optional[Team]:
-        """Localiza un equipo por nombre o alias."""
+        """Localiza un equipo por nombre o alias, separando estrictamente clubes masculinos y femeninos (F / W)."""
         if not query:
             return None
         q = query.strip()
         q_clean = self._clean_str(q)
+        is_womens_q = self._is_womens_query(q)
+        q_base = self._clean_club_base(q)
 
         local_session = False
         if db is None:
@@ -406,15 +532,17 @@ class LeagueDatabaseService:
             local_session = True
 
         try:
-            # 1. Coincidencia exacta insensible a mayúsculas
-            team = db.query(Team).filter(Team.name.ilike(q)).first()
-            if team:
-                return team
-
             all_teams = db.query(Team).all()
+            # Particionar estrictamente entre equipos femeninos y masculinos para evitar colisiones (ej. "Barcelona F" vs "Barcelona")
+            candidate_teams = [
+                t for t in all_teams
+                if (self._is_womens_query(t.name) or t.league_code in ("liga_f", "wsl", "uwcl", "liga_mx_femenil")) == is_womens_q
+            ]
 
-            # 2. Coincidencia exacta de alias o nombre limpio
-            for t in all_teams:
+            # 1. Coincidencia exacta de nombre o alias limpio dentro de la categoría correspondiente
+            for t in candidate_teams:
+                if t.name.lower() == q.lower():
+                    return t
                 t_clean = self._clean_str(t.name)
                 if q_clean == t_clean:
                     return t
@@ -422,15 +550,28 @@ class LeagueDatabaseService:
                 if q_clean in aliases:
                     return t
 
-            # 3. Coincidencia de palabra completa (longitud >= 3) para evitar colisiones con palabras cortas
-            for t in all_teams:
-                t_clean = self._clean_str(t.name)
-                if len(t_clean) >= 3 and re.search(r'\b' + re.escape(t_clean) + r'\b', q_clean):
-                    return t
-                aliases = [self._clean_str(a) for a in (t.aliases or "").split(",") if len(self._clean_str(a)) >= 3]
-                for a in aliases:
-                    if re.search(r'\b' + re.escape(a) + r'\b', q_clean) or re.search(r'\b' + re.escape(q_clean) + r'\b', a):
+            # 2. Si es consulta femenina (ej. "Barcelona W", "Chelsea (W)", "Arsenal Femenino"), comparar raíz limpia del club
+            if is_womens_q and q_base:
+                for t in candidate_teams:
+                    t_base = self._clean_club_base(t.name)
+                    if q_base == t_base:
                         return t
+                    alias_bases = [self._clean_club_base(a) for a in (t.aliases or "").split(",") if a.strip()]
+                    if q_base in alias_bases:
+                        return t
+
+            # 3. Coincidencia de palabra completa (longitud >= 3) dentro de la categoría (femenina o masculina)
+            for t in candidate_teams:
+                t_target = self._clean_club_base(t.name) if is_womens_q else self._clean_str(t.name)
+                q_target = q_base if is_womens_q else q_clean
+                if len(t_target) >= 3 and re.search(r'\b' + re.escape(t_target) + r'\b', q_target):
+                    return t
+                raw_aliases = (t.aliases or "").split(",")
+                for raw_a in raw_aliases:
+                    a = self._clean_club_base(raw_a) if is_womens_q else self._clean_str(raw_a)
+                    if len(a) >= 3:
+                        if re.search(r'\b' + re.escape(a) + r'\b', q_target) or re.search(r'\b' + re.escape(q_target) + r'\b', a):
+                            return t
 
             return None
         finally:
@@ -449,14 +590,25 @@ class LeagueDatabaseService:
         """
         db = SessionLocal()
         try:
-            home_team_obj = self.normalize_team(home_query, db=db)
-            away_team_obj = self.normalize_team(away_query, db=db)
+            # Si la competición indica explícitamente liga femenina, propagar contexto a nombres sin sufijo
+            is_comp_womens = bool(competition_query and self._is_womens_query(competition_query))
+            h_q = f"{home_query} F" if (is_comp_womens and not self._is_womens_query(home_query)) else home_query
+            a_q = f"{away_query} F" if (is_comp_womens and not self._is_womens_query(away_query)) else away_query
+
+            home_team_obj = self.normalize_team(h_q, db=db)
+            away_team_obj = self.normalize_team(a_q, db=db)
 
             if not home_team_obj or not away_team_obj:
                 return None
 
             # Determinar competición oficial
-            league_code = home_team_obj.league_code
+            if home_team_obj.league_code != away_team_obj.league_code:
+                if self._is_womens_query(home_team_obj.name) or self._is_womens_query(away_team_obj.name):
+                    league_code = "uwcl"
+                else:
+                    league_code = "champions_league"
+            else:
+                league_code = home_team_obj.league_code
             league_obj = db.query(League).filter(League.code == league_code).first()
             comp_name = league_obj.name if league_obj else (competition_query or "General")
 
@@ -549,6 +701,7 @@ class LeagueDatabaseService:
                 avg_goals_scored=h_cache.avg_goals_scored,
                 avg_goals_conceded=h_cache.avg_goals_conceded,
                 avg_corners=h_cache.avg_corners,
+                avg_corners_conceded=getattr(h_cache, "avg_corners_conceded", None),
                 avg_cards=h_cache.avg_cards,
                 win_rate_last_5=h_cache.win_rate_last_5,
                 key_absences=[],
@@ -565,6 +718,7 @@ class LeagueDatabaseService:
                 avg_goals_scored=a_cache.avg_goals_scored,
                 avg_goals_conceded=a_cache.avg_goals_conceded,
                 avg_corners=a_cache.avg_corners,
+                avg_corners_conceded=getattr(a_cache, "avg_corners_conceded", None),
                 avg_cards=a_cache.avg_cards,
                 win_rate_last_5=a_cache.win_rate_last_5,
                 key_absences=[],

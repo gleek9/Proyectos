@@ -226,6 +226,15 @@ COMPETITION_BASELINES = {
     "coppa italia": {"avg_goals_team": 1.34, "home_adv": 1.13, "avg_corners": 9.5, "rho": -0.12},     # ~2.68 goles totales
     "dfb pokal": {"avg_goals_team": 1.50, "home_adv": 1.12, "avg_corners": 9.8, "rho": -0.07},        # ~3.00 goles totales
     "mls": {"avg_goals_team": 1.45, "home_adv": 1.15, "avg_corners": 9.6, "rho": -0.08},              # ~2.90 goles totales
+    "liga f femenina": {"avg_goals_team": 1.58, "home_adv": 1.13, "avg_corners": 9.4, "rho": -0.07},  # ~3.16 goles totales
+    "liga f": {"avg_goals_team": 1.58, "home_adv": 1.13, "avg_corners": 9.4, "rho": -0.07},
+    "women's super league": {"avg_goals_team": 1.62, "home_adv": 1.12, "avg_corners": 9.8, "rho": -0.06},
+    "wsl": {"avg_goals_team": 1.62, "home_adv": 1.12, "avg_corners": 9.8, "rho": -0.06},
+    "champions femenina": {"avg_goals_team": 1.68, "home_adv": 1.12, "avg_corners": 9.7, "rho": -0.06},
+    "uwcl": {"avg_goals_team": 1.68, "home_adv": 1.12, "avg_corners": 9.7, "rho": -0.06},
+    "liga mx femenil": {"avg_goals_team": 1.64, "home_adv": 1.15, "avg_corners": 9.3, "rho": -0.07},
+    "femenil": {"avg_goals_team": 1.60, "home_adv": 1.14, "avg_corners": 9.4, "rho": -0.07},
+    "femenina": {"avg_goals_team": 1.60, "home_adv": 1.13, "avg_corners": 9.5, "rho": -0.07},
 }
 
 def get_competition_parameters(competition_name: Optional[str]) -> Tuple[float, float, float]:
@@ -395,6 +404,21 @@ class DixonColesPoissonModel:
             away_ga = 0.55 * float(away.away_goals_conceded) + 0.45 * away_ga
 
         league_ref = league_avg_goals
+
+        # 2.5. Proxy xG mediante Tiros a Puerta (SoT): amortigua la varianza de definición en muestras cortas
+        if getattr(home, "avg_shots_target_for", None) is not None and float(home.avg_shots_target_for) > 0:
+            sot_xg_h = float(home.avg_shots_target_for) * (league_ref / 4.45)
+            home_gf = 0.78 * home_gf + 0.22 * sot_xg_h
+        if getattr(home, "avg_shots_target_against", None) is not None and float(home.avg_shots_target_against) > 0:
+            sot_xga_h = float(home.avg_shots_target_against) * (league_ref / 4.45)
+            home_ga = 0.78 * home_ga + 0.22 * sot_xga_h
+        if getattr(away, "avg_shots_target_for", None) is not None and float(away.avg_shots_target_for) > 0:
+            sot_xg_a = float(away.avg_shots_target_for) * (league_ref / 4.45)
+            away_gf = 0.78 * away_gf + 0.22 * sot_xg_a
+        if getattr(away, "avg_shots_target_against", None) is not None and float(away.avg_shots_target_against) > 0:
+            sot_xga_a = float(away.avg_shots_target_against) * (league_ref / 4.45)
+            away_ga = 0.78 * away_ga + 0.22 * sot_xga_a
+
         w_shrink = 0.70
         h_att_shrunk = w_shrink * home_gf + (1.0 - w_shrink) * league_ref
         a_def_shrunk = w_shrink * away_ga + (1.0 - w_shrink) * league_ref
@@ -408,7 +432,7 @@ class DixonColesPoissonModel:
         att_ratio_a = (max(0.40, a_att_shrunk) / league_ref) ** gamma
         def_ratio_h = (max(0.40, h_def_shrunk) / league_ref) ** gamma
 
-        # 3.5. Modulación por Rating Elo Dinámico Oficial (Katakuri v4.1)
+        # 3.5. Modulación por Rating Elo Dinámico Oficial (sin doble conteo excesivo)
         elo_h = getattr(home, "elo_rating", None)
         elo_a = getattr(away, "elo_rating", None)
         if elo_h is None or elo_a is None:
@@ -429,9 +453,9 @@ class DixonColesPoissonModel:
         elo_mult_a = 1.0
         if elo_h is not None and elo_a is not None:
             delta_elo = float(elo_h) - float(elo_a)
-            # Factor simétrico calibrado: modula hasta +/- 26% entre élite y colista (divisor 2100.0)
+            # Divisor 2250.0 equilibrado para no duplicar el prior estructural de goles
             elo_diff_clamped = float(np.clip(delta_elo, -400.0, 400.0))
-            elo_mult_h = float(10.0 ** (elo_diff_clamped / 2100.0))
+            elo_mult_h = float(10.0 ** (elo_diff_clamped / 2250.0))
             elo_mult_a = float(1.0 / elo_mult_h)
 
         # 4. Ponderación posicional de ausencias clave
@@ -454,31 +478,27 @@ class DixonColesPoissonModel:
             mu_away *= h2h_scale
 
         # 6.5. Modulación de Bloque Bajo / Repliegue Táctico del Visitante (Underdog Low Block)
-        # Cuando un visitante de baja forma (win_rate_last_5 <= 0.20) visita a un claro favorito local (ratio >= 1.45),
-        # adopta postura de repliegue profundo que reduce la generación ofensiva del visitante y espesa el ritmo global.
         away_wr = float(away.win_rate_last_5) if float(away.win_rate_last_5) <= 1.0 else float(away.win_rate_last_5) / 100.0
         if away_wr <= 0.20 and (lambda_home / max(0.1, mu_away)) >= 1.45:
             mu_away *= 0.88
-            # Si además el favorito local sufre ausencias en delantera, el ritmo goleador global se atenúa
             if any(any(kw in str(a).lower() for kw in ["(fw)", "(st)", "(cf)", "delantero", "striker"]) for a in home.key_absences):
                 lambda_home *= 0.94
 
-        # 7. Techo dinámico realista de la competición (previene proyecciones infladas > 3.6 en partidos regulares)
-        max_match_goals = league_avg_goals * 2.0 * 1.22
+        # 7. Techo dinámico ampliado para no recortar asimetrías reales en duelos desiguales
+        max_match_goals = league_avg_goals * 2.0 * 1.30
         tot_lambdas = lambda_home + mu_away
         if tot_lambdas > max_match_goals:
             scale = max_match_goals / tot_lambdas
             lambda_home *= scale
             mu_away *= scale
 
-        # Rango seguro y calibrado de lambdas en fútbol profesional de élite con conservación exacta de ratio
-        max_lh = 2.90
+        max_lh = 3.20
         if lambda_home > max_lh:
             scale = max_lh / lambda_home
             lambda_home *= scale
             mu_away *= scale
         lambda_home = float(max(0.30, lambda_home))
-        mu_away = float(max(0.25, min(2.30, mu_away)))
+        mu_away = float(max(0.25, min(2.60, mu_away)))
 
         return lambda_home, mu_away
 
@@ -775,20 +795,28 @@ class DixonColesPoissonModel:
 
 
         # -------------------------------------------------------------
-        # Proyección de Córners (Balanza Territorial, Suma Equilibrada y Calibrada)
+        # Proyección de Córners (Modelo Ataque vs Defensa de Córners + Efecto de Liga Calibrado)
         # -------------------------------------------------------------
         _, _, league_avg_corners = get_competition_parameters(getattr(features, "competition", "General"))
 
-        # 1. Regularización Bayesiana de las tasas individuales de córners (atenúa extremos)
-        w_cn_reg = 0.62
-        h_cn_rate = w_cn_reg * features.home_stats.avg_corners + (1.0 - w_cn_reg) * (league_avg_corners * 0.53)
-        a_cn_rate = w_cn_reg * features.away_stats.avg_corners + (1.0 - w_cn_reg) * (league_avg_corners * 0.47)
+        # 1. Córners creados vs córners concedidos por el rival (ponderación Huber calibrada en validación)
+        h_cn_for = float(features.home_stats.avg_corners)
+        a_cn_for = float(features.away_stats.avg_corners)
+        h_cn_opp = getattr(features.home_stats, "avg_corners_conceded", None)
+        a_cn_opp = getattr(features.away_stats, "avg_corners_conceded", None)
 
-        # 2. Ritmo global de saques de esquina del partido (el 60% se ancla firmemente a la media de la liga)
-        delta_rate = (h_cn_rate + a_cn_rate) - league_avg_corners
-        pace_elasticity = 0.40  # Elasticidad controlada: modula sin disparar la suma total
-        tot_match_corners = league_avg_corners + (delta_rate * pace_elasticity)
-        tot_match_corners = float(np.clip(tot_match_corners, 8.2, 10.9))
+        if h_cn_opp is not None and a_cn_opp is not None and float(h_cn_opp) > 0 and float(a_cn_opp) > 0:
+            raw_h_cn = 0.42 * h_cn_for + 0.58 * float(a_cn_opp)
+            raw_a_cn = 0.42 * a_cn_for + 0.58 * float(h_cn_opp)
+            tot_match_corners = 0.68 * (raw_h_cn + raw_a_cn) + 0.32 * league_avg_corners
+        else:
+            w_cn_reg = 0.62
+            h_cn_rate = w_cn_reg * h_cn_for + (1.0 - w_cn_reg) * (league_avg_corners * 0.53)
+            a_cn_rate = w_cn_reg * a_cn_for + (1.0 - w_cn_reg) * (league_avg_corners * 0.47)
+            delta_rate = (h_cn_rate + a_cn_rate) - league_avg_corners
+            tot_match_corners = league_avg_corners + (delta_rate * 0.52)
+
+        tot_match_corners = float(np.clip(tot_match_corners, 7.2, 12.4))
 
         # 3. Balanza territorial y cuota de posesión de suma constante
         tot_lambdas = max(0.2, lambda_base_h + mu_base_a)

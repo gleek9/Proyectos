@@ -48,11 +48,11 @@ Cada proyecto alojado aquí cumple con tres pilares:
 - **Problemática que Resuelve**: Asimetría de información, sesgo humano y fuga temporal (*look-ahead bias*) en el análisis deportivo. Calibrado con **4,749 partidos oficiales reales** (`football-data.co.uk`) en **9 competiciones** y **ratings Elo dinámicos para 164 clubes**, ejecuta inferencia probabilística multi-modelo (1X2, Goles, Córners adaptativos en vivo, Tarjetas) y **Backtesting Walk-Forward Point-in-Time con Value Betting (Stake Plano + 1/4 Kelly vs Bet365)**.
 - **Stack Principal**: `Python 3.10+` · `FastAPI` · `React 19.2` · `Vite 8.3` · `PyTorch LSTM` · `XGBoost (23 features)` · `SQLite` · `Gemini 3.5 Flash Lite`
 
-### 02. [Citi Analyzer v1.0.0 (Analizador de Redes)](./Analizador%20de%20redes)
+### 02. [Social Analyzer v1.1 (Analizador de Redes)](./Analizador%20de%20redes)
 
-- **Estado**: Activo — **v1.0.0** (100% Operativo)
+- **Estado**: Activo — **v1.1** (100% Operativo)
 - **Directorio**: [`./Analizador de redes`](./Analizador%20de%20redes)
-- **Problemática que Resuelve**: Fricción en la investigación competitiva de contenido corto en Instagram. Automatiza la radiografía de voz de marca del cliente, detecta el **Top 3 de Reels más virales** de su competencia mediante **Apify**, extrae y transcribe el audio real con **`yt-dlp` + Gemini 3.0 Multimodal** y genera **3 guiones completos adaptados** con escaleta segundo a segundo en un tablero Kanban con estética *Swiss Grid Anti-IA* (`#58FF9C`).
+- **Problemática que Resuelve**: Fricción en la investigación competitiva de contenido corto en Instagram. **Social Analyzer** automatiza la radiografía de voz de marca del cliente, detecta el **Top 3 de Reels más virales** de su competencia mediante **Apify**, extrae y transcribe el audio real con **`yt-dlp` + Gemini 3.0 Multimodal** y genera **3 guiones completos adaptados** con escaleta segundo a segundo en un tablero Kanban con estética *Swiss Grid Anti-IA* (`#58FF9C`).
 - **Stack Principal**: `Python 3.11+` · `FastAPI` · `React` · `TypeScript` · `Tailwind CSS` · `SQLite` · `Apify API` · `yt-dlp` · `Gemini 3.0 Flash`
 
 ### 03. [Cuva v1.4 (Optimizador de CV & Auditor ATS)](./Optimizador%20de%20cv)
@@ -113,10 +113,10 @@ Proyectos/
 │   ├── backend/                       # FastAPI + Motores Poisson, XGBoost (23 vars), LSTM y Walk-Forward
 │   └── frontend/                      # Interfaz Dark IDE en React 19 + Vite 8 + Chart.js
 │
-├── Analizador de redes/               # 02. Citi Analyzer v1.0.0 — Inteligencia de Reels & Guiones
-│   ├── README.md                      # Documentación técnica de Citi Analyzer v1.0.0
+├── Analizador de redes/               # 02. Social Analyzer v1.1 — Inteligencia de Reels & Guiones
+│   ├── README.md                      # Documentación técnica de Social Analyzer v1.1
 │   ├── AGENTS.md                      # Especificación de diseño Swiss Grid Anti-IA y pipeline
-│   ├── PROJECT_STATUS.md              # Control de fases y guía de despliegue
+│   ├── PROJECT_STATUS.md              # Control de fases y guía de despliegue (v1.1)
 │   ├── start_local.bat                # Lanzador automático en 1 clic para Windows
 │   ├── backend/                       # FastAPI + Apify + yt-dlp + Gemini 3.0 Multimodal
 │   └── frontend/                      # Tablero Kanban y Modal 6xl en React + TS + Tailwind
@@ -146,7 +146,7 @@ Dado que este repositorio funciona como un **monorepo**, cada proyecto es autón
    cd "Analista deportivo"
    python run_app.py
    ```
-3. **Iniciar Citi Analyzer v1.0.0 (`Analizador de redes`)**:
+3. **Iniciar Social Analyzer v1.1 (`Analizador de redes`)**:
    ```bat
    cd "Analizador de redes"
    .\start_local.bat

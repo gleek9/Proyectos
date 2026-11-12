@@ -1,7 +1,8 @@
-# PROJECT_STATUS.md — Estado del Proyecto: Cuva
+# PROJECT_STATUS.md — Estado del Proyecto: Cuva v1.4
 
-> **Última actualización:** 2026-10-22  
-> **Progreso Global:** 100% (Errores corregidos, Drag & Drop implementado, marca actualizada a Cuva y ejecutable generado con éxito)
+> **Última actualización:** 2026-11-10  
+> **Versión Actual:** `v1.4`  
+> **Progreso Global:** 100% (Gemini 3.0+ Flash con rotación de cuota, umbral 75%, residencia cumplida, estética Cyber-Obsidian & Precision Neon 2026 y ejecutable `dist/Cuva.exe` generado con éxito)
 
 ---
 

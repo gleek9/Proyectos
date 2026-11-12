@@ -34,6 +34,7 @@ class TeamFormStats(BaseModel):
     away_goals_conceded: Optional[float] = Field(None, description="Promedio de goles concedidos jugando como visitante")
     avg_shots_target_for: Optional[float] = Field(None, description="Promedio de tiros a puerta a favor por partido")
     avg_shots_target_against: Optional[float] = Field(None, description="Promedio de tiros a puerta concedidos por partido")
+    avg_corners_conceded: Optional[float] = Field(None, description="Promedio de córners concedidos al rival por partido")
 
 class HeadToHeadStats(BaseModel):
     total_matches_analyzed: int = Field(0, description="Número de enfrentamientos directos previos encontrados (0 si no hay datos)")
@@ -63,6 +64,9 @@ class MatchRawFeatures(BaseModel):
     live_shots_on_target_away: Optional[int] = Field(None, description="Tiros a puerta del equipo visitante en directo")
     live_possession_home: Optional[float] = Field(None, description="Porcentaje de posesión local en directo (ej: 58.0)")
     live_possession_away: Optional[float] = Field(None, description="Porcentaje de posesión visitante en directo (ej: 42.0)")
+    market_home_odds: Optional[float] = Field(None, description="Cuota de mercado 1X2 para victoria local (si está disponible)")
+    market_draw_odds: Optional[float] = Field(None, description="Cuota de mercado 1X2 para empate (si está disponible)")
+    market_away_odds: Optional[float] = Field(None, description="Cuota de mercado 1X2 para victoria visitante (si está disponible)")
     home_stats: TeamFormStats
     away_stats: TeamFormStats
     h2h: HeadToHeadStats

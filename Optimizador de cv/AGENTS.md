@@ -1,4 +1,4 @@
-# AGENTS.md — Optimizador de CV
+# AGENTS.md — Cuva v1.4 (Optimizador de CV & Auditor ATS)
 
 ## 1. Visión y Misión
 

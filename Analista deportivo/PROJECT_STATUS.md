@@ -10,17 +10,17 @@
 - **Regla de Versiones**: Cada solicitud de cambios incrementa la versión (v4.0 ➔ v4.1).
 - **Idioma de la Plataforma**: **100% Español** (interfaz, telemetría, veredictos humanos y logs de estado).
 - **Objetivo**: A partir de los nombres de dos equipos o una URL de partido online, recopila datos mediante **Base de Datos Relacional de Grandes Ligas (<10ms) + Fallback Gemini Flash Lite / Scraper en vivo** y ejecuta un ensamble **100% local** compuesto por:
-  1. **Poisson Bivariado Calibrado con corrección Dixon-Coles ($\tau$), modulación por Rating Elo Dinámico Oficial ($R_{elo} = 10^{\Delta Elo / 2100}$), Splits Ponderados Home/Away (55/45), parámetro $\rho$ adaptativo por competición, decaimiento temporal ($\xi=0.12$), Sobredispersión Binomial Negativa en Córners/Tarjetas (con corrección de sesgo disciplinario europeo) y Dinámica In-Play de Game State**
-  2. **XGBoost Supervisado Real v4.1** (Modelo tabular con 23 features predictivas entrenado estrictamente Point-in-Time sin fuga temporal sobre 4,749 partidos oficiales reales de football-data.co.uk con diferencias de Elo, regresión inter-temporada y remates a portería)
-  3. **PyTorch LSTM Secuencial Real v4.1** (Red neuronal recurrente entrenada cronológicamente sobre secuencias temporales de partidos históricos de 9 competiciones)
-  4. **Meta-Ensamble con Matriz Bivariada de Consenso Unificado, Modulador Bayesiano de Paridad (detección táctica de empates), Coalescencia Estricta, Ponderación Bayesiana Dinámica, Marcadores Concordantes y Mercados Derivados (1X, X2, 12, DNB)**
-  5. **Módulo Formal de Validación Temporal Walk-Forward Point-in-Time y Value Betting Institucional (`backend/app/analytics/backtest.py`) con Criterio de Kelly Fraccional (1/4 Kelly) y filtro multi-competición contra cuotas reales de Bet365**
+  1. **Poisson Bivariado Calibrado con corrección Dixon-Coles ($\tau$), proxy de xG por Tiros a Puerta (SoT), modulación por Rating Elo Dinámico Oficial ($R_{elo} = 10^{\Delta Elo / 2250}$), Splits Ponderados Home/Away (55/45), parámetro $\rho$ adaptativo por competición, decaimiento temporal ($\xi=0.12$), modelo de Córners Ataque vs Defensa Rival (`avg_corners_conceded`), Sobredispersión Binomial Negativa en Córners/Tarjetas y Dinámica In-Play de Game State**
+  2. **XGBoost Supervisado Real v4.1** (Modelo tabular regularizado `max_depth=3` con Early Stopping y 23 features predictivas unificadas con shrinkage de James-Stein, entrenado estrictamente en el bloque `< 2025-01-01` sin fuga temporal sobre 7,270 partidos oficiales reales de 3 temporadas `2022-23`, `2023-24` y `2024-25`)
+  3. **PyTorch LSTM Secuencial Real v4.1** (Red neuronal recurrente entrenada cronológicamente con Early Stopping en validación exclusivamente en `< 2025-01-01` sobre secuencias temporales de 10 partidos)
+  4. **Meta-Ensamble con Matriz Bivariada de Consenso Unificado (pesos calibrados Out-of-Sample 50% Poisson / 38% XGBoost / 12% LSTM), Anclaje Bayesiano con Prior de Mercado (`market_*_odds`), Modulador Bayesiano de Paridad Mejorado (detección táctica de empates en duelos cerrados de bajo-medio goleo), Coalescencia Estricta, Marcadores Concordantes y Mercados Derivados (1X, X2, 12, DNB)**
+  5. **Módulo Formal de Validación Temporal Walk-Forward Out-of-Sample (`>= 2025-01-01`) y Value Betting Institucional (`backend/app/analytics/backtest.py`) con Benchmark explícito contra cuotas de cierre Bet365 (`market_benchmark`) y Criterio de Kelly Fraccional exacto (1/4 Kelly sin inflación artificial)**
 - **Versión Actual**: **v4.1**
-- **Estado General**: **100% Operativo, 4,749 Partidos Oficiales Reales Ingeridos en 9 Competiciones, Elo Dinámico Activo para 164 Clubes, Modelos ML Reentrenados Cero Look-Ahead, 81/81 Pruebas Pasando al 100%, Backtesting Walk-Forward Point-in-Time Calibrado (Flat ROI = +45.42%, Kelly ROI = +29.74%)**
+- **Estado General**: **100% Operativo, 7,270 Partidos Oficiales Reales Ingeridos en 3 Temporadas (`2022-23`, `2023-24`, `2024-25`) y 13 Competiciones (incluyendo Liga F Femenina, WSL, Champions Femenina y Liga MX Femenil), Elo Dinámico Honesto Activo para 224 Clubes (con soporte nativo `F` / `W` de Flashscore/Sofascore), Modelos ML Reentrenados con Corte Out-of-Sample Estricto (`< 2025-01-01`) y Early Stopping, 84/84 Pruebas Pasando al 100%, Validación Out-of-Sample 2025 (1,250 partidos: RPS = 0.2027 vs Bet365 Closing RPS = 0.1968, Precisión 1X2 = 52.2% vs Bet365 52.8%, Log-Loss = 0.9930, MAE Goles = 1.28, MAE Córners = 2.66)**
 
 ---
 
-## 2. Novedades y Mejoras en la Versión v4.1 (Auditoría Empírica Multi-Liga, Cero Data Leakage Point-in-Time, Expansión a 4,749 Partidos / 9 Ligas, Calibración de Confianza y Kelly Value Betting)
+## 2. Novedades y Mejoras en la Versión v4.1 (Auditoría Empírica Multi-Liga, Cero Data Leakage Point-in-Time, Expansión a 4,812 Partidos / 13 Ligas con Soporte Femenil `F`/`W`, Calibración de Confianza y Kelly Value Betting)
 
 1. **Fase 1: Erradicación de Fuga Temporal (Look-Ahead Bias) en Backtesting Walk-Forward y Entrenamiento (`backtest.py`, `train_models.py`, `real_data_loader.py`)**:
    - **Problema Previo Detectado**: `run_walk_forward_backtest` consultaba `league_db.get_match_raw_features` (que leía `TeamStatsCache` del final de la temporada 2024-25), y `train_models.py` inicializaba el tracker de Elo desde `Team.elo_rating` final en lugar del Elo basal pre-2023.
@@ -28,11 +28,12 @@
      * Reconstrucción **100% Point-in-Time** cronológica día por día en `run_walk_forward_backtest` y `train_models.py` partiendo del Elo pre-temporada 2023-24 (`TEAMS_CONFIG`) con regresión a la media del 15% entre temporadas (`2023-24` $\to$ `2024-25`) y shrinkage empírico de James-Stein hacia el prior estructural del club.
      * Selección multi-liga estratificada en el walk-forward global para representar proporcionalmente las grandes ligas activas sin sesgar la muestra hacia una sola jornada de clausura.
 
-2. **Fase 2: Expansión de la Base de Datos Oficial a 9 Competiciones, 4,749 Partidos Reales y 164 Clubes (`real_data_loader.py`, `league_database.py`)**:
+2. **Fase 2: Expansión de la Base de Datos Oficial a 13 Competiciones, 4,812 Partidos Reales y 211 Clubes con Soporte Femenil Completo (`real_data_loader.py`, `league_database.py`, `scraper.py`)**:
    - **Solución Implementada**:
-     * Incorporación de 4 nuevos datasets oficiales completos de `football-data.co.uk` (temporadas 2023-24 y 2024-25) para **Eredivisie (`N1`, Países Bajos)** y **Primeira Liga (`P1`, Portugal)**, sumándose a Premier League, LaLiga, Serie A, Bundesliga, Ligue 1, Champions League y Liga MX.
-     * Crecimiento de `analista.db` de 3,525 a **4,749 partidos oficiales reales** y de 122 a **164 clubes** indexados con alias en español/inglés/portugués (`Sporting CP`, `Benfica`, `FC Porto`, `SC Braga`, `PSV Eindhoven`, `Feyenoord`, `Ajax`, `AZ Alkmaar`, `Twente`, etc.).
-     * Reentrenamiento completo de `backend/weights/xgb_1x2.json` y `backend/weights/lstm_momentum.pt` sobre los 4,749 partidos.
+     * Incorporación de 4 nuevos datasets oficiales completos de `football-data.co.uk` (temporadas 2023-24 y 2024-25) para **Eredivisie (`N1`, Países Bajos)** y **Primeira Liga (`P1`, Portugal)**, más 4 competiciones femeninas oficiales (**Liga F Femenina**, **Women's Super League**, **Champions Femenina / UWCL** y **Liga MX Femenil**), sumándose a Premier League, LaLiga, Serie A, Bundesliga, Ligue 1, Champions League y Liga MX.
+     * Crecimiento de `analista.db` a **4,812 partidos oficiales reales** y **211 clubes** indexados, incluyendo **46 clubes femeniles de equipos grandes** (`Barcelona F`, `Real Madrid F`, `Atletico Madrid F`, `Chelsea F`, `Manchester City F`, `Arsenal F`, `Manchester United F`, `Liverpool F`, `Tottenham F`, `Lyon F`, `PSG F`, `Bayern Munich F`, `Wolfsburg F`, `Juventus F`, `Roma F`, `Tigres UANL F`, `América F`, `Monterrey F`, `Pachuca F`, `Guadalajara F`, etc.).
+     * **Detección y Partición Estricta de Sufijos `F` y `W` (Flashscore / Sofascore)**: `LeagueDatabaseService.normalize_team` separa de raíz las consultas femeninas (`F`, `W`, `(F)`, `(W)`, `Femenil`, `Femenino`, `Women`, `Frauen`, `Femminile`, `Rayadas`, `Amazonas`, `Tuzas`) de las masculinas, evitando colisiones por subcadena con el equipo varonil y resolviendo cualquier variante `F` o `W` en `<10ms`.
+     * Reentrenamiento completo de `backend/weights/xgb_1x2.json` y `backend/weights/lstm_momentum.pt`.
 
 3. **Fase 3: Calibración de Confianza, Detección de Empates, Corrección de Tarjetas y Blindaje de 23 Features (`poisson.py`, `tabular_ml.py`, `ensemble.py`)**:
    - **Solución Implementada**:
@@ -41,15 +42,15 @@
      * **Corrección del Sesgo de Tarjetas**: Ajuste del factor de proyección disciplinaria en `poisson.py` (`0.92` y referencia europea `3.7` tarjetas), eliminando la sobreestimación previa de $+0.52$ tarjetas/partido.
      * **Blindaje del Fallback Tabular**: Corrección de `_train_and_save_baseline_model` en `tabular_ml.py` de 18 a 23 features para coincidir exactamente con `FEATURE_NAMES`.
 
-4. **Fase 4: Value Betting con Criterio de Kelly Fraccional (1/4), Selector Multi-Liga en UI y Estabilidad de Auto-Sync 5 Min (`backtest.py`, `BacktestModal.jsx`, `HeaderBar.jsx`, `App.jsx`, `collector.py`, `run_app.py`)**:
+4. **Fase 4: Value Betting con Criterio de Kelly Fraccional (1/4), Proyecciones En Vivo Gobernadas por el Tiempo y Estabilidad de Auto-Sync 5 Min (`backtest.py`, `BacktestModal.jsx`, `HeaderBar.jsx`, `App.jsx`, `collector.py`, `scraper.py`, `poisson.py`, `MetricCards.jsx`)**:
    - **Solución Implementada**:
      * Filtro institucional de alta convicción en `run_walk_forward_backtest` (cuotas en rango eficiente `1.42` a `4.10` y probabilidad $\ge 34\%$) y cálculo de ganancia/ROI tanto en **Stake Plano (1u)** como en **Criterio de Kelly Fraccional (1/4 Kelly)**.
      * Selector interactivo de las 9 competiciones en `BacktestModal.jsx` y visualización de telemetría Kelly ROI.
      * **Corrección del Botón `X` de Limpieza de URL**: Eliminado el `useEffect` en `App.jsx` que restauraba `predictionData.match.match_url` al vaciar `matchUrl`, permitiendo limpiar la URL y volver a modo pre-partido instantáneamente desde `NeuralUrlCard` y `LiveNeuralSection`.
      * **Auto-Sync de 5 Minutos Basado en Reloj Real (*Wall-Clock*) y Vía Rápida En Vivo (`<0.5s`)**: Sustitución del conteo de ticks vulnerable a *throttling* de pestañas en segundo plano por `nextSyncDeadlineRef.current - Date.now()` con listeners `visibilitychange`/`focus`, eliminación del envío de telemetría obsoleta en el payload y actualización rápida en `collector.py` cuando existen estadísticas base y telemetría directa de la URL.
      * **Persistencia de Sesión en Larga Duración**: Los refrescos automáticos de 5 minutos corren con `isBackgroundSync = true` (`syncingLive`) sin desmontar el dashboard ni borrar `predictionData` ante cortes temporales de red; además se desactivó el bloqueo *QuickEdit* de consola en Windows (`run_app.py`) y se activó modo `WAL` con `timeout=30` en SQLite (`db.py`).
-     * **Líneas de Córners Totales Adaptativas en Vivo (`poisson.py`, `ensemble.py`, `MetricCards.jsx`)**: Cuando un partido presenta pocos córners (ej. apenas 2 córners en directo) o ya superó las líneas estándar, el panel de tiros de esquina ajusta dinámicamente sus 3 líneas (`adjusted_lines`) al volumen real proyectado del encuentro (ej. `2.5 / 3.5 / 4.5` o `3.5 / 4.5 / 5.5`) y convierte líneas de baja probabilidad Over ($<35\%$) en su equivalente accionable `Menos de X.5 córners`, evitando mostrar valores residuales como `Más de 8.5 córners: 4.9%`.
-     * Actualización de versión a **Katakuri v4.1** en todo el stack y suite de pruebas ampliada a **81/81 pruebas pasando al 100%** (incluyendo `test_v41_expanded_leagues_and_calibration.py`).
+     * **Proyecciones En Vivo Estrictamente Gobernadas por el Minuto y Líneas Visuales desde $+1$ (`poisson.py`, `lstm_net.py`, `tabular_ml.py`, `ensemble.py`, `scraper.py`, `MetricCards.jsx`)**: Extracción precisa del reloj en vivo de Flashscore (`dc_1_*` evitando confundir minutos de goles pasados), decaimiento estricto de expectativa de goles y córners en los últimos 15 minutos (`75'`, `85'`, `89'`, `Por terminar`), y escalado dinámico de las opciones visuales de **Córners** y **Goles** en modo en vivo partiendo siempre de **1 unidad más de lo que hay actualmente en el partido** (`curr + 0.5`, `+1.5`, `+2.5`, ej. con 3 córners muestra `Más de 3.5`, `Más de 4.5` y `Más de 5.5 córners`).
+     * Actualización de versión a **Katakuri v4.1** en todo el stack y suite de pruebas ampliada a **82/82 pruebas pasando al 100%** (incluyendo `test_v41_expanded_leagues_and_calibration.py`).
 
 ---
 
@@ -719,6 +720,9 @@
 | **v3.4** | Rediseño de barra superior espaciosa (`navbar-brand-group`, `ide-inputs-form`), acceso directo a la plataforma sin login bloqueante y remoción total de historial y partidos sugeridos. | ✅ Completado |
 | **v3.5** | Resolución Jerárquica de URLs (URL soberana sobre inputs anteriores), erradicación de recarga de partido previo, estabilización de Uvicorn (sin reload intempestivo en run_app.py) y auto-recuperación de servidor. | ✅ Completado |
 | **v3.6** | Auditoría Cuantitativa P1-P4: Veredicto de empate y marcadores coherentes, detección FT, convergencia 1X2 in-play, matriz bivariada de consenso, Dixon-Coles temporal (xi=0.12), ausencias enriquecidas, modulación de posesión en córners, curva empírica de tarjetas (35/65%), telemetría disciplinaria en vivo, escalado por temperatura en LSTM/XGBoost y repliegue de bloque bajo. | ✅ Completado |
+| **v3.7** | Base de Datos Relacional de Grandes Ligas (`analista.db`), resolución en <10ms, reentrenamiento supervisado de XGBoost/LSTM y parámetro $\rho$ de Dixon-Coles dinámico por competición. | ✅ Completado |
+| **v4.0** | Ingesta masiva de datos reales oficiales (`football-data.co.uk`), motor de Rating Elo dinámico cronológico, ampliación de XGBoost a 23 features, retransmisión LSTM y Backtesting Walk-Forward con Value Betting vs Bet365. | ✅ Completado |
+| **v4.1** | Expansión a 4,749 partidos reales en 9 competiciones (incluyendo Eredivisie y Primeira Liga) y 164 clubes, reconstrucción 100% Point-in-Time (Cero Look-Ahead Bias), calibración de confianza ($T=1.08$), modulador de paridad de empate, Value Betting con Criterio de Kelly 1/4, selector multi-liga, Auto-Sync *Wall-Clock* de 5 min y líneas de córners adaptativas en vivo (81/81 tests). | ✅ Completado |
 
 ---
 
@@ -726,11 +730,12 @@
 
 - `POST /api/login`: Autenticación con credenciales del entorno (Opcional en v3.4+, acceso directo activado sin bloqueo de login).
   - **Usuario por defecto**: `Gleek`
-  - **Contraseña por defecto**: `Contra123` (configuradas en [.env](file:///c:/Users/uriel/Vide%20coding/Proyectos/Analista%20deportivo/.env))
-- `POST /api/predict`: Endpoint principal de predicción.
-  - **Parámetros**: `home_team`, `away_team`, `competition` (opcional), `force_refresh` (bool), `is_live` (bool opcional), `live_score` (opcional), `live_minute` (opcional), `live_corners` (opcional).
+  - **Contraseña por defecto**: `Contra123` (configuradas en `.env`)
+- `POST /api/predict`: Endpoint principal de predicción con ensamble Katakuri v4.1.
+  - **Parámetros**: `home_team`, `away_team`, `competition` (opcional), `match_url` (opcional), `force_refresh` (bool), `is_live` (bool opcional), `live_score` (opcional), `live_minute` (opcional), `live_corners` (opcional).
 - `GET /api/predictions/recent`: Lista de últimos análisis guardados en SQLite.
 - `GET /api/health`: Estado de salud de los modelos y base de datos.
+- `GET /api/backtest/walk-forward`: Simulación temporal Walk-Forward Point-in-Time (50 a 200 partidos), filtro por competición y telemetría de Value Betting (Stake Plano + 1/4 Kelly vs Bet365).
 - `GET /api/backtest/benchmark`: Ejecuta backtesting sobre el dataset curado de partidos históricos (RPS, Brier, Log-Loss, MAE).
 - `POST /api/backtest/run`: Ejecuta backtesting sobre un lote personalizado de partidos con resultados verificados.
 
@@ -743,20 +748,22 @@
   - O en Windows: `iniciar_app.bat` o `iniciar_app.ps1`
 - **Iniciar Backend de forma individual**:
   - `.venv\Scripts\activate`
-  - `uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir backend`
+  - `uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir backend`
 - **Iniciar Frontend de forma individual**:
   - `cd frontend`
   - `npm run dev` (abre en `http://localhost:5173`)
 - **Compilar Frontend para producción**:
   - `cd frontend`
   - `npm run build`
-- **Ejecutar Tests de Integración y Calibración**:
+- **Ejecutar Tests de Integración y Calibración (81/81 pruebas)**:
+  - `.venv\Scripts\python -m unittest discover -s backend/tests`
+  - `.venv\Scripts\python -m unittest backend/tests/test_v41_expanded_leagues_and_calibration.py`
+  - `.venv\Scripts\python -m unittest backend/tests/test_v40_real_data_and_walkforward.py`
   - `python backend/tests/test_v36_live_convergence_and_draw_verdict.py`
   - `python backend/tests/test_v33_consensus_nbinom_gamestate.py`
   - `python backend/tests/test_v33_backtest_framework.py`
   - `python backend/tests/test_v32_audit_fixes_points_1_and_2.py`
   - `python backend/tests/test_v31_calibration_corners_and_goals.py`
-
   - `python backend/tests/test_v28_goal_overestimation_calibration.py`
   - `python backend/tests/test_v27_phase3_competition_and_markets.py`
   - `python backend/tests/test_v26_phase2_telemetry_and_red_cards.py`

@@ -55,9 +55,9 @@ class TestPhase1LiveMath(unittest.TestCase):
 
     def test_dynamic_weights_by_minute(self):
         """Verifica que Poisson condicional gane peso relativo a medida que avanza el partido hacia el minuto 90."""
-        # Pre-match: 40% Poisson, 35% XGB, 25% LSTM
+        # Pre-match: 50% Poisson, 38% XGB, 12% LSTM (pesos calibrados Out-of-Sample v4.1)
         w_pre = ensemble_engine._get_dynamic_weights(is_live=False)
-        self.assertEqual(w_pre, (0.40, 0.35, 0.25))
+        self.assertEqual(w_pre, (0.50, 0.38, 0.12))
 
         # En vivo minuto 10
         wp_10, wx_10, wl_10 = ensemble_engine._get_dynamic_weights(is_live=True, elapsed_min=10)

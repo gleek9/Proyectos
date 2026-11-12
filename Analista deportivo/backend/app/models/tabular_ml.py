@@ -307,8 +307,8 @@ class TabularPredictor:
         p_away /= tot
 
         if not is_live:
-            # Calibración de temperatura equilibrada (Katakuri v4.1: T=1.08 evita subestimar favoritos claros)
-            T = 1.08
+            # Calibración de temperatura equilibrada post-regularización (Katakuri v4.1: T=1.02)
+            T = 1.02
             log_p = np.log(np.clip([p_home, p_draw, p_away], 1e-6, 1.0)) / T
             e_p = np.exp(log_p - np.max(log_p))
             e_sum = np.sum(e_p)

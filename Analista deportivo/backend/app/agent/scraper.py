@@ -692,6 +692,7 @@ class SportsWebScraper:
                         flags=re.IGNORECASE
                     )
                     clean_title = re.sub(r"\s+(?:en vivo|en directo|live)\s*$", "", clean_title, flags=re.IGNORECASE)
+                    clean_title = re.sub(r"\b\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}\b", "", clean_title)
                     clean_title = re.sub(r"\(?\b\d{1,2}\s*[-–:]\s*\d{1,2}\b\)?", "", clean_title).strip()
 
                     parts = re.split(r"\s+(?:vs\.?|v\.?|-|–|—)\s+", clean_title, maxsplit=1, flags=re.IGNORECASE)
@@ -701,7 +702,26 @@ class SportsWebScraper:
         except Exception as e:
             logger.warning(f"No se pudo extraer equipos del HTML de la URL: {e}")
 
-        # 3. Si no se obtuvo del HTML, extraer del slug de la URL
+        # 3. Si no se obtuvo del HTML, extraer del slug de la URL (incluyendo formato Flashscore de 2 segmentos con F/W)
+        if not home or not away:
+            clean_lower = clean_url.lower()
+            fs_two_seg = re.search(
+                r"(?:partido|match)/(?:futbol|football|soccer)/([a-z0-9\-]+?)/([a-z0-9\-]+?)(?:/|$|\?|#)",
+                clean_lower
+            )
+            if fs_two_seg:
+                def clean_fs_team_slug(seg: str) -> str:
+                    tokens = [t for t in seg.split("-") if t]
+                    # Quitar el ID alfanumérico de 8 caracteres de Flashscore al final del slug del equipo
+                    if len(tokens) >= 2 and len(tokens[-1]) == 8 and tokens[-1].isalnum():
+                        tokens = tokens[:-1]
+                    return " ".join([t.upper() if t in ("f", "w", "fc", "cf", "psg", "cff") else t.capitalize() for t in tokens])
+
+                h_cand = clean_fs_team_slug(fs_two_seg.group(1))
+                a_cand = clean_fs_team_slug(fs_two_seg.group(2))
+                if len(h_cand) >= 2 and len(a_cand) >= 2:
+                    home, away = h_cand, a_cand
+
         if not home or not away:
             clean_lower = clean_url.lower()
             slug_match = re.search(r"(?:partido|match|football|game|encuentro)/([a-z0-9\-]+?)(?:/|$|\?)", clean_lower) or \
@@ -724,7 +744,7 @@ class SportsWebScraper:
                         slug_parts = ["-".join(raw_split[:mid]), "-".join(raw_split[mid:])]
                 if len(slug_parts) == 2:
                     def title_slug(s):
-                        return " ".join([w.capitalize() for w in s.replace("_", " ").replace("-", " ").split() if w])
+                        return " ".join([w.upper() if w in ("f", "w", "fc", "cf", "psg", "cff") else w.capitalize() for w in s.replace("_", " ").replace("-", " ").split() if w])
                     h_cand = title_slug(slug_parts[0])
                     a_cand = title_slug(slug_parts[1])
                     if len(h_cand) >= 2 and len(a_cand) >= 2:

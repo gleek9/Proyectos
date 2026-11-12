@@ -20,7 +20,7 @@
 ### [2026-10-27 14:15] — Fases 4, 5 y 6: Sistema de Diseño "Anti-IA", Interfaz de Usuario y Automatización
 - **Sistema de Diseño "Anti-IA" y Paleta Cromática (`frontend/src/index.css`):**
   - Implementación estricta de la paleta editorial Swiss Grid con fondos obsidiana y carbón (`#090A0D`, `#111318`, `#171A21`).
-  - Integración del acento verde eléctrico Citi (`#58FF9C`) para focos, bordes activos, botones primarios y badges de alta visibilidad.
+  - Integración del acento verde eléctrico (`#58FF9C`) para focos, bordes activos, botones primarios y badges de alta visibilidad.
   - Tipografías integradas: `Plus Jakarta Sans` para encabezados y `JetBrains Mono` para datos técnicos, métricas, marcas de tiempo y badges.
   - Cuadrícula técnica sutil de fondo (`bg-tech-grid`) y scrollbars minimalistas oscuras.
 - **Componentes UI Base (`frontend/src/components/ui/`):**
@@ -34,7 +34,7 @@
   - Validación de credenciales contra endpoints del backend (`Admin` / `Admin`).
   - Manejo de token de autenticación en `localStorage` con sesión persistente.
 - **Pantalla 2: Dashboard Kanban de Perfiles (`DashboardView.tsx`):**
-  - **Barra Superior (`Navbar.tsx`):** Nombre "Citi Analyzer", monitor con indicador pulsante verde de conexión de APIs (`/api/health`), botón `+ Nuevo Perfil` y logout.
+  - **Barra Superior (`Navbar.tsx`):** Nombre "Social Analyzer v1.1", monitor con indicador pulsante verde de conexión de APIs (`/api/health`), botón `+ Nuevo Perfil` y logout.
   - **Tarjetas Cuadradas Kanban (`ProfileCard.tsx`):** Barra superior de 3px con el color del cliente, punto indicador de 8px, badge de categoría en monoespaciada mayúscula, contador de competidores y leyenda dinámica en tiempo real (*"Sin análisis previo"* o *"Último análisis: hace X horas"*).
   - **Buscador y Filtro por Categorías:** Filtrado en memoria instantáneo por nombre de cliente, usuario de Instagram o categoría de negocio.
   - **Estado Vacío (`EmptyState.tsx`):** Recuadro central elegante con borde punteado invitando a registrar el primer cliente.

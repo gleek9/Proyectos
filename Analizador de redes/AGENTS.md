@@ -1,5 +1,5 @@
 # AGENTS.md — Especificación Maestra de Arquitectura y Desarrollo
-## Proyecto: Citi Analyzer (MVP Local-First)
+## Proyecto: Social Analyzer v1.1 (MVP Local-First)
 
 ---
 
@@ -36,7 +36,7 @@ Debes adaptar esa identidad a una **línea de diseño Editorial / Swiss Grid mod
   --text-secondary: #94A3B8;     /* Gris pizarra técnico para subtítulos y escaletas */
   --text-muted: #64748B;         /* Metadatos y leyendas de tiempo ("Hace X horas") */
 
-  /* Acentos de Resaltado: Verde Citi Eléctrico (Sustituye al azul en focos y resaltados) */
+  /* Acentos de Resaltado: Verde Eléctrico (Sustituye al azul en focos y resaltados) */
   --accent-primary: #58FF9C;     /* Verde eléctrico de alto impacto para resaltados, llamadas a la acción y botones */
   --accent-hover: #42E686;       /* Verde activo refinado */
   --accent-subtle: rgba(88, 255, 156, 0.12); /* Resaltado sutil en badges, bordes y fondos técnicos */
@@ -84,9 +84,9 @@ El sistema debe ejecutarse **100% en local (`localhost`)** sin depender de servi
 
 ### 4.2. Pantalla 2: Dashboard Tipo Kanban de Perfiles (`/dashboard`)
 
-Una vez autenticado, el usuario accede al panel principal de **Citi Analyzer**:
+Una vez autenticado, el usuario accede al panel principal de **Social Analyzer**:
 
-* **Barra Superior:** Nombre de la aplicación (**Citi Analyzer**), estado del motor (indicador verde de conexión con APIs) y botón primario **`+ Nuevo Perfil`**.
+* **Barra Superior:** Nombre de la aplicación (**Social Analyzer**), estado del motor (indicador verde de conexión con APIs) y botón primario **`+ Nuevo Perfil`**.
 * **Estado Vacío (Empty State):** Si no existen perfiles registrados, muestra un recuadro central elegante con borde punteado invitando a crear el primer perfil de cliente.
 * **Formulario de Creación de Perfil (Modal / Drawer):**
   Solicita exactamente los siguientes datos:
@@ -257,7 +257,7 @@ Ejecuta la construcción de la aplicación siguiendo estrictamente estas fases o
   * Diseño centrado sobre fondo obsidiana con cuadrícula técnica sutil.
   * Formulario sobrio con validación de credenciales (`Admin`/`Admin`) y redirección inmediata al dashboard.
 * [ ] **Pantalla 2: Dashboard Kanban de Perfiles (`/dashboard`):**
-  * Barra superior con logotipo "Citi Analyzer", monitor de estado de APIs (indicador verde pulsante) y botón primario destacado con acento `#58FF9C` (`+ Nuevo Perfil`).
+  * Barra superior con logotipo "Social Analyzer", monitor de estado de APIs (indicador verde pulsante) y botón primario destacado con acento `#58FF9C` (`+ Nuevo Perfil`).
   * Estado vacío (Empty State) con contenedor punteado elegante cuando no existan clientes registrados.
   * Cuadrícula modular de tarjetas cuadradas tipo Kanban:
     * Borde superior/lateral de 3px con el color representativo del cliente.

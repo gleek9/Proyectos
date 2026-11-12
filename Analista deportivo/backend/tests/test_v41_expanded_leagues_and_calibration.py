@@ -111,6 +111,106 @@ class TestV41ExpandedLeaguesAndCalibration(unittest.TestCase):
         self.assertLessEqual(cn.expected_total, 3.6)
         self.assertLessEqual(pred.prediction.goals.more_goals_pct, 22.0)
 
+    def test_07_womens_teams_flashscore_f_and_w_support(self):
+        """Verifica soporte completo a equipos femeniles con sufijos F y W de Flashscore sin colisión con equipos masculinos."""
+        cases = [
+            ("Barcelona F", "Barcelona F"),
+            ("Barcelona W", "Barcelona F"),
+            ("FC Barcelona (W)", "Barcelona F"),
+            ("Barcelona Femenino", "Barcelona F"),
+            ("Real Madrid F", "Real Madrid F"),
+            ("Real Madrid W", "Real Madrid F"),
+            ("Chelsea W", "Chelsea F"),
+            ("Chelsea F", "Chelsea F"),
+            ("Arsenal W", "Arsenal F"),
+            ("Manchester City W", "Manchester City F"),
+            ("Lyon W", "Lyon F"),
+            ("Lyon F", "Lyon F"),
+            ("PSG W", "PSG F"),
+            ("Bayern Munich W", "Bayern Munich F"),
+            ("Wolfsburg F", "Wolfsburg F"),
+            ("Juventus W", "Juventus F"),
+            ("Roma F", "Roma F"),
+            ("América F", "América F"),
+            ("América W", "América F"),
+            ("Tigres UANL W", "Tigres UANL F"),
+            ("Las Amazonas", "Tigres UANL F"),
+            ("Monterrey F", "Monterrey F"),
+            ("Rayadas", "Monterrey F"),
+            ("Chivas W", "Guadalajara F"),
+            ("Pachuca W", "Pachuca F"),
+            # Verificar que los masculinos siguen resolviendo a su club varonil sin colisión
+            ("Barcelona", "Barcelona"),
+            ("Real Madrid", "Real Madrid"),
+            ("Chelsea", "Chelsea"),
+            ("América", "América"),
+            ("Tigres UANL", "Tigres UANL"),
+            ("Monterrey", "Monterrey"),
+        ]
+        for query, expected_canonical in cases:
+            team = league_db.normalize_team(query, db=self.db)
+            self.assertIsNotNone(team, f"No se encontró equipo para '{query}'")
+            self.assertEqual(team.name, expected_canonical, f"Para '{query}' se esperaba '{expected_canonical}', pero resolvió '{team.name}'")
+
+        # Verificar resolución instantánea (<10ms) de partidos femeniles completos y predicción del ensamble
+        raw_ligaf = league_db.get_match_raw_features("Barcelona F", "Real Madrid W")
+        self.assertIsNotNone(raw_ligaf)
+        self.assertEqual(raw_ligaf.competition, "Liga F Femenina")
+        pred_ligaf = ensemble_engine.predict(raw_ligaf)
+        self.assertGreater(pred_ligaf.prediction.winner.home_win_pct, 60.0)
+
+        raw_wsl = league_db.get_match_raw_features("Chelsea W", "Arsenal W")
+        self.assertIsNotNone(raw_wsl)
+        self.assertEqual(raw_wsl.competition, "Women's Super League")
+
+        raw_uwcl = league_db.get_match_raw_features("Barcelona F", "Chelsea W")
+        self.assertIsNotNone(raw_uwcl)
+        self.assertEqual(raw_uwcl.competition, "Champions Femenina")
+
+        raw_mx_fem = league_db.get_match_raw_features("Tigres UANL F", "América W")
+        self.assertIsNotNone(raw_mx_fem)
+        self.assertEqual(raw_mx_fem.competition, "Liga MX Femenil")
+
+    def test_audit_fixes_corners_conceded_and_market_prior(self):
+        """Verifica que el modelo incorpore córners concedidos por el rival y el Prior Bayesiano de Mercado."""
+        raw = league_db.get_match_raw_features("Arsenal", "Chelsea")
+        self.assertIsNotNone(raw)
+        self.assertIsNotNone(raw.home_stats.avg_corners_conceded)
+        self.assertIsNotNone(raw.away_stats.avg_corners_conceded)
+
+        # Predicción pura sin cuotas de mercado
+        pred_pure = ensemble_engine.predict(raw)
+
+        # Predicción con Prior Bayesiano de Mercado (favorito local claro en cuotas)
+        raw_with_odds = raw.model_copy(deep=True)
+        raw_with_odds.market_home_odds = 1.40
+        raw_with_odds.market_draw_odds = 4.60
+        raw_with_odds.market_away_odds = 7.50
+        pred_mkt = ensemble_engine.predict(raw_with_odds)
+
+        self.assertGreater(
+            pred_mkt.prediction.winner.home_win_pct,
+            pred_pure.prediction.winner.home_win_pct,
+            "El Prior Bayesiano de Mercado debe ajustar al alza la probabilidad del favorito reflejado en cuotas."
+        )
+        total_pct = (
+            pred_mkt.prediction.winner.home_win_pct +
+            pred_mkt.prediction.winner.draw_pct +
+            pred_mkt.prediction.winner.away_win_pct
+        )
+        self.assertAlmostEqual(total_pct, 100.0, places=1)
+
+    def test_walk_forward_out_of_sample_and_market_benchmark(self):
+        """Verifica que el Walk-Forward opere en el bloque Out-of-Sample (>= 2025-01-01) e incluya benchmark Bet365."""
+        wf = run_walk_forward_backtest(n_matches=40, edge_threshold=0.04)
+        self.assertEqual(wf.get("total_matches_evaluated"), 40)
+        sim = wf.get("walk_forward_simulation", {})
+        self.assertIn("Out-of-Sample", sim.get("dataset_type", ""))
+        mkt_bench = sim.get("market_benchmark", {})
+        self.assertEqual(mkt_bench.get("bookmaker"), "Bet365 Closing Odds (De-vigged)")
+        self.assertIsNotNone(mkt_bench.get("market_rps_mean"))
+        self.assertGreater(mkt_bench.get("matches_with_odds", 0), 20)
+
 
 if __name__ == "__main__":
     unittest.main()

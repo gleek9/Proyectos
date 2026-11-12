@@ -473,9 +473,12 @@ def run_walk_forward_backtest(
     """
     from collections import defaultdict
     from backend.app.db import SessionLocal, HistoricalMatch, League
-    from backend.app.schemas.match import PreviousMatch
-    from backend.app.services.league_database import TEAMS_CONFIG
-    from backend.app.services.real_data_loader import calculate_elo_update
+    from backend.app.analytics.train_models import TRAIN_CUTOFF_DATE
+    from backend.app.services.real_data_loader import (
+        get_honest_initial_elo_map,
+        build_point_in_time_match_features,
+        calculate_elo_update,
+    )
 
     db = SessionLocal()
     try:
@@ -510,27 +513,29 @@ def run_walk_forward_backtest(
         }
         target_code = code_map.get(comp_clean, comp_clean.replace(" ", "_"))
 
-    # Identificar los IDs de los últimos n_matches que cumplen el filtro para evaluar solo esos,
-    # pero recorriendo toda la línea temporal previa para reconstruir estado exacto Point-in-Time
+    # Identificar los IDs del bloque Out-of-Sample (>= TRAIN_CUTOFF_DATE) que cumplen el filtro,
+    # recorriendo toda la línea temporal previa desde 2022-23 para reconstruir estado exacto Point-in-Time
     if target_code is not None:
         candidate_matches = [
             m for m in all_matches
             if target_code in (m.league_code or "").lower()
         ]
-        eval_target_ids = {m.id for m in candidate_matches[-n_matches:]}
+        oos_candidates = [m for m in candidate_matches if (m.match_date or "") >= TRAIN_CUTOFF_DATE]
+        pool = oos_candidates if len(oos_candidates) >= min(20, n_matches) else candidate_matches
+        eval_target_ids = {m.id for m in pool[-n_matches:]}
     else:
-        # Selección multi-liga estratificada proporcionalmente entre las grandes ligas completas
+        # Selección multi-liga estratificada proporcionalmente sobre el periodo Out-of-Sample (>= 2025-01-01)
         by_league = defaultdict(list)
         for m in all_matches:
-            if (m.league_code or "") not in ("champions_league", "liga_mx"):
+            if (m.league_code or "") not in ("champions_league", "liga_mx") and (m.match_date or "") >= TRAIN_CUTOFF_DATE:
                 by_league[m.league_code].append(m)
         if not by_league:
             for m in all_matches:
                 by_league[m.league_code].append(m)
         selected_ids = set()
-        # Tomar del tramo competitivo de cierre de temporada (evitando distorsión de partidos de trámite final)
         max_len = max((len(v) for v in by_league.values()), default=0)
-        for offset in range(10, max_len + 1):
+        # Priorizar jornadas competitivas dentro del bloque Out-of-Sample (>= 2025-01-01), dejando la última jornada sin jugarse nada al final
+        for offset in list(range(10, max_len + 1)) + list(range(1, min(10, max_len + 1))):
             for lg_code in sorted(by_league.keys()):
                 lg_list = by_league[lg_code]
                 if offset <= len(lg_list):
@@ -548,7 +553,7 @@ def run_walk_forward_backtest(
             "message": "No se encontraron partidos para la competición seleccionada."
         }
 
-    base_elo_map = {tc["name"]: float(tc["elo"]) for tc in TEAMS_CONFIG}
+    base_elo_map = get_honest_initial_elo_map()
     elo_tracker = defaultdict(lambda: 1600.0, base_elo_map)
     team_history = defaultdict(list)
     team_last_season = {}
@@ -565,8 +570,7 @@ def run_walk_forward_backtest(
         for club in (h_name, a_name):
             prev_s = team_last_season.get(club)
             if prev_s is not None and prev_s != cur_season:
-                base_ref = base_elo_map.get(club, 1620.0)
-                elo_tracker[club] = 0.85 * elo_tracker[club] + 0.15 * base_ref
+                elo_tracker[club] = 0.85 * elo_tracker[club] + 0.15 * 1650.0
             team_last_season[club] = cur_season
 
         cur_elo_h = elo_tracker[h_name]
@@ -578,120 +582,21 @@ def run_walk_forward_backtest(
             l_obj = league_objs.get(l_code)
             comp_name = l_obj.name if l_obj else l_code
             def_goals = l_obj.avg_goals if l_obj else 1.35
+            def_corners = l_obj.avg_corners if l_obj else 9.5
+            def_cards = l_obj.avg_cards if l_obj else 4.0
 
-            if len(h_hist) >= 2 and len(a_hist) >= 2:
-                last_15_h = h_hist[-15:]
-                last_15_a = a_hist[-15:]
-                last_10_h = last_15_h[-10:]
-                last_10_a = last_15_a[-10:]
-                last_5_h = last_15_h[-5:]
-                last_5_a = last_15_a[-5:]
-
-                home_matches_h = [x for x in h_hist if x["was_home"]][-10:]
-                away_matches_a = [x for x in a_hist if not x["was_home"]][-10:]
-
-                # Shrinkage empírico de James-Stein hacia el prior estructural (Elo + liga) para estabilizar ventanas cortas
-                elo_diff_h = (cur_elo_h - 1650.0) / 400.0
-                elo_diff_a = (cur_elo_a - 1650.0) / 400.0
-                prior_h_gf = max(0.7, def_goals * (1.0 + 0.18 * elo_diff_h))
-                prior_h_ga = max(0.6, def_goals * (1.0 - 0.15 * elo_diff_h))
-                prior_a_gf = max(0.7, def_goals * (1.0 + 0.18 * elo_diff_a))
-                prior_a_ga = max(0.6, def_goals * (1.0 - 0.15 * elo_diff_a))
-
-                raw_h_gf = float(np.mean([x["gf"] for x in last_15_h]))
-                raw_h_ga = float(np.mean([x["ga"] for x in last_15_h]))
-                raw_a_gf = float(np.mean([x["gf"] for x in last_15_a]))
-                raw_a_ga = float(np.mean([x["ga"] for x in last_15_a]))
-
-                h_gf = round(0.75 * raw_h_gf + 0.25 * prior_h_gf, 2)
-                h_ga = round(0.75 * raw_h_ga + 0.25 * prior_h_ga, 2)
-                a_gf = round(0.75 * raw_a_gf + 0.25 * prior_a_gf, 2)
-                a_ga = round(0.75 * raw_a_ga + 0.25 * prior_a_ga, 2)
-
-                h_home_gf = round(0.75 * float(np.mean([x["gf"] for x in home_matches_h])) + 0.25 * prior_h_gf, 2) if home_matches_h else h_gf
-                h_home_ga = round(0.75 * float(np.mean([x["ga"] for x in home_matches_h])) + 0.25 * prior_h_ga, 2) if home_matches_h else h_ga
-                a_away_gf = round(0.75 * float(np.mean([x["gf"] for x in away_matches_a])) + 0.25 * prior_a_gf, 2) if away_matches_a else a_gf
-                a_away_ga = round(0.75 * float(np.mean([x["ga"] for x in away_matches_a])) + 0.25 * prior_a_ga, 2) if away_matches_a else a_ga
-
-                h_prev_objs = [
-                    PreviousMatch(
-                        opponent=x["opp"], was_home=x["was_home"], goals_for=int(x["gf"]), goals_against=int(x["ga"]),
-                        result=x["res"], corners_for=float(x["cn"]), cards_total=float(x["cr_tot"])
-                    ) for x in reversed(last_10_h)
-                ]
-                a_prev_objs = [
-                    PreviousMatch(
-                        opponent=x["opp"], was_home=x["was_home"], goals_for=int(x["gf"]), goals_against=int(x["ga"]),
-                        result=x["res"], corners_for=float(x["cn"]), cards_total=float(x["cr_tot"])
-                    ) for x in reversed(last_10_a)
-                ]
-
-                past_h2h = [x for x in h_hist if x["opp"] == a_name][-8:]
-                if past_h2h:
-                    h_w = sum(1 for x in past_h2h if x["res"] == "W")
-                    a_w = sum(1 for x in past_h2h if x["res"] == "L")
-                    drw = sum(1 for x in past_h2h if x["res"] == "D")
-                    h2h_g = round(float(np.mean([x["gf"] + x["ga"] for x in past_h2h])), 2)
-                    h2h_cn = round(float(np.mean([x["cn_tot"] for x in past_h2h])), 1)
-                    h2h_cr = round(float(np.mean([x["cr_tot"] for x in past_h2h])), 1)
-                else:
-                    h_w, a_w, drw = 0, 0, 0
-                    h2h_g = (l_obj.avg_goals * 2.0) if l_obj else 2.7
-                    h2h_cn = l_obj.avg_corners if l_obj else 9.5
-                    h2h_cr = l_obj.avg_cards if l_obj else 4.0
-
-                feats = MatchRawFeatures(
-                    home_team=h_name,
-                    away_team=a_name,
-                    competition=comp_name,
-                    is_live=False,
-                    home_stats=TeamFormStats(
-                        team_name=h_name,
-                        avg_goals_scored=h_gf,
-                        avg_goals_conceded=h_ga,
-                        avg_corners=round(float(np.mean([x["cn"] for x in last_15_h])), 1),
-                        avg_cards=round(float(np.mean([x["cr"] for x in last_15_h])), 1),
-                        win_rate_last_5=round(sum(1 for x in last_5_h if x["res"] == "W") / len(last_5_h), 2),
-                        last_matches=h_prev_objs,
-                        elo_rating=round(cur_elo_h, 1),
-                        home_goals_scored=h_home_gf,
-                        home_goals_conceded=h_home_ga,
-                        avg_shots_target_for=round(float(np.mean([x["hst"] for x in last_15_h])), 1),
-                        avg_shots_target_against=round(float(np.mean([x["ast"] for x in last_15_h])), 1)
-                    ),
-                    away_stats=TeamFormStats(
-                        team_name=a_name,
-                        avg_goals_scored=a_gf,
-                        avg_goals_conceded=a_ga,
-                        avg_corners=round(float(np.mean([x["cn"] for x in last_15_a])), 1),
-                        avg_cards=round(float(np.mean([x["cr"] for x in last_15_a])), 1),
-                        win_rate_last_5=round(sum(1 for x in last_5_a if x["res"] == "W") / len(last_5_a), 2),
-                        last_matches=a_prev_objs,
-                        elo_rating=round(cur_elo_a, 1),
-                        away_goals_scored=a_away_gf,
-                        away_goals_conceded=a_away_ga,
-                        avg_shots_target_for=round(float(np.mean([x["hst"] for x in last_15_a])), 1),
-                        avg_shots_target_against=round(float(np.mean([x["ast"] for x in last_15_a])), 1)
-                    ),
-                    h2h=HeadToHeadStats(
-                        total_matches_analyzed=len(past_h2h),
-                        home_team_wins=h_w,
-                        away_team_wins=a_w,
-                        draws=drw,
-                        avg_total_goals_h2h=h2h_g,
-                        avg_total_corners_h2h=h2h_cn,
-                        avg_total_cards_h2h=h2h_cr
-                    )
-                )
-            else:
-                feats = MatchRawFeatures(
-                    home_team=h_name,
-                    away_team=a_name,
-                    competition=comp_name,
-                    home_stats=TeamFormStats(team_name=h_name, avg_goals_scored=def_goals * 1.05, avg_goals_conceded=def_goals * 0.95, elo_rating=round(cur_elo_h, 1)),
-                    away_stats=TeamFormStats(team_name=a_name, avg_goals_scored=def_goals * 0.95, avg_goals_conceded=def_goals * 1.05, elo_rating=round(cur_elo_a, 1)),
-                    h2h=HeadToHeadStats(total_matches_analyzed=0, avg_total_goals_h2h=def_goals * 2.0)
-                )
+            feats = build_point_in_time_match_features(
+                h_name=h_name,
+                a_name=a_name,
+                comp_name=comp_name,
+                cur_elo_h=cur_elo_h,
+                cur_elo_a=cur_elo_a,
+                h_hist=h_hist,
+                a_hist=a_hist,
+                def_goals=def_goals,
+                def_corners=def_corners,
+                def_cards=def_cards,
+            )
 
             cn_sum = (m.corners_home + m.corners_away) if (m.corners_home is not None and m.corners_away is not None and (m.corners_home + m.corners_away) > 0) else None
             cd_sum = (m.cards_home + m.cards_away) if (m.cards_home is not None and m.cards_away is not None and (m.cards_home + m.cards_away) > 0) else None
@@ -727,28 +632,33 @@ def run_walk_forward_backtest(
             "gf": m.home_goals, "ga": m.away_goals,
             "res": "W" if m.home_goals > m.away_goals else ("D" if m.home_goals == m.away_goals else "L"),
             "hst": m.home_shots_target or 4, "ast": m.away_shots_target or 4,
-            "cn": m.corners_home or 5, "cr": m.cards_home or 2,
-            "cn_tot": cn_tot, "cr_tot": cr_tot
+            "cn": m.corners_home or 5, "cn_opp": m.corners_away or 4,
+            "cr": m.cards_home or 2, "cn_tot": cn_tot, "cr_tot": cr_tot
         })
         team_history[a_name].append({
             "opp": h_name, "was_home": False, "date": m.match_date,
             "gf": m.away_goals, "ga": m.home_goals,
             "res": "W" if m.away_goals > m.home_goals else ("D" if m.home_goals == m.away_goals else "L"),
             "hst": m.away_shots_target or 4, "ast": m.home_shots_target or 4,
-            "cn": m.corners_away or 4, "cr": m.cards_away or 2,
-            "cn_tot": cn_tot, "cr_tot": cr_tot
+            "cn": m.corners_away or 4, "cn_opp": m.corners_home or 5,
+            "cr": m.cards_away or 2, "cn_tot": cn_tot, "cr_tot": cr_tot
         })
 
     # Ejecutar evaluación mediante el ensamble de Katakuri v4.1
     base_results = run_backtest(items)
 
-    # Simulación de Value Betting (Katakuri Edge vs Cuotas de Mercado + Kelly 1/4 Staking)
+    # Simulación de Value Betting y Benchmark de Mercado (Katakuri Edge vs Cuotas Cierre Bet365 + Kelly 1/4 real)
     total_bets = 0
     bets_won = 0
     total_staked = 0.0
     total_returned = 0.0
     kelly_staked = 0.0
     kelly_returned = 0.0
+
+    mkt_rps_list = []
+    mkt_brier_list = []
+    mkt_logloss_list = []
+    mkt_hits = 0
 
     for i, report in enumerate(base_results.get("matches", [])):
         b = bet_data[i]
@@ -759,6 +669,16 @@ def run_walk_forward_backtest(
             raw_h, raw_d, raw_a = 1.0 / b_h, 1.0 / b_d, 1.0 / b_a
             margin = raw_h + raw_d + raw_a
             p_mkt_h, p_mkt_d, p_mkt_a = raw_h / margin, raw_d / margin, raw_a / margin
+
+            mkt_rps_list.append(compute_rps(p_mkt_h, p_mkt_d, p_mkt_a, actual_out))
+            e_h = 1.0 if actual_out == "1" else 0.0
+            e_d = 1.0 if actual_out == "X" else 0.0
+            e_a = 1.0 if actual_out == "2" else 0.0
+            mkt_brier_list.append(float((p_mkt_h - e_h) ** 2 + (p_mkt_d - e_d) ** 2 + (p_mkt_a - e_a) ** 2))
+            mkt_logloss_list.append(compute_log_loss(p_mkt_h, p_mkt_d, p_mkt_a, actual_out))
+            mkt_pick = "1" if (p_mkt_h >= p_mkt_d and p_mkt_h >= p_mkt_a) else ("X" if p_mkt_d >= p_mkt_a else "2")
+            if mkt_pick == actual_out:
+                mkt_hits += 1
 
             p_mod_h = report.get("home_win_pct", 33.3) / 100.0
             p_mod_d = report.get("draw_pct", 33.3) / 100.0
@@ -777,7 +697,7 @@ def run_walk_forward_backtest(
 
             for pick_code, p_mod, p_mkt, odds_val in candidates:
                 edge_val = p_mod - p_mkt
-                # Filtro institucional de alta convicción: cuotas en rango eficiente (1.42 a 4.10) y probabilidad >= 34%
+                # Filtro institucional: cuotas en rango líquido (1.42 a 4.10) y probabilidad >= 34%
                 if edge_val > edge_threshold and 1.42 <= odds_val <= 4.10 and p_mod >= 0.34:
                     if edge_val > max_edge:
                         max_edge = edge_val
@@ -786,28 +706,46 @@ def run_walk_forward_backtest(
                         best_prob = p_mod
 
             if best_pick is not None:
-                total_bets += 1
-                total_staked += 1.0  # Unidad plana
-                # Criterio de Kelly Fraccional (1/4 Kelly) acotado entre 0.25u y 2.0u
+                # Criterio de Kelly Fraccional exacto (1/4 Kelly sin piso artificial ni inflación 10x)
                 b_net = max(0.1, best_odds - 1.0)
-                kelly_f = max(0.25, min(2.0, 0.25 * ((best_prob * best_odds - 1.0) / b_net) * 10.0))
-                kelly_staked += kelly_f
+                raw_kelly_quarter = 0.25 * ((best_prob * best_odds - 1.0) / b_net)
+                if raw_kelly_quarter > 0.0:
+                    total_bets += 1
+                    total_staked += 1.0  # 1 unidad plana por apuesta
+                    kelly_f = min(0.50, raw_kelly_quarter)
+                    kelly_staked += kelly_f
 
-                if best_pick == actual_out:
-                    bets_won += 1
-                    total_returned += best_odds
-                    kelly_returned += kelly_f * best_odds
+                    if best_pick == actual_out:
+                        bets_won += 1
+                        total_returned += best_odds
+                        kelly_returned += kelly_f * best_odds
 
     net_profit = round(total_returned - total_staked, 2)
     roi_pct = round((net_profit / total_staked * 100.0), 2) if total_staked > 0 else 0.0
-    kelly_profit = round(kelly_returned - kelly_staked, 2)
+    kelly_profit = round(kelly_returned - kelly_staked, 4)
     kelly_roi_pct = round((kelly_profit / kelly_staked * 100.0), 2) if kelly_staked > 0 else 0.0
     win_rate_bets = round((bets_won / total_bets * 100.0), 1) if total_bets > 0 else 0.0
 
+    mkt_rps_mean = round(float(np.mean(mkt_rps_list)), 4) if mkt_rps_list else None
+    mkt_brier_mean = round(float(np.mean(mkt_brier_list)), 4) if mkt_brier_list else None
+    mkt_logloss_mean = round(float(np.mean(mkt_logloss_list)), 4) if mkt_logloss_list else None
+    mkt_acc_pct = round((mkt_hits / len(mkt_rps_list)) * 100.0, 2) if mkt_rps_list else None
+    mod_rps = base_results.get("metrics", {}).get("rps_mean")
+    rps_delta = round(float(mod_rps - mkt_rps_mean), 4) if (mod_rps is not None and mkt_rps_mean is not None) else None
+
     base_results["walk_forward_simulation"] = {
-        "dataset_type": "Partidos Históricos Oficiales Point-in-Time (Cero Fuga Temporal)",
+        "dataset_type": f"Partidos Históricos Oficiales Out-of-Sample (>= {TRAIN_CUTOFF_DATE}, Cero Fuga Temporal)",
         "sample_size": len(items),
-        "competition_filter": competition or "Todas las ligas activas (9 competiciones)",
+        "competition_filter": competition or "Todas las ligas activas (Out-of-Sample)",
+        "market_benchmark": {
+            "bookmaker": "Bet365 Closing Odds (De-vigged)",
+            "matches_with_odds": len(mkt_rps_list),
+            "market_rps_mean": mkt_rps_mean,
+            "market_brier_mean": mkt_brier_mean,
+            "market_log_loss": mkt_logloss_mean,
+            "market_accuracy_pct": mkt_acc_pct,
+            "rps_delta_vs_market": rps_delta
+        },
         "value_betting": {
             "edge_threshold_pct": round(edge_threshold * 100.0, 1),
             "total_bets_placed": total_bets,
@@ -817,6 +755,7 @@ def run_walk_forward_backtest(
             "total_staked_units": total_staked,
             "net_profit_units": net_profit,
             "roi_pct": roi_pct,
+            "kelly_staked_units": round(kelly_staked, 4),
             "kelly_net_profit_units": kelly_profit,
             "kelly_roi_pct": kelly_roi_pct
         }

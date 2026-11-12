@@ -103,6 +103,7 @@ class TeamStatsCache(Base):
     avg_shots_target_for = Column(Float, nullable=True)
     avg_shots_target_against = Column(Float, nullable=True)
     avg_corners = Column(Float, default=5.0)
+    avg_corners_conceded = Column(Float, nullable=True)
     avg_cards = Column(Float, default=2.0)
     win_rate_last_5 = Column(Float, default=0.50)
     last_matches_json = Column(JSON, default=list)
@@ -132,7 +133,7 @@ def init_db():
 
             result = conn.execute(text("PRAGMA table_info(team_stats_cache)"))
             cols_tc = [row[1] for row in result.fetchall()]
-            for col in ["home_goals_scored", "home_goals_conceded", "away_goals_scored", "away_goals_conceded", "avg_shots_target_for", "avg_shots_target_against"]:
+            for col in ["home_goals_scored", "home_goals_conceded", "away_goals_scored", "away_goals_conceded", "avg_shots_target_for", "avg_shots_target_against", "avg_corners_conceded"]:
                 if col not in cols_tc:
                     conn.execute(text(f"ALTER TABLE team_stats_cache ADD COLUMN {col} FLOAT"))
                     conn.commit()
