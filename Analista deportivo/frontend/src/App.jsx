@@ -7,22 +7,31 @@ import LiveNeuralSection from './components/LiveNeuralSection';
 import NeuralUrlCard from './components/NeuralUrlCard';
 import MetricCards from './components/MetricCards';
 import DistributionChart from './components/DistributionChart';
-import KeyFactorsPanel from './components/KeyFactorsPanel';
-import BacktestModal from './components/BacktestModal';
 
 import { Terminal, AlertCircle } from 'lucide-react';
 
-// Si existe proxy en Vite, las rutas relativas eliminan conflictos de IPv6 / CORS.
-// Fallback a 127.0.0.1:8000 explícito para evitar problemas de resolución localhost en Windows.
 const API_BASE = '';
 const SYNC_INTERVAL_SECONDS = 300; // 5 minutos exactos
+
+async function fetchJsonWithFallback(path, options) {
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, options);
+  } catch {
+    res = await fetch(`http://127.0.0.1:8000${path}`, options);
+  }
+  if (res && (res.status === 502 || res.status === 503 || res.status === 504)) {
+    await new Promise((r) => setTimeout(r, 900));
+    res = await fetch(`http://127.0.0.1:8000${path}`, options).catch(() => res);
+  }
+  return res;
+}
 
 export default function App() {
   const [homeTeam, setHomeTeam] = useState('');
   const [awayTeam, setAwayTeam] = useState('');
 
-  // La URL del partido en vivo guardada en localStorage.
-  // Regla absoluta: Modo En Vivo se activa ÚNICAMENTE mediante la presencia de matchUrl.
+  // Modo En Vivo se activa ÚNICAMENTE mediante la presencia de matchUrl
   const [matchUrl, setMatchUrl] = useState(() => localStorage.getItem('katakuri_match_url') || '');
   const isLiveActive = Boolean(matchUrl && matchUrl.trim());
 
@@ -31,11 +40,39 @@ export default function App() {
   const [error, setError] = useState(null);
   const [predictionData, setPredictionData] = useState(null);
   const [syncCountdown, setSyncCountdown] = useState(SYNC_INTERVAL_SECONDS);
-  const [isBacktestOpen, setIsBacktestOpen] = useState(false);
+  const [healthInfo, setHealthInfo] = useState(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem('katakuri_theme') || 'dark');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('katakuri_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  }, []);
 
   const countdownIntervalRef = useRef(null);
   const nextSyncDeadlineRef = useRef(null);
   const isSyncingRef = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetchJsonWithFallback('/api/health');
+        if (active && res.ok) {
+          const data = await res.json();
+          setHealthInfo(data);
+        }
+      } catch {
+        // Silencioso en caso de arranque inicial
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const extractTeamsFromUrl = (url) => {
     if (!url) return null;
@@ -66,7 +103,7 @@ export default function App() {
           const formatWord = (s) => s.replace(/[-_]+/g, ' ')
             .split(' ')
             .filter(Boolean)
-            .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
             .join(' ');
           const homeParsed = formatWord(parts[0]);
           const awayParsed = formatWord(parts[1]);
@@ -104,7 +141,6 @@ export default function App() {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
     }
-    // Limpiar match_url del estado de predicción actual para que no re-active el modo en vivo ni restaure la URL
     setPredictionData((prev) => {
       if (!prev || !prev.match) return prev;
       return {
@@ -121,10 +157,21 @@ export default function App() {
     });
   }, []);
 
+  const handleSwapTeams = useCallback(() => {
+    if (matchUrl) {
+      handleClearUrl();
+    }
+    setHomeTeam((prevH) => {
+      const prevA = awayTeam;
+      setAwayTeam(prevH);
+      return prevA;
+    });
+  }, [awayTeam, matchUrl, handleClearUrl]);
+
   const runAnalysis = useCallback(async (
     targetHome = homeTeam,
     targetAway = awayTeam,
-    force = false,
+    force = true,
     customMatchUrl = matchUrl,
     isBackgroundSync = false
   ) => {
@@ -136,7 +183,6 @@ export default function App() {
     let cleanHome = (targetHome || '').trim();
     let cleanAway = (targetAway || '').trim();
 
-    // Si hay una URL activa y no es un refresco de fondo con equipos oficiales ya resueltos, extraer equipos de la URL
     if (trimmedUrl && (!isBackgroundSync || !cleanHome || !cleanAway)) {
       const urlTeams = extractTeamsFromUrl(trimmedUrl);
       if (urlTeams) {
@@ -151,7 +197,6 @@ export default function App() {
 
     const isLive = Boolean(trimmedUrl);
 
-    // Solo limpiar el dashboard si el usuario cambió manualmente a otro partido distinto (nunca en auto-sync de fondo)
     if (!isBackgroundSync && predictionData && (
       (trimmedUrl && predictionData.match?.match_url && trimmedUrl !== predictionData.match.match_url) ||
       (!trimmedUrl && (
@@ -170,58 +215,30 @@ export default function App() {
       setError(null);
     }
 
-    // Importante: Cuando hay URL en vivo (trimmedUrl), NO enviar live_score/live_minute/live_corners viejos
-    // para obligar al backend a extraer el minuto, marcador y córners frescos de la URL en tiempo real.
     const payload = {
       home_team: cleanHome || '',
       away_team: cleanAway || '',
       competition: predictionData?.match?.competition || 'General',
-      force_refresh: true,
+      force_refresh: force,
       is_live: isLive,
-      match_url: trimmedUrl || ''
+      match_url: trimmedUrl || '',
     };
 
     try {
-      let res;
-      try {
-        res = await fetch(`${API_BASE}/api/predict`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache'
-          },
-          body: JSON.stringify(payload)
-        });
-      } catch {
-        // Fallback a conexión directa si falla la petición proxy de red
-        res = await fetch('http://127.0.0.1:8000/api/predict', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache'
-          },
-          body: JSON.stringify(payload)
-        });
-      }
-
-      // Si el proxy de desarrollo devolvió 502/503/504 (servidor iniciando o desconexión del proxy), reintentar directo
-      if (res && (res.status === 502 || res.status === 503 || res.status === 504)) {
-        await new Promise(r => setTimeout(r, 1200));
-        res = await fetch('http://127.0.0.1:8000/api/predict', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache'
-          },
-          body: JSON.stringify(payload)
-        }).catch(() => res);
-      }
+      const res = await fetchJsonWithFallback('/api/predict', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        body: JSON.stringify(payload)
+      });
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
         let errMsg = '';
         if (Array.isArray(errJson.detail)) {
-          errMsg = errJson.detail.map(d => (typeof d === 'object' ? (d.msg || JSON.stringify(d)) : String(d))).join('; ');
+          errMsg = errJson.detail.map((d) => (typeof d === 'object' ? (d.msg || JSON.stringify(d)) : String(d))).join('; ');
         } else if (errJson.detail && typeof errJson.detail === 'object') {
           errMsg = JSON.stringify(errJson.detail);
         } else if (errJson.detail) {
@@ -238,22 +255,17 @@ export default function App() {
       setPredictionData(data);
       setError(null);
 
-      // Si la IA determinó el orden oficial de local y visitante, reflejarlo en los inputs
       if (data?.match?.home_team && data?.match?.away_team) {
         setHomeTeam(data.match.home_team);
         setAwayTeam(data.match.away_team);
       }
 
-      // Reiniciar el reloj de 5 minutos exactos tras cada sincronización exitosa en vivo
       if (isLive) {
         nextSyncDeadlineRef.current = Date.now() + SYNC_INTERVAL_SECONDS * 1000;
         setSyncCountdown(SYNC_INTERVAL_SECONDS);
       }
     } catch (err) {
-      // Si es una sincronización automática de fondo, NO cerrar ni borrar la sesión activa en pantalla;
-      // programar reintento automático en 30 segundos y mantener los datos visibles.
       if (isBackgroundSync && predictionData) {
-        console.warn('⚠️ Auto-Sync: Fallo temporal de red al refrescar, reintentando en 30s sin cerrar sesión:', err.message);
         nextSyncDeadlineRef.current = Date.now() + 30 * 1000;
         setSyncCountdown(30);
       } else if (err.message === 'Failed to fetch') {
@@ -268,7 +280,6 @@ export default function App() {
     }
   }, [homeTeam, awayTeam, matchUrl, predictionData]);
 
-  // Temporizador de cuenta regresiva basado en reloj real (Wall-Clock Time) inmune al throttling de pestañas en segundo plano
   const hasPrediction = Boolean(predictionData);
   const homeCurrent = predictionData?.match?.home_team || homeTeam;
   const awayCurrent = predictionData?.match?.away_team || awayTeam;
@@ -280,8 +291,7 @@ export default function App() {
         countdownIntervalRef.current = null;
       }
       nextSyncDeadlineRef.current = null;
-      setSyncCountdown(SYNC_INTERVAL_SECONDS);
-      return;
+      return undefined;
     }
 
     if (!nextSyncDeadlineRef.current) {
@@ -295,7 +305,6 @@ export default function App() {
       setSyncCountdown(remainingSecs);
 
       if (remainingSecs === 0 && !isSyncingRef.current) {
-        // Reprogramar inmediatamente el siguiente ciclo de 5 minutos y lanzar refresco en segundo plano
         nextSyncDeadlineRef.current = Date.now() + SYNC_INTERVAL_SECONDS * 1000;
         setSyncCountdown(SYNC_INTERVAL_SECONDS);
         runAnalysis(homeCurrent, awayCurrent, true, matchUrl, true);
@@ -304,7 +313,6 @@ export default function App() {
 
     countdownIntervalRef.current = setInterval(checkAndTick, 1000);
 
-    // Si el usuario vuelve a la pestaña después de varios minutos, sincronizar al instante si ya venció el plazo
     const handleVisibilityOrFocus = () => {
       if (document.visibilityState === 'visible') {
         checkAndTick();
@@ -323,32 +331,37 @@ export default function App() {
     };
   }, [isLiveActive, hasPrediction, homeCurrent, awayCurrent, matchUrl, runAnalysis]);
 
+  const handleForceLiveSync = useCallback(() => {
+    if (isLiveActive && hasPrediction && !loading && !syncingLive) {
+      nextSyncDeadlineRef.current = Date.now() + SYNC_INTERVAL_SECONDS * 1000;
+      setSyncCountdown(SYNC_INTERVAL_SECONDS);
+      runAnalysis(homeCurrent, awayCurrent, true, matchUrl, true);
+    }
+  }, [isLiveActive, hasPrediction, loading, syncingLive, homeCurrent, awayCurrent, matchUrl, runAnalysis]);
+
+  const versionTitle = healthInfo?.version ? `v${healthInfo.version.split('.').slice(0, 2).join('.')}` : 'v5.0';
+
   return (
     <div className="app-container" style={{ position: 'relative' }}>
-      {/* 1. Header con Controles tipo IDE Limpio e Indicador Katakuri v4.1 */}
       <HeaderBar
         homeTeam={homeTeam}
         setHomeTeam={setHomeTeam}
         awayTeam={awayTeam}
         setAwayTeam={setAwayTeam}
+        onSwapTeams={handleSwapTeams}
         onRunAnalysis={() => runAnalysis(homeTeam, awayTeam, true, matchUrl, false)}
-        onForceLiveSync={() => {
-          if (isLiveActive && hasPrediction && !loading && !syncingLive) {
-            nextSyncDeadlineRef.current = Date.now() + SYNC_INTERVAL_SECONDS * 1000;
-            setSyncCountdown(SYNC_INTERVAL_SECONDS);
-            runAnalysis(homeCurrent, awayCurrent, true, matchUrl, true);
-          }
-        }}
+        onForceLiveSync={handleForceLiveSync}
         loading={loading}
         syncingLive={syncingLive}
         isLive={isLiveActive}
         syncCountdown={predictionData ? syncCountdown : null}
         matchUrl={matchUrl}
         onClearUrl={handleClearUrl}
-        onOpenBacktest={() => setIsBacktestOpen(true)}
+        healthInfo={healthInfo}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
-      {/* 2. Banner de Error si ocurre */}
       {error && (
         <div className="error-banner">
           <AlertCircle size={18} color="var(--red)" />
@@ -356,30 +369,36 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. Estado de Carga Inicial */}
+      {/* Carga */}
       {loading && (
-        <div className="state-box">
-          <div className="terminal-spinner"></div>
-          <div className="state-title">Pipeline predictivo Katakuri v4.1</div>
-          <div className="state-sub">
-            {isLiveActive
-              ? 'Rastreando datos en vivo desde la URL online, extrayendo telemetría y ejecutando Red Neuronal LSTM...'
-              : 'Analizando partido pre-match con modelos locales Poisson Dixon-Coles, XGBoost y Red Neuronal...'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          <div className="state-box" style={{ padding: '1.25rem' }}>
+            <div className="terminal-spinner"></div>
+            <div className="state-title">Calculando análisis Katakuri {versionTitle}</div>
+            <div className="state-sub">
+              {isLiveActive
+                ? 'Sincronizando telemetría en vivo...'
+                : 'Generando probabilidades 1X2, goles, córners y tarjetas...'}
+            </div>
+          </div>
+          <div className="v5-skeleton-grid">
+            <div className="v5-skeleton-box" style={{ gridColumn: 'span 12', height: '140px' }} />
+            <div className="v5-skeleton-box" style={{ gridColumn: 'span 4', height: '170px' }} />
+            <div className="v5-skeleton-box" style={{ gridColumn: 'span 4', height: '170px' }} />
+            <div className="v5-skeleton-box" style={{ gridColumn: 'span 4', height: '170px' }} />
           </div>
         </div>
       )}
 
-      {/* 5. Dashboard Completo de Resultados (permanece montado durante auto-sync cada 5 min) */}
+      {/* Resultados Esenciales */}
       {!loading && predictionData && (
         <>
-          {/* Tarjeta Principal de Ganador (1X2) */}
           <WinnerCard
             match={predictionData.match}
             winner={predictionData.prediction.winner}
             isLive={isLiveActive}
           />
 
-          {/* Sección de Red Neuronal: Si hay URL activa muestra telemetría live, si es pre-match muestra casilla para ingresar URL */}
           {isLiveActive ? (
             <LiveNeuralSection
               prediction={predictionData.prediction}
@@ -389,6 +408,8 @@ export default function App() {
               onUrlChange={handleUrlChange}
               onClearUrl={handleClearUrl}
               onRunAnalysis={() => runAnalysis(homeTeam, awayTeam, true, matchUrl, false)}
+              onForceLiveSync={handleForceLiveSync}
+              syncingLive={syncingLive}
             />
           ) : (
             <NeuralUrlCard
@@ -400,27 +421,17 @@ export default function App() {
             />
           )}
 
-          {/* Grid de Métricas Clave (Goles, Córners, Tarjetas) */}
           <MetricCards
             prediction={predictionData.prediction}
             match={predictionData.match}
             isLive={isLiveActive}
           />
 
-          {/* Sección Inferior: Gráficas de Distribución + Factores Clave */}
-          <div className="analysis-bottom-grid">
-            <DistributionChart
-              chartData={predictionData.chart_data}
-            />
-            <KeyFactorsPanel
-              factors={predictionData.key_factors}
-              analyzedAt={predictionData.match.analyzed_at}
-            />
-          </div>
+          <DistributionChart chartData={predictionData.chart_data} theme={theme} />
         </>
       )}
 
-      {/* Estado Vacío Inicial si aún no hay partido analizado: Casilla de URL donde está la sección de red neuronal */}
+      {/* Estado Vacío Inicial */}
       {!loading && !predictionData && !error && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           <NeuralUrlCard
@@ -432,20 +443,14 @@ export default function App() {
           />
 
           <div className="state-box">
-            <Terminal size={32} color="var(--cyan)" />
-            <div className="state-title">Katakuri · Analista Deportivo en espera</div>
+            <Terminal size={30} color="var(--cyan)" />
+            <div className="state-title">Katakuri {versionTitle} · Listo para analizar</div>
             <div className="state-sub">
-              Ingresa dos equipos en la barra superior para iniciar el análisis. Para activar el <strong>modo en vivo</strong>, pega la URL del partido en la casilla de arriba y presiona <strong>Analizar</strong>.
+              Selecciona Local y Visitante en la barra superior o pega la URL del partido para analizar en vivo.
             </div>
           </div>
         </div>
       )}
-
-      {/* 6. Modal de Validación Empírica y Calibración de Modelos */}
-      <BacktestModal
-        isOpen={isBacktestOpen}
-        onClose={() => setIsBacktestOpen(false)}
-      />
     </div>
   );
 }

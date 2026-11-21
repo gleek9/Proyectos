@@ -1,53 +1,105 @@
 /* ==============================================================================
-   KATAKURI AI — WORKBENCH TÁCTICO & ANALÍTICO (v3.5 — AURORA UI & GLOW)
+   KATAKURI AI — WARM STEALTH & EDITORIAL MINIMALIST (v5.0)
    ============================================================================== */
 
 :root {
-  /* Paleta Base Nocturna Aurora (Deep Pitch Obsidian) */
-  --bg-base: #08090e;
-  --bg-panel: rgba(15, 18, 25, 0.78);
-  --bg-panel-solid: #0f1219;
-  --bg-panel-hover: rgba(22, 27, 38, 0.88);
-  --bg-card: rgba(20, 24, 34, 0.70);
-  --bg-card-solid: #141822;
-  --bg-input: rgba(10, 12, 17, 0.85);
+  /* Paleta Warm Stealth Dark (Carbono, Piedra y Arena Cálida) */
+  --bg-base: #0d0c0b;
+  --bg-panel: #151412;
+  --bg-panel-solid: #151412;
+  --bg-panel-hover: #1c1a17;
+  --bg-card: #1b1a17;
+  --bg-card-solid: #1b1a17;
+  --bg-input: #100f0e;
 
   /* Bordes y Líneas Estructurales Hairline */
-  --border-dim: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(14, 165, 233, 0.35);
-  --border-highlight: rgba(255, 255, 255, 0.16);
+  --border-dim: rgba(245, 245, 244, 0.08);
+  --border-focus: rgba(214, 180, 132, 0.45);
+  --border-highlight: rgba(245, 245, 244, 0.16);
 
   /* Tipografías */
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* Colores de Acento Aurora & Glow */
-  --emerald: #10b981;
-  --emerald-glow: 0 0 24px rgba(16, 185, 129, 0.22);
-  --azure: #0ea5e9;
-  --azure-glow: 0 0 24px rgba(14, 165, 233, 0.24);
-  --cyan: #38bdf8;
-  --cyan-glow: 0 0 24px rgba(56, 189, 248, 0.22);
-  --purple: #a855f7;
-  --purple-glow: 0 0 24px rgba(168, 85, 247, 0.22);
-  --violet: #8b5cf6;
-  --violet-glow: 0 0 24px rgba(139, 92, 246, 0.20);
-  --slate: #94a3b8;
-  --slate-dark: #334155;
-  --lime: #10b981;
-  --lime-glow: 0 0 24px rgba(16, 185, 129, 0.22);
-  --amber: #f59e0b;
-  --amber-glow: 0 0 24px rgba(245, 158, 11, 0.22);
-  --red: #f43f5e;
-  --crimson: #f43f5e;
-  --crimson-glow: 0 0 24px rgba(244, 63, 94, 0.24);
+  /* Acentos Warm Stealth Mate (Sin Neón) */
+  --sand: #d6b484;
+  --emerald: #76a88a;
+  --emerald-glow: none;
+  --azure: #93a8b8;
+  --azure-glow: none;
+  --cyan: #d6b484;
+  --cyan-glow: none;
+  --purple: #9e938a;
+  --purple-glow: none;
+  --violet: #9e938a;
+  --violet-glow: none;
+  --slate: #a8a29e;
+  --slate-dark: #44403c;
+  --lime: #76a88a;
+  --lime-glow: none;
+  --amber: #c99a5b;
+  --amber-glow: none;
+  --red: #c96a68;
+  --crimson: #c96a68;
+  --crimson-glow: none;
 
-  /* Textos con Contraste Intencional */
-  --text-main: #f8fafc;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-dim: #64748b;
-  --text-muted: #475569;
+  /* Botón Primario y Barras */
+  --btn-primary-bg: #f5f5f4;
+  --btn-primary-fg: #121110;
+  --seg-home: #d6b484;
+  --seg-draw: #44403c;
+  --seg-away: #a8a29e;
+
+  /* Textos con Contraste Cálido */
+  --text-main: #f5f5f4;
+  --text-primary: #f5f5f4;
+  --text-secondary: #a8a29e;
+  --text-dim: #78716c;
+  --text-muted: #57534e;
+
+  --surface-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="light"] {
+  /* Paleta Warm Editorial Light (Alabastro, Blanco Nítido y Bronce/Piedra) */
+  --bg-base: #f5f3ee;
+  --bg-panel: #ffffff;
+  --bg-panel-solid: #ffffff;
+  --bg-panel-hover: #faf9f6;
+  --bg-card: #f2efe8;
+  --bg-card-solid: #f2efe8;
+  --bg-input: #faf9f6;
+
+  --border-dim: rgba(28, 25, 23, 0.09);
+  --border-focus: rgba(159, 114, 64, 0.5);
+  --border-highlight: rgba(28, 25, 23, 0.18);
+
+  --sand: #9f7240;
+  --emerald: #2f6f4e;
+  --azure: #4b6b82;
+  --cyan: #9f7240;
+  --purple: #6b635b;
+  --violet: #6b635b;
+  --slate: #78716c;
+  --slate-dark: #d6d3cd;
+  --lime: #2f6f4e;
+  --amber: #9a6523;
+  --red: #b54846;
+  --crimson: #b54846;
+
+  --btn-primary-bg: #1c1917;
+  --btn-primary-fg: #fafaf9;
+  --seg-home: #9f7240;
+  --seg-draw: #d6d3cd;
+  --seg-away: #57534e;
+
+  --text-main: #1c1917;
+  --text-primary: #1c1917;
+  --text-secondary: #57534e;
+  --text-dim: #78716c;
+  --text-muted: #a8a29e;
+
+  --surface-shadow: 0 1px 3px rgba(28, 25, 23, 0.06);
 }
 
 *, *::before, *::after {
@@ -58,15 +110,12 @@
 
 body {
   background-color: var(--bg-base);
-  background-image:
-    radial-gradient(ellipse 70% 50% at 15% -8%, rgba(14, 165, 233, 0.12), transparent 55%),
-    radial-gradient(ellipse 60% 45% at 85% 12%, rgba(16, 185, 129, 0.10), transparent 52%),
-    radial-gradient(ellipse 55% 40% at 50% 95%, rgba(139, 92, 246, 0.08), transparent 55%);
-  background-attachment: fixed;
+  background-image: none;
   color: var(--text-main);
   font-family: var(--font-sans);
   min-height: 100vh;
   line-height: 1.5;
+  transition: background-color 0.2s ease, color 0.2s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -88,11 +137,11 @@ body {
   background: var(--border-focus);
 }
 
-/* Estilos de Contenedor General */
+/* Contenedor Editorial Proporcionado */
 .app-container {
-  max-width: 1360px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 1.25rem 1.5rem 3rem;
+  padding: 1.5rem 1.5rem 3.25rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -1928,3 +1977,992 @@ body {
 }
 
 
+
+
+/* =====================================================================
+   Katakuri v5.0 — Aurora Telemetry Studio (Clarity, Tabular, Modular)
+   ===================================================================== */
+
+.mono,
+.metric-big-val,
+.metric-kpi,
+.prob-val,
+.submetric-val,
+.kpi-val,
+.dc-pct,
+.dnb-pct,
+.score-prob,
+.line-prob,
+.bt-prob-cell,
+.v5-tabular-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.v5-inline-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.v5-meta-dim {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+}
+
+.v5-pill-dot-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Botón Swap Home/Away */
+.v5-swap-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-dim);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.v5-swap-btn:hover {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  background: rgba(6, 182, 212, 0.1);
+}
+
+/* Autocompletado rápido de clubes (/api/teams/search) */
+.v5-team-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.v5-autocomplete-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 265px;
+  max-height: 290px;
+  overflow-y: auto;
+  background: #12151f;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.65);
+  z-index: 120;
+  padding: 0.25rem;
+}
+
+.v5-autocomplete-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.42rem 0.55rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-main);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.78rem;
+}
+
+.v5-autocomplete-item:hover,
+.v5-autocomplete-item.active {
+  background: rgba(59, 130, 246, 0.14);
+}
+
+.v5-autocomplete-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.v5-autocomplete-name {
+  font-weight: 600;
+  color: var(--text-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.v5-autocomplete-league {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+}
+
+.v5-autocomplete-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.v5-women-badge {
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  padding: 0.1rem 0.32rem;
+  border-radius: 4px;
+  background: rgba(168, 85, 247, 0.18);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.45);
+}
+
+.v5-elo-badge {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  color: var(--cyan);
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.28);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+/* Barra horizontal de partidos recientes */
+.v5-recent-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.v5-recent-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.v5-recent-chips {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.v5-recent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.26rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  font-size: 0.74rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.v5-recent-chip:hover {
+  border-color: var(--azure);
+  background: rgba(59, 130, 246, 0.09);
+}
+
+.v5-recent-chip.is-active {
+  border-color: var(--emerald);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.v5-recent-chip-league {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+}
+
+/* Telemetría de cuotas Value & 1/4 Kelly */
+.v5-odds-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.v5-odds-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.v5-odds-inputs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.v5-odds-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.24rem 0.45rem;
+}
+
+.v5-odds-field label {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.v5-odds-field input {
+  width: 58px;
+  border: none;
+  background: transparent;
+  color: var(--text-bright);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  outline: none;
+}
+
+.v5-prior-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  font-size: 0.74rem;
+  color: var(--text-main);
+  cursor: pointer;
+  padding: 0.28rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.v5-odds-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.v5-odds-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.55rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.v5-odds-card.has-value {
+  border-color: rgba(16, 185, 129, 0.55);
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.v5-odds-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.v5-odds-metrics {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+/* Comparativa Cara a Cara Pre-Match */
+.v5-comparison-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 0.95rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.v5-comp-rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem 1.1rem;
+}
+
+.v5-comp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.v5-comp-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.74rem;
+}
+
+.v5-comp-val-home {
+  font-family: var(--font-mono);
+  color: var(--emerald);
+  font-weight: 600;
+}
+
+.v5-comp-val-away {
+  font-family: var(--font-mono);
+  color: var(--purple);
+  font-weight: 600;
+}
+
+.v5-comp-label {
+  font-size: 0.69rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.v5-comp-bar-track {
+  display: flex;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  gap: 2px;
+}
+
+.v5-comp-bar-home {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.6), var(--emerald));
+  height: 100%;
+}
+
+.v5-comp-bar-away {
+  background: linear-gradient(90deg, var(--purple), rgba(168, 85, 247, 0.6));
+  height: 100%;
+}
+
+.v5-comp-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.73rem;
+}
+
+.v5-form-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.22rem 0.5rem;
+}
+
+.v5-form-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.v5-form-dot.w {
+  background: rgba(16, 185, 129, 0.18);
+  color: var(--emerald);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+}
+
+.v5-form-dot.d {
+  background: rgba(245, 158, 11, 0.16);
+  color: var(--amber);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.v5-form-dot.l {
+  background: rgba(244, 63, 94, 0.16);
+  color: var(--red);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.v5-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.22rem 0.55rem;
+  color: var(--text-main);
+}
+
+/* Consenso de Sub-Modelos v5 */
+.v5-consensus-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 0.95rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.v5-consensus-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.v5-submodel-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.26rem;
+}
+
+.v5-submodel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.v5-submodel-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-bright);
+  font-weight: 500;
+}
+
+.v5-weight-pill {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--cyan);
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  padding: 0.08rem 0.35rem;
+  border-radius: 4px;
+}
+
+.v5-submodel-probs {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--text-dim);
+}
+
+.v5-submodel-bar {
+  display: flex;
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+
+/* Live Neural Progress Bar & Live Metric Chips */
+.v5-live-progress-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.45rem 0.75rem;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+}
+
+.v5-live-track {
+  position: relative;
+  flex: 1;
+  min-width: 170px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.v5-live-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber), var(--red));
+  transition: width 0.35s ease;
+}
+
+.v5-live-sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 5px;
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  background: rgba(244, 63, 94, 0.12);
+  color: #fda4af;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.v5-live-sync-btn:hover {
+  background: rgba(244, 63, 94, 0.22);
+}
+
+.v5-live-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.v5-live-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.28);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-bright);
+}
+
+/* Skeleton Loader para carga inicial */
+.v5-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.v5-skeleton-box {
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: linear-gradient(
+    90deg,
+    var(--bg-panel) 25%,
+    rgba(255, 255, 255, 0.04) 50%,
+    var(--bg-panel) 75%
+  );
+  background-size: 200% 100%;
+  animation: v5-shimmer 1.4s infinite linear;
+}
+
+@keyframes v5-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Backtest v5 Chart & Controls */
+.v5-bt-chart-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.v5-bt-chart-canvas {
+  height: 210px;
+  position: relative;
+}
+
+.v5-bt-source-pill {
+  display: inline-flex;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+
+.v5-bt-source-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0.3rem 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+.v5-bt-source-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--text-bright);
+}
+
+/* Clases utilitarias consolidadas (Backtest / Live / Cards) */
+.v5-alert-error {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid var(--red);
+  border-radius: 6px;
+  padding: 0.65rem 0.8rem;
+  color: #fda4af;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.v5-metric-accent-cyan {
+  border-color: var(--cyan) !important;
+}
+
+.v5-metric-accent-amber {
+  border-color: var(--amber) !important;
+}
+
+.v5-metric-accent-purple {
+  border-color: var(--purple) !important;
+}
+
+@media (max-width: 900px) {
+  .v5-comp-rows,
+  .v5-odds-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* =====================================================================
+   Katakuri v5.0 — Warm Stealth & Light Editorial Polish (Zero Neon)
+   ===================================================================== */
+
+.ide-navbar,
+.winner-section,
+.live-neural-horizontal-panel,
+.neural-url-panel,
+.metric-panel,
+.chart-panel,
+.state-box {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: 12px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: var(--surface-shadow);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.winner-section:hover,
+.metric-panel:hover,
+.chart-panel:hover {
+  border-color: var(--border-highlight);
+  box-shadow: var(--surface-shadow);
+}
+
+/* Header Marca + Theme Switcher */
+.ide-brand-clickable {
+  background: transparent;
+  border: 1px solid var(--border-dim) !important;
+  box-shadow: none !important;
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+}
+
+.ide-brand-clickable.not-live {
+  border-color: var(--border-dim) !important;
+}
+
+.ide-brand-clickable.is-live {
+  border-color: rgba(201, 106, 104, 0.45) !important;
+  background: rgba(201, 106, 104, 0.08);
+  animation: none;
+}
+
+.brand-title {
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  letter-spacing: -0.02em;
+}
+
+.v5-theme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-dim);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.v5-theme-btn:hover {
+  color: var(--text-main);
+  border-color: var(--border-highlight);
+  background: var(--bg-panel-hover);
+}
+
+/* Barra unificada de equipos [ Local | ⇄ | Visitante ] */
+.v5-matchup-pill {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border-dim);
+  border-radius: 10px;
+  padding: 0.2rem 0.35rem;
+  gap: 0.2rem;
+  transition: border-color 0.15s ease;
+}
+
+.v5-matchup-pill:focus-within {
+  border-color: var(--border-focus);
+}
+
+.v5-matchup-pill .input-group {
+  background: transparent;
+  border: none;
+  box-shadow: none !important;
+  padding: 0.25rem 0.45rem;
+}
+
+.v5-matchup-pill .v5-swap-btn {
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+}
+
+.v5-matchup-pill .v5-swap-btn:hover {
+  background: var(--bg-card);
+  color: var(--sand);
+}
+
+.input-label-tag.home {
+  background: rgba(214, 180, 132, 0.14);
+  color: var(--sand);
+}
+
+.input-label-tag.away {
+  background: rgba(168, 162, 158, 0.15);
+  color: var(--text-secondary);
+}
+
+.btn-run {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border-radius: 10px;
+  padding: 0.52rem 1.05rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: -0.01em;
+  box-shadow: none !important;
+}
+
+.btn-run:hover:not(:disabled) {
+  opacity: 0.9;
+  filter: none;
+  box-shadow: none !important;
+}
+
+.btn-run.is-loading {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  box-shadow: none !important;
+}
+
+/* Autocomplete Dropdown Dual Theme */
+.v5-autocomplete-menu {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-highlight);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.v5-autocomplete-name {
+  color: var(--text-main);
+}
+
+.v5-autocomplete-league {
+  color: var(--text-dim);
+}
+
+.v5-autocomplete-item:hover,
+.v5-autocomplete-item.active {
+  background: var(--bg-card);
+}
+
+.v5-elo-badge {
+  color: var(--sand);
+  background: rgba(214, 180, 132, 0.12);
+  border-color: rgba(214, 180, 132, 0.28);
+}
+
+/* Barra de Probabilidades 1X2 & Veredicto Editorial */
+.human-verdict-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  color: var(--text-main);
+  border-radius: 8px;
+}
+
+.human-verdict-box strong {
+  color: var(--sand);
+}
+
+.probs-segmented-bar {
+  height: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: 999px;
+  gap: 2px;
+}
+
+.seg-home {
+  background: var(--seg-home);
+}
+
+.seg-draw {
+  background: var(--seg-draw);
+}
+
+.seg-away {
+  background: var(--seg-away);
+}
+
+.prob-value {
+  letter-spacing: -0.03em;
+  color: var(--text-main);
+}
+
+.prob-value.home { color: var(--seg-home); }
+.prob-value.draw { color: var(--text-secondary); }
+.prob-value.away { color: var(--text-main); }
+
+/* 3 Tarjetas Simétricas de Métricas Esenciales */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.15rem;
+}
+
+.stat-number {
+  font-family: var(--font-mono);
+  font-size: 2.15rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-main) !important;
+}
+
+.v5-dot-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.submetric-row {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: 7px;
+  padding: 0.45rem 0.65rem;
+}
+
+.submetric-val.highlight {
+  color: var(--sand);
+}
+
+/* URL Bar & Live Clean Styles */
+.neural-url-panel.live-active {
+  border-color: rgba(201, 106, 104, 0.45);
+  box-shadow: none;
+}
+
+.live-neural-horizontal-panel {
+  background: var(--bg-panel) !important;
+  border: 1px solid rgba(201, 106, 104, 0.35);
+  box-shadow: var(--surface-shadow) !important;
+  animation: none !important;
+}
+
+.v5-live-url-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  background: var(--bg-card);
+  padding: 0.42rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-dim);
+}
+
+.v5-live-progress-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+}
+
+.v5-live-track {
+  background: var(--border-dim);
+}
+
+.v5-live-fill {
+  background: var(--red);
+}
+
+.dot-status {
+  box-shadow: none;
+  background: var(--emerald);
+}
+
+.pulse-dot-red,
+.pulse-dot-green {
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+/* Score Chips sin glow neón */
+.score-chip {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+}
+
+.score-chip:hover {
+  border-color: var(--border-focus);
+  background: var(--bg-panel-hover);
+  box-shadow: none;
+  transform: translateY(-1px);
+}
+
+.score-prob {
+  color: var(--sand);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  .v5-matchup-pill {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+}

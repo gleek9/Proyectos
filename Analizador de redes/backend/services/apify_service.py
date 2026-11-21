@@ -155,17 +155,18 @@ class ApifyService:
             dataset_id = None
             run_id = None
             try:
-                # Pasar las URLs de competidores dadas por el usuario
-                direct_urls = [target[1] for target in normalized_targets[:3]]
+                # Procesar hasta 10 URLs de referencia/competidores agregadas por el usuario
+                direct_urls = [target[1] for target in normalized_targets[:10]]
+                fetch_limit = min(30, max(12, len(direct_urls) * 3))
                 run_input = {
                     "directUrls": direct_urls,
                     "resultsType": "posts",
-                    "resultsLimit": 9
+                    "resultsLimit": fetch_limit
                 }
                 run = self.client.actor("apify/instagram-scraper").call(
                     run_input=run_input,
                     memory_mbytes=256,
-                    max_items=9
+                    max_items=fetch_limit
                 )
                 dataset_id, run_id = _extract_run_ids(run)
 

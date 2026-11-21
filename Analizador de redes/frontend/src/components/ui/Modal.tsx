@@ -6,6 +6,7 @@ interface ModalProps {
   onClose: () => void;
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
+  accentColor?: string;
   children: React.ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "4xl" | "6xl";
 }
@@ -15,6 +16,7 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   subtitle,
+  accentColor,
   children,
   maxWidth = "xl",
 }) => {
@@ -46,33 +48,44 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      {/* Backdrop con desenfoque técnico */}
       <div
-        className="fixed inset-0 bg-[#090A0D]/85 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-[#0B0C0E]/82 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
-      {/* Ventana Modal Elevada */}
       <div
-        className={`relative w-full ${maxWidthStyles[maxWidth]} bg-[#171A21] border border-[#1E222B] rounded-xl shadow-[0_24px_50px_-12px_rgba(0,0,0,0.85)] z-10 flex flex-col max-h-[90vh] overflow-hidden`}
+        className={`relative w-full ${maxWidthStyles[maxWidth]} bg-[#121316] border border-[#22242B] rounded-xl z-10 flex flex-col max-h-[90vh] overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Cabecera del Modal */}
+        {accentColor && (
+          <div
+            className="h-[3px] w-full flex-shrink-0"
+            style={{ backgroundColor: accentColor }}
+          />
+        )}
+
         {(title || subtitle) && (
-          <div className="flex items-start justify-between p-5 border-b border-[#1E222B] bg-[#111318]/50">
-            <div>
+          <div
+            className="flex items-start justify-between px-6 py-4 border-b border-[#27272A]"
+            style={
+              accentColor
+                ? { background: `linear-gradient(180deg, ${accentColor}16 0%, transparent 100%)` }
+                : undefined
+            }
+          >
+            <div className="min-w-0">
               {typeof title === "string" ? (
-                <h3 className="text-lg font-bold text-[#F8FAFC] tracking-tight">{title}</h3>
+                <h3 className="text-base font-semibold text-[#E4E5E9] tracking-tight">{title}</h3>
               ) : (
                 title
               )}
               {subtitle && (
-                <div className="text-xs text-[#94A3B8] mt-1">{subtitle}</div>
+                <div className="text-xs text-[#9499A6] mt-1">{subtitle}</div>
               )}
             </div>
             <button
               onClick={onClose}
-              className="text-[#64748B] hover:text-[#F8FAFC] p-1.5 rounded-lg hover:bg-[#1E222B] transition-colors"
+              className="text-[#646975] hover:text-[#E4E5E9] p-1.5 rounded-lg hover:bg-[#191B20] transition-colors cursor-pointer"
               aria-label="Cerrar modal"
             >
               <X size={18} strokeWidth={1.5} />
@@ -80,8 +93,7 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
 
-        {/* Contenido scrolleable */}
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1">{children}</div>
+        <div className="p-6 overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   );

@@ -6,18 +6,24 @@ import os
 import logging
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 import xgboost as xgb
+try:
+    import lightgbm as lgb
+    _HAS_LGB = True
+except ImportError:
+    _HAS_LGB = False
 from sklearn.preprocessing import StandardScaler
 from backend.app.schemas.match import MatchRawFeatures
+from backend.app.models.dixon_coles_mle import dixon_coles_mle
 from backend.app.models.poisson import (
     parse_elapsed_minute, calculate_remaining_goal_ratio, get_competition_parameters,
-    parse_live_score, condition_1x2_on_live_state,
+    parse_live_score, condition_1x2_on_live_state, poisson_model, get_competition_rho,
 )
 
 logger = logging.getLogger(__name__)
 
-# Definición de nombres de características tabulares calibradas (Katakuri v4)
+# Definición de nombres de características tabulares enriquecidas (Katakuri v5: 44 features)
 FEATURE_NAMES = [
     "elo_diff",
     "home_elo",
@@ -31,39 +37,83 @@ FEATURE_NAMES = [
     "away_goals_scored",
     "home_goals_conceded",
     "away_goals_conceded",
+    "home_split_scored",
+    "home_split_conceded",
+    "away_split_scored",
+    "away_split_conceded",
     "home_sot_avg",
     "away_sot_avg",
+    "home_sot_against",
+    "away_sot_against",
     "h2h_home_win_ratio",
     "h2h_away_win_ratio",
     "h2h_draw_ratio",
     "h2h_avg_goals",
-    "home_absences",
-    "away_absences",
     "home_advantage",
     "expected_corners_sum",
-    "expected_cards_sum"
+    "corners_conceded_sum",
+    "expected_cards_sum",
+    "rest_diff",
+    "poisson_lambda_h",
+    "poisson_mu_a",
+    "poisson_p_home",
+    "poisson_p_draw",
+    "poisson_p_away",
+    "home_shots_avg",
+    "away_shots_avg",
+    "home_shots_against",
+    "away_shots_against",
+    "shot_efficiency_diff",
+    "fouls_sum",
+    "ht_goal_diff_delta",
+    "referee_cards_factor",
+    "dc_mle_lambda_h",
+    "dc_mle_mu_a",
 ]
 
 class TabularPredictor:
     def __init__(self, weights_dir: str = "backend/weights"):
         self.weights_dir = weights_dir
         self.xgb_model_path = os.path.join(self.weights_dir, "xgb_1x2.json")
+        self.lgb_model_path = os.path.join(self.weights_dir, "lgb_1x2.txt")
         self.model = None
+        self.lgb_model = None
         self._ensure_model_ready()
 
     def _ensure_model_ready(self):
-        """Carga el modelo guardado o inicializa y entrena el modelo base calibrado."""
+        """Carga XGBoost + LightGBM guardados o inicializa el modelo base calibrado."""
         os.makedirs(self.weights_dir, exist_ok=True)
+        if _HAS_LGB and os.path.exists(self.lgb_model_path):
+            try:
+                booster_lgb = lgb.Booster(model_file=self.lgb_model_path)
+                if booster_lgb.num_feature() == len(FEATURE_NAMES):
+                    self.lgb_model = booster_lgb
+            except Exception as e:
+                logger.warning(f"No se pudo cargar LightGBM: {e}")
+
         if os.path.exists(self.xgb_model_path):
             try:
-                self.model = xgb.Booster()
-                self.model.load_model(self.xgb_model_path)
-                logger.info("Modelo XGBoost cargado exitosamente desde disco.")
-                return
+                booster = xgb.Booster()
+                booster.load_model(self.xgb_model_path)
+                # Verificar compatibilidad exacta de dimensión de features v5
+                if booster.num_features() == len(FEATURE_NAMES):
+                    self.model = booster
+                    logger.info("Modelo tabular XGBoost (+LightGBM si disponible) cargado exitosamente desde disco.")
+                    return
+                logger.info(
+                    f"Pesos XGBoost en disco ({booster.num_features()}F) desactualizados frente a {len(FEATURE_NAMES)}F. Reentrenando..."
+                )
             except Exception as e:
                 logger.warning(f"No se pudo cargar el modelo existente: {e}. Reentrenando base...")
 
         self._train_and_save_baseline_model()
+        if _HAS_LGB and os.path.exists(self.lgb_model_path) and self.lgb_model is None:
+            try:
+                booster_lgb = lgb.Booster(model_file=self.lgb_model_path)
+                if booster_lgb.num_feature() == len(FEATURE_NAMES):
+                    self.lgb_model = booster_lgb
+            except Exception:
+                pass
 
     def _train_and_save_baseline_model(self):
         """
@@ -122,10 +172,17 @@ class TabularPredictor:
             elo_diff_sim, home_elo_sc, away_elo_sc,
             home_win_rates, away_win_rates, home_diff, away_diff, delta_diff,
             home_scored, away_scored, home_conceded, away_conceded,
-            home_sot, away_sot,
+            home_scored * 1.08, home_conceded * 0.92, away_scored * 0.92, away_conceded * 1.08,
+            home_sot, away_sot, away_sot * 0.95, home_sot * 0.95,
             h2h_home, h2h_away, h2h_draw, h2h_goals,
-            home_absences, away_absences, home_adv,
-            corners, cards
+            home_adv,
+            corners, corners * 0.95, cards,
+            np.zeros(n_samples),
+            np.clip(home_scored * 1.05, 0.6, 3.0), np.clip(away_scored * 0.95, 0.5, 2.8),
+            np.full(n_samples, 0.44), np.full(n_samples, 0.25), np.full(n_samples, 0.31),
+            home_sot * 2.6, away_sot * 2.6, away_sot * 2.5, home_sot * 2.5,
+            np.zeros(n_samples), np.full(n_samples, 22.5), np.zeros(n_samples), np.ones(n_samples),
+            np.clip(home_scored * 1.05, 0.6, 3.0), np.clip(away_scored * 0.95, 0.5, 2.8),
         ])
 
         # Generar etiquetas 0: Home Win, 1: Draw, 2: Away Win basadas en física de partidos
@@ -173,15 +230,15 @@ class TabularPredictor:
         away_diff = a.avg_goals_scored - a.avg_goals_conceded
         delta_diff = home_diff - away_diff
 
-        if h2h.total_matches_analyzed > 0:
-            tot_h2h = h2h.total_matches_analyzed
-            h2h_h_ratio = h2h.home_team_wins / tot_h2h
-            h2h_a_ratio = h2h.away_team_wins / tot_h2h
-            h2h_d_ratio = h2h.draws / tot_h2h
+        # Suavizado Bayesiano de H2H (evita extremos 0%/100% con 1-2 partidos previos)
+        tot_h2h = int(getattr(h2h, "total_matches_analyzed", 0) or 0)
+        prior_n = 4.0
+        h2h_h_ratio = (float(h2h.home_team_wins) + prior_n * 0.44) / (tot_h2h + prior_n)
+        h2h_d_ratio = (float(h2h.draws) + prior_n * 0.25) / (tot_h2h + prior_n)
+        h2h_a_ratio = (float(h2h.away_team_wins) + prior_n * 0.31) / (tot_h2h + prior_n)
+        if tot_h2h > 0:
             h2h_avg_goals = h2h.avg_total_goals_h2h
         else:
-            # Sin H2H real: valores neutros (medias de la distribución de entrenamiento y media goleadora de la liga)
-            h2h_h_ratio, h2h_a_ratio, h2h_d_ratio = 0.35, 0.35, 0.30
             league_avg_g, _, _ = get_competition_parameters(getattr(raw, "competition", "General"))
             h2h_avg_goals = league_avg_g * 2.0
 
@@ -214,15 +271,56 @@ class TabularPredictor:
                 pass
         elo_h = float(elo_h or 1600.0)
         elo_a = float(elo_a or 1600.0)
-        elo_diff = (elo_h - elo_a + 65.0) / 100.0
+        elo_diff = (elo_h - elo_a + 50.0) / 100.0
         home_elo_scaled = elo_h / 1000.0
         away_elo_scaled = elo_a / 1000.0
 
         home_sot = float(getattr(h, "avg_shots_target_for", None) or 5.0)
         away_sot = float(getattr(a, "avg_shots_target_for", None) or 4.5)
+        home_sot_against = float(getattr(h, "avg_shots_target_against", None) or 4.5)
+        away_sot_against = float(getattr(a, "avg_shots_target_against", None) or 4.5)
 
-        # Ventaja de localía calibrada al torneo específico
-        _, comp_home_adv, _ = get_competition_parameters(getattr(raw, "competition", "General"))
+        h_split_sc = float(getattr(h, "home_goals_scored", None) or h.avg_goals_scored)
+        h_split_co = float(getattr(h, "home_goals_conceded", None) or h.avg_goals_conceded)
+        a_split_sc = float(getattr(a, "away_goals_scored", None) or a.avg_goals_scored)
+        a_split_co = float(getattr(a, "away_goals_conceded", None) or a.avg_goals_conceded)
+
+        h_cn_conc = float(getattr(h, "avg_corners_conceded", None) or 4.5)
+        a_cn_conc = float(getattr(a, "avg_corners_conceded", None) or 4.8)
+
+        h_rest = float(getattr(h, "rest_days", None) or 7.0)
+        a_rest = float(getattr(a, "rest_days", None) or 7.0)
+        rest_diff = h_rest - a_rest
+
+        # Señal estructural de Poisson Dixon-Coles y parámetros v5 (tiros, faltas, HT, árbitro, MLE)
+        comp_name = getattr(raw, "competition", "General")
+        _, comp_home_adv, _ = get_competition_parameters(comp_name)
+        lam_h, mu_a = poisson_model._calculate_lambdas(raw)
+        rho = get_competition_rho(comp_name)
+        p_mat = poisson_model.evaluate_matrix_goals(lam_h, mu_a, rho=rho)
+        p_w = p_mat["winner_probs"]
+
+        h_shots_for = float(getattr(h, "avg_shots_for", None) or (home_sot * 2.65))
+        a_shots_for = float(getattr(a, "avg_shots_for", None) or (away_sot * 2.65))
+        h_shots_ag = float(getattr(h, "avg_shots_against", None) or (home_sot_against * 2.65))
+        a_shots_ag = float(getattr(a, "avg_shots_against", None) or (away_sot_against * 2.65))
+        eff_h = home_sot / max(1.0, h_shots_for)
+        eff_a = away_sot / max(1.0, a_shots_for)
+        shot_eff_diff = float(eff_h - eff_a)
+
+        h_fouls = float(getattr(h, "avg_fouls_for", None) or 11.2)
+        a_fouls = float(getattr(a, "avg_fouls_for", None) or 11.3)
+        fouls_sum = float(h_fouls + a_fouls)
+
+        ht_h = float(getattr(h, "ht_goal_diff_avg", None) or (home_diff * 0.45))
+        ht_a = float(getattr(a, "ht_goal_diff_avg", None) or (away_diff * 0.45))
+        ht_diff_delta = float(ht_h - ht_a)
+
+        ref_cards = getattr(raw, "referee_avg_cards", None)
+        ref_factor = float(ref_cards) / 4.30 if (ref_cards is not None and float(ref_cards) > 0) else 1.0
+
+        mle_res = dixon_coles_mle.get_match_lambdas(comp_name, raw.home_team, raw.away_team)
+        mle_lh, mle_ma = (mle_res[0], mle_res[1]) if mle_res is not None else (float(lam_h), float(mu_a))
 
         feat = [
             float(elo_diff),
@@ -237,25 +335,54 @@ class TabularPredictor:
             float(a.avg_goals_scored),
             float(h.avg_goals_conceded),
             float(a.avg_goals_conceded),
+            h_split_sc,
+            h_split_co,
+            a_split_sc,
+            a_split_co,
             float(home_sot),
             float(away_sot),
+            home_sot_against,
+            away_sot_against,
             float(h2h_h_ratio),
             float(h2h_a_ratio),
             float(h2h_d_ratio),
             float(h2h_avg_goals),
-            float(len(h.key_absences)),
-            float(len(a.key_absences)),
-            float(comp_home_adv),  # Ventaja de localía por torneo
+            float(comp_home_adv),
             float(h.avg_corners + a.avg_corners),
-            float(h.avg_cards + a.avg_cards)
+            float(h_cn_conc + a_cn_conc),
+            float(h.avg_cards + a.avg_cards),
+            float(rest_diff),
+            float(lam_h),
+            float(mu_a),
+            float(p_w["home_win"]) / 100.0,
+            float(p_w["draw"]) / 100.0,
+            float(p_w["away_win"]) / 100.0,
+            h_shots_for,
+            a_shots_for,
+            h_shots_ag,
+            a_shots_ag,
+            shot_eff_diff,
+            fouls_sum,
+            ht_diff_delta,
+            ref_factor,
+            float(mle_lh),
+            float(mle_ma),
         ]
         return np.array([feat], dtype=np.float32)
 
     def predict(self, raw: MatchRawFeatures) -> Dict:
-        """Inferencia con XGBoost."""
+        """Inferencia tabular híbrida (XGBoost + LightGBM si está entrenado)."""
         features_vec = self.extract_features(raw)
         dmatrix = xgb.DMatrix(features_vec, feature_names=FEATURE_NAMES)
         preds = self.model.predict(dmatrix)[0]  # Array de longitud 3: [P(Home), P(Draw), P(Away)]
+
+        if self.lgb_model is not None:
+            try:
+                lgb_preds = self.lgb_model.predict(features_vec)[0]
+                if len(lgb_preds) == 3 and float(np.sum(lgb_preds)) > 0:
+                    preds = 0.55 * preds + 0.45 * lgb_preds
+            except Exception as e:
+                logger.debug(f"Fallback solo XGBoost en inferencia LightGBM: {e}")
 
         p_home = float(preds[0])
         p_draw = float(preds[1])

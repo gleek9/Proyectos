@@ -3,9 +3,11 @@ Módulo Meta-Ensamble Calibrado y Traductor a Lenguaje Humano.
 Combina Poisson Bivariado Dixon-Coles (40%), XGBoost (35%) y LSTM Secuencial (25%).
 Garantiza coherencia probabilística (suma 100%) y genera veredictos legibles para personas.
 """
+import json
 import logging
+import os
 import re
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 import numpy as np
 from datetime import datetime, timezone
 
@@ -33,13 +35,33 @@ def _coalesce(value, fallback):
 class MetaEnsembleEngine:
     def __init__(
         self,
-        weight_poisson: float = 0.50,
-        weight_xgboost: float = 0.38,
-        weight_lstm: float = 0.12
+        weight_poisson: float = 0.45,
+        weight_xgboost: float = 0.35,
+        weight_lstm: float = 0.20,
+        weights_dir: str = "backend/weights",
     ):
         self.w_poisson = weight_poisson
         self.w_xgb = weight_xgboost
         self.w_lstm = weight_lstm
+        self.weights_dir = weights_dir
+        self._load_calibrated_weights()
+
+    def _load_calibrated_weights(self) -> None:
+        cal_path = os.path.join(self.weights_dir, "ensemble_calibration.json")
+        if os.path.exists(cal_path):
+            try:
+                with open(cal_path, "r", encoding="utf-8") as f:
+                    cal = json.load(f)
+                wp = float(cal.get("weight_poisson", self.w_poisson))
+                wx = float(cal.get("weight_xgboost", self.w_xgb))
+                wl = float(cal.get("weight_lstm", self.w_lstm))
+                tot = wp + wx + wl
+                if tot > 0:
+                    self.w_poisson = wp / tot
+                    self.w_xgb = wx / tot
+                    self.w_lstm = wl / tot
+            except Exception as e:
+                logger.debug(f"Usando pesos base del ensamble: {e}")
 
     def _get_dynamic_weights(self, is_live: bool, elapsed_min: int = 0) -> tuple[float, float, float]:
         """
@@ -286,7 +308,7 @@ class MetaEnsembleEngine:
 
         return factors[:4]
 
-    def predict(self, raw: MatchRawFeatures) -> PredictionResponse:
+    def predict(self, raw: MatchRawFeatures, use_market_prior: bool = True) -> PredictionResponse:
         """
         Ejecuta los tres modelos locales, realiza el ensamble ponderado,
         calibra porcentajes y genera el contrato final tipado.
@@ -325,7 +347,8 @@ class MetaEnsembleEngine:
             lstm_res["winner_probs"]["away_win"] * wl
         )
 
-        # Modulador Bayesiano de Paridad y Calibración de Confianza Pre-Match (Katakuri v4.1)
+        # Modulador Bayesiano de Paridad y Calibración de Confianza Pre-Match (Katakuri v5.0)
+        model_only_probs = None
         if not is_live:
             import math
             p_lh = float(p_res.get("lambda_home", 1.35))
@@ -340,18 +363,24 @@ class MetaEnsembleEngine:
             mkt_h = getattr(raw, "market_home_odds", None)
             mkt_d = getattr(raw, "market_draw_odds", None)
             mkt_a = getattr(raw, "market_away_odds", None)
-            if mkt_h and mkt_d and mkt_a and mkt_h > 1.0 and mkt_d > 1.0 and mkt_a > 1.0:
-                inv_h, inv_d, inv_a = 1.0 / float(mkt_h), 1.0 / float(mkt_d), 1.0 / float(mkt_a)
-                overround = inv_h + inv_d + inv_a
-                p_mkt_h = (inv_h / overround) * 100.0
-                p_mkt_d = (inv_d / overround) * 100.0
-                p_mkt_a = (inv_a / overround) * 100.0
-                tot_mod = raw_home_p + raw_draw_p + raw_away_p
-                if tot_mod > 0:
-                    mod_h = (raw_home_p / tot_mod) * 100.0
-                    mod_d = (raw_draw_p / tot_mod) * 100.0
-                    mod_a = (raw_away_p / tot_mod) * 100.0
-                    w_mkt = 0.65
+            model_only_probs = None
+            tot_mod = raw_home_p + raw_draw_p + raw_away_p
+            if tot_mod > 0:
+                mod_h = (raw_home_p / tot_mod) * 100.0
+                mod_d = (raw_draw_p / tot_mod) * 100.0
+                mod_a = (raw_away_p / tot_mod) * 100.0
+                model_only_probs = {
+                    "home_win_pct": round(mod_h, 1),
+                    "draw_pct": round(mod_d, 1),
+                    "away_win_pct": round(mod_a, 1),
+                }
+                if use_market_prior and mkt_h and mkt_d and mkt_a and mkt_h > 1.0 and mkt_d > 1.0 and mkt_a > 1.0:
+                    inv_h, inv_d, inv_a = 1.0 / float(mkt_h), 1.0 / float(mkt_d), 1.0 / float(mkt_a)
+                    overround = inv_h + inv_d + inv_a
+                    p_mkt_h = (inv_h / overround) * 100.0
+                    p_mkt_d = (inv_d / overround) * 100.0
+                    p_mkt_a = (inv_a / overround) * 100.0
+                    w_mkt = 0.85
                     raw_home_p = w_mkt * p_mkt_h + (1.0 - w_mkt) * mod_h
                     raw_draw_p = w_mkt * p_mkt_d + (1.0 - w_mkt) * mod_d
                     raw_away_p = w_mkt * p_mkt_a + (1.0 - w_mkt) * mod_a
@@ -383,10 +412,7 @@ class MetaEnsembleEngine:
             exp_goals_combined = round(poisson_goals * wp + tabular_goals * wx + lstm_live_tot * wl, 2)
             exp_goals_combined = max(float(curr_tot_goals), exp_goals_combined)
         else:
-            lstm_mom = lstm_res.get("momentum_goals", 2.5)
-            mom_ratio = float(np.clip(1.0 + (lstm_mom - 2.5) * 0.025, 0.95, 1.05))
-            base_exp_goals = poisson_goals * 0.65 + tabular_goals * 0.35
-            exp_goals_combined = round(base_exp_goals * mom_ratio, 2)
+            exp_goals_combined = round(float(poisson_goals), 2)
 
         # Reparto consensual de goles restantes entre local y visitante
         # (con el partido terminado no se inyecta ningún piso de goles residuales)
@@ -578,6 +604,89 @@ class MetaEnsembleEngine:
         )
 
         # -------------------------------------------------------------
+        # Telemetría de Comparación Directa y Value / Kelly (Katakuri v5.0)
+        # -------------------------------------------------------------
+        def _team_comp_summary(stats) -> Dict[str, Any]:
+            def _opt_round(val, digits: int = 2):
+                return round(float(val), digits) if val is not None else None
+
+            last_m = list(getattr(stats, "last_matches", None) or [])[:5]
+            return {
+                "elo_rating": _opt_round(getattr(stats, "elo_rating", None), 1),
+                "avg_xg_for": _opt_round(getattr(stats, "avg_xg_for", None), 2),
+                "avg_shots_on_target": _opt_round(getattr(stats, "avg_shots_target_for", None), 2),
+                "avg_shots_for": _opt_round(getattr(stats, "avg_shots_for", None), 2),
+                "avg_goals_for": _opt_round(getattr(stats, "avg_goals_scored", None), 2),
+                "avg_goals_against": _opt_round(getattr(stats, "avg_goals_conceded", None), 2),
+                "avg_fouls": _opt_round(getattr(stats, "avg_fouls_for", None), 2),
+                "avg_cards": _opt_round(getattr(stats, "avg_cards", None), 2),
+                "rest_days": getattr(stats, "rest_days", None),
+                "form_last_5": [m.result for m in last_m if getattr(m, "result", None)],
+                "key_absences": list(getattr(stats, "key_absences", None) or []),
+            }
+
+        def _outcome_value(prob_pct: float, odds_val: Optional[float]) -> Dict[str, Any]:
+            p = max(0.005, min(0.995, float(prob_pct) / 100.0))
+            fair = round(1.0 / p, 2)
+            edge_pct = None
+            kelly_pct = None
+            has_odds = odds_val is not None and float(odds_val) > 1.0
+            if has_odds:
+                o = float(odds_val)
+                edge_pct = round((p * o - 1.0) * 100.0, 2)
+                b = o - 1.0
+                full_f = ((b * p) - (1.0 - p)) / b if b > 0 else 0.0
+                kelly_pct = round(max(0.0, min(0.25 * full_f, 0.15)) * 100.0, 2)
+            return {
+                "prob_pct": round(float(prob_pct), 1),
+                "fair_odds": fair,
+                "market_odds": round(float(odds_val), 2) if has_odds else None,
+                "edge_pct": edge_pct,
+                "kelly_quarter_pct": kelly_pct,
+            }
+
+        mkt_h_val = getattr(raw, "market_home_odds", None)
+        mkt_d_val = getattr(raw, "market_draw_odds", None)
+        mkt_a_val = getattr(raw, "market_away_odds", None)
+        outcomes_val = {
+            "home": _outcome_value(final_home_p, mkt_h_val),
+            "draw": _outcome_value(final_draw_p, mkt_d_val),
+            "away": _outcome_value(final_away_p, mkt_a_val),
+        }
+        best_side = None
+        best_edge = 0.0
+        for side_key, side_data in outcomes_val.items():
+            if side_data["edge_pct"] is not None and side_data["edge_pct"] > best_edge:
+                best_edge = side_data["edge_pct"]
+                best_side = side_key
+
+        h2h_obj = getattr(raw, "h2h", None)
+        comparison_payload = {
+            "home": _team_comp_summary(raw.home_stats),
+            "away": _team_comp_summary(raw.away_stats),
+            "referee": {
+                "name": getattr(raw, "referee_name", None),
+                "avg_cards": round(float(raw.referee_avg_cards), 2)
+                if getattr(raw, "referee_avg_cards", None) is not None else None,
+            },
+            "h2h": {
+                "total_matches": int(getattr(h2h_obj, "total_matches_analyzed", 0) or 0) if h2h_obj else 0,
+                "home_wins": int(getattr(h2h_obj, "home_team_wins", 0) or 0) if h2h_obj else 0,
+                "draws": int(getattr(h2h_obj, "draws", 0) or 0) if h2h_obj else 0,
+                "away_wins": int(getattr(h2h_obj, "away_team_wins", 0) or 0) if h2h_obj else 0,
+                "avg_goals": round(float(h2h_obj.avg_total_goals_h2h), 2)
+                if (h2h_obj and getattr(h2h_obj, "avg_total_goals_h2h", None) is not None) else None,
+            },
+            "model_only_probs": model_only_probs,
+            "use_market_prior": bool(use_market_prior and not is_live),
+            "market_odds_eval": {
+                "outcomes": outcomes_val,
+                "best_value_side": best_side,
+                "best_edge_pct": best_edge if best_side else None,
+            },
+        }
+
+        # -------------------------------------------------------------
         # Construcción de la Respuesta Final Tipada
         # -------------------------------------------------------------
         response = PredictionResponse(
@@ -596,6 +705,9 @@ class MetaEnsembleEngine:
                 live_shots_on_target_away=getattr(raw, "live_shots_on_target_away", None),
                 live_possession_home=getattr(raw, "live_possession_home", None),
                 live_possession_away=getattr(raw, "live_possession_away", None),
+                live_xg_home=getattr(raw, "live_xg_home", None),
+                live_xg_away=getattr(raw, "live_xg_away", None),
+                referee_name=getattr(raw, "referee_name", None),
                 analyzed_at=datetime.now(timezone.utc)
             ),
             prediction=MatchPredictionDetails(
@@ -658,7 +770,18 @@ class MetaEnsembleEngine:
                     for s in cons_goals["top_scores"]
                 ]
             ),
-            key_factors=key_factors
+            key_factors=key_factors,
+            sub_models={
+                "poisson_dixon_coles": p_res["winner_probs"],
+                "tabular_ml": xgb_res["winner_probs"],
+                "rich_lstm": lstm_res["winner_probs"],
+                "weights": {
+                    "poisson": round(wp, 3),
+                    "tabular": round(wx, 3),
+                    "lstm": round(wl, 3),
+                },
+            },
+            comparison=comparison_payload,
         )
 
         return response

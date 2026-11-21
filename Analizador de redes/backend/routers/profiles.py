@@ -44,9 +44,11 @@ def build_proposal_response(proposal: ScriptProposal) -> ScriptProposalResponse:
         if isinstance(item, dict):
             timeline_blocks.append(
                 TimelineBlock(
-                    time_range=item.get("time_range", "00:00 - 00:03"),
+                    time_range=item.get("time_range", "00:00 - 00:04"),
                     phase=item.get("phase", "Estructura"),
-                    description=item.get("description", "")
+                    description=item.get("description", ""),
+                    on_screen_text=item.get("on_screen_text"),
+                    spoken_text=item.get("spoken_text")
                 )
             )
 
@@ -109,7 +111,7 @@ def create_profile(payload: ProfileCreate, db: Session = Depends(get_db)):
     new_profile = Profile(
         client_name=payload.client_name.strip(),
         category=payload.category.strip(),
-        representative_color=payload.representative_color or "#58FF9C",
+        representative_color=payload.representative_color or "#38BDF8",
         client_instagram_url=payload.client_instagram_url.strip()
     )
     # Limpiar y filtrar URLs vacías

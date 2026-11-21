@@ -5,6 +5,7 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { InstagramIcon } from "../ui/InstagramIcon";
 import { ProfileCreateInput } from "../../api";
+import { CLIENT_COLOR_PALETTE, DEFAULT_CLIENT_COLOR } from "../../utils/clientColors";
 
 interface CreateProfileModalProps {
   isOpen: boolean;
@@ -12,15 +13,7 @@ interface CreateProfileModalProps {
   onSubmit: (data: ProfileCreateInput) => Promise<void>;
 }
 
-const PRESET_COLORS = [
-  "#58FF9C", // Verde Eléctrico
-  "#38BDF8", // Celeste Sky
-  "#F59E0B", // Ámbar Oro
-  "#A855F7", // Púrpura Editorial
-  "#EC4899", // Rosa Intenso
-  "#10B981", // Esmeralda
-  "#F43F5E", // Carmesí
-];
+const MAX_REFERENCES = 10;
 
 export const CreateProfileModal: React.FC<CreateProfileModalProps> = ({
   isOpen,
@@ -29,14 +22,14 @@ export const CreateProfileModal: React.FC<CreateProfileModalProps> = ({
 }) => {
   const [clientName, setClientName] = useState("");
   const [category, setCategory] = useState("");
-  const [representativeColor, setRepresentativeColor] = useState("#58FF9C");
+  const [representativeColor, setRepresentativeColor] = useState(DEFAULT_CLIENT_COLOR);
   const [clientInstagramUrl, setClientInstagramUrl] = useState("");
   const [competitorUrls, setCompetitorUrls] = useState<string[]>([""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleAddCompetitor = () => {
-    if (competitorUrls.length < 5) {
+    if (competitorUrls.length < MAX_REFERENCES) {
       setCompetitorUrls([...competitorUrls, ""]);
     }
   };
@@ -66,9 +59,9 @@ export const CreateProfileModal: React.FC<CreateProfileModalProps> = ({
       return;
     }
 
-    const filteredCompetitors = competitorUrls.map((u) => u.trim()).filter(Boolean);
+    const filteredCompetitors = competitorUrls.map((u) => u.trim()).filter(Boolean).slice(0, MAX_REFERENCES);
     if (filteredCompetitors.length === 0) {
-      setError("Agrega al menos una URL de competidor a analizar.");
+      setError("Agrega al menos una referencia o competidor para analizar.");
       return;
     }
 
@@ -82,9 +75,9 @@ export const CreateProfileModal: React.FC<CreateProfileModalProps> = ({
         client_instagram_url: clientInstagramUrl.trim(),
         competitor_urls: filteredCompetitors,
       });
-      // Limpiar formulario y cerrar
       setClientName("");
       setCategory("");
+      setRepresentativeColor(DEFAULT_CLIENT_COLOR);
       setClientInstagramUrl("");
       setCompetitorUrls([""]);
       onClose();
@@ -99,136 +92,129 @@ export const CreateProfileModal: React.FC<CreateProfileModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Nuevo Perfil de Cliente"
-      subtitle="Configura el cliente y sus competidores para la inteligencia de guiones virales."
+      title="Nuevo perfil"
+      subtitle="Configura la marca y hasta 10 cuentas o Reels de referencia."
+      accentColor={representativeColor}
       maxWidth="xl"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {error && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/25 text-xs text-red-400">
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
             {error}
           </div>
         )}
 
-        {/* 1. Nombre del Cliente y Categoría */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
-            label="Nombre del Cliente / Marca"
+            label="Nombre del cliente"
             placeholder="ej. Inmobiliaria Domus"
-            icon={<Building size={16} strokeWidth={1.5} />}
+            icon={<Building size={15} strokeWidth={1.5} />}
             value={clientName}
             onChange={(e) => setClientName(e.target.value)}
             required
           />
 
           <Input
-            label="Categoría de Negocio"
-            placeholder="ej. Bienes Raíces, Gastronomía"
-            icon={<Tag size={16} strokeWidth={1.5} />}
+            label="Categoría"
+            placeholder="ej. Bienes Raíces, SaaS"
+            icon={<Tag size={15} strokeWidth={1.5} />}
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             required
           />
         </div>
 
-        {/* 2. Color Representativo del Cliente */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-medium text-[#94A3B8] tracking-wide flex items-center justify-between">
+          <label className="text-xs font-medium text-[#9499A6] flex items-center justify-between">
             <span className="flex items-center gap-1.5">
-              <Palette size={14} strokeWidth={1.5} />
-              Color Representativo
+              <Palette size={13} strokeWidth={1.5} aria-hidden="true" />
+              Color de cliente
             </span>
-            <span className="font-mono text-[11px] text-[#58FF9C]">{representativeColor}</span>
+            <span className="font-mono text-[11px] text-[#828794]">
+              {CLIENT_COLOR_PALETTE.find((c) => c.hex === representativeColor)?.label || representativeColor}
+            </span>
           </label>
           <div className="flex items-center gap-2.5 flex-wrap">
-            {PRESET_COLORS.map((col) => (
+            {CLIENT_COLOR_PALETTE.map((col) => (
               <button
-                key={col}
+                key={col.hex}
                 type="button"
-                onClick={() => setRepresentativeColor(col)}
-                className={`w-7 h-7 rounded-full border-2 transition-all ${
-                  representativeColor === col
-                    ? "border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.4)]"
+                onClick={() => setRepresentativeColor(col.hex)}
+                className={`w-6 h-6 rounded-full border-2 transition-transform cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E4E4E7] ${
+                  representativeColor === col.hex
+                    ? "border-[#F4F4F5] scale-110"
                     : "border-transparent opacity-75 hover:opacity-100"
                 }`}
-                style={{ backgroundColor: col }}
-                title={col}
+                style={{ backgroundColor: col.hex }}
+                title={col.label}
+                aria-label={col.label}
               />
             ))}
-            <input
-              type="color"
-              value={representativeColor}
-              onChange={(e) => setRepresentativeColor(e.target.value)}
-              className="w-7 h-7 rounded-full bg-transparent border-0 cursor-pointer p-0"
-              title="Color personalizado"
-            />
           </div>
         </div>
 
-        {/* 3. URL de Instagram del Cliente */}
         <Input
-          label="URL o Usuario de Instagram del Cliente"
+          label="Instagram del cliente"
           placeholder="https://www.instagram.com/cliente/ o @cliente"
-          icon={<InstagramIcon size={16} />}
+          icon={<InstagramIcon size={15} />}
           value={clientInstagramUrl}
           onChange={(e) => setClientInstagramUrl(e.target.value)}
           required
         />
 
-        {/* 4. URLs Dinámicas de Competidores */}
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-[#94A3B8] tracking-wide">
-              URLs de Competidores a Analizar ({competitorUrls.length}/5)
+            <label className="text-xs font-medium text-[#9499A6]">
+              Referencias ({competitorUrls.length}/{MAX_REFERENCES})
             </label>
-            {competitorUrls.length < 5 && (
+            {competitorUrls.length < MAX_REFERENCES && (
               <button
                 type="button"
                 onClick={handleAddCompetitor}
-                className="text-xs text-[#58FF9C] hover:text-[#42E686] flex items-center gap-1 font-mono transition-colors"
+                className="text-xs text-[#9499A6] hover:text-[#E4E5E9] flex items-center gap-1 font-mono transition-colors cursor-pointer"
               >
-                <Plus size={13} strokeWidth={2} />
-                Agregar otro
+                <Plus size={13} strokeWidth={2} aria-hidden="true" />
+                Agregar referencia
               </button>
             )}
           </div>
 
-          <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
+          <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
             {competitorUrls.map((url, idx) => (
               <div key={idx} className="flex items-center gap-2">
+                <span className="text-[11px] font-mono text-[#828794] w-5 text-right flex-shrink-0">
+                  {idx + 1}.
+                </span>
                 <input
                   type="text"
-                  placeholder={`ej. https://www.instagram.com/competidor_${idx + 1}/`}
+                  placeholder="Cuenta (@usuario) o URL directa de Reel"
                   value={url}
                   onChange={(e) => handleCompetitorChange(idx, e.target.value)}
-                  className="flex-1 bg-[#111318] border border-[#1E222B] text-[#F8FAFC] text-sm rounded-lg px-3 py-2 placeholder:text-[#64748B] focus:outline-none focus:border-[#58FF9C] font-mono text-xs"
+                  className="flex-1 bg-[#0B0C0E] border border-[#27272A] text-[#F4F4F5] rounded-lg px-3 py-2 placeholder:text-[#71717A] focus:outline-none focus:border-[#A1A1AA] font-mono text-xs"
                   required={idx === 0}
                 />
                 {competitorUrls.length > 1 && (
                   <button
                     type="button"
                     onClick={() => handleRemoveCompetitor(idx)}
-                    className="p-2 text-[#64748B] hover:text-red-400 rounded-lg hover:bg-[#111318] transition-colors"
-                    title="Eliminar competidor"
+                    className="p-2 text-[#828794] hover:text-red-400 rounded-lg hover:bg-[#191B20] transition-colors cursor-pointer"
+                    title="Eliminar referencia"
+                    aria-label="Eliminar referencia"
                   >
-                    <Trash2 size={15} strokeWidth={1.5} />
+                    <Trash2 size={14} strokeWidth={1.5} />
                   </button>
                 )}
               </div>
             ))}
           </div>
-          <p className="text-[11px] text-[#64748B]">
-            La IA rastreará los Reels con mayor viralidad de estos competidores y adaptará su gancho al cliente.
-          </p>
         </div>
 
-        {/* Botones de Acción */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1E222B] mt-2">
+        <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#22242B] mt-1">
           <Button variant="ghost" type="button" onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
           <Button variant="primary" type="submit" loading={loading}>
-            Guardar Perfil
+            Guardar perfil
           </Button>
         </div>
       </form>

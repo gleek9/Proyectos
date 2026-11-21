@@ -17,6 +17,13 @@ class PreviousMatch(BaseModel):
     corners_for: Optional[float] = Field(None, description="Tiros de esquina a favor (si está disponible)")
     cards_total: Optional[float] = Field(None, description="Tarjetas totales del partido (si está disponible)")
     result: str = Field("D", description="Resultado: 'W' (Victoria), 'D' (Empate), 'L' (Derrota)")
+    date: Optional[str] = Field(None, description="Fecha del partido (YYYY-MM-DD)")
+    shots_on_target_for: Optional[float] = Field(None, description="Tiros a puerta a favor en ese partido")
+    shots_for: Optional[float] = Field(None, description="Tiros totales a favor en ese partido")
+    fouls: Optional[float] = Field(None, description="Faltas cometidas en ese partido")
+    ht_diff: Optional[float] = Field(None, description="Diferencia de goles al descanso (HT) a favor")
+    xg_for: Optional[float] = Field(None, description="Expected Goals (xG) a favor en ese partido")
+    opponent_elo: Optional[float] = Field(None, description="Rating Elo del rival en ese partido")
 
 class TeamFormStats(BaseModel):
     team_name: str
@@ -34,7 +41,15 @@ class TeamFormStats(BaseModel):
     away_goals_conceded: Optional[float] = Field(None, description="Promedio de goles concedidos jugando como visitante")
     avg_shots_target_for: Optional[float] = Field(None, description="Promedio de tiros a puerta a favor por partido")
     avg_shots_target_against: Optional[float] = Field(None, description="Promedio de tiros a puerta concedidos por partido")
+    avg_shots_for: Optional[float] = Field(None, description="Promedio de tiros totales a favor por partido")
+    avg_shots_against: Optional[float] = Field(None, description="Promedio de tiros totales concedidos por partido")
+    avg_fouls_for: Optional[float] = Field(None, description="Promedio de faltas cometidas por partido")
+    avg_fouls_against: Optional[float] = Field(None, description="Promedio de faltas recibidas por partido")
+    ht_goal_diff_avg: Optional[float] = Field(None, description="Diferencia media de goles al descanso (HT)")
+    avg_xg_for: Optional[float] = Field(None, description="Promedio histórico incremental de xG a favor")
+    avg_xg_against: Optional[float] = Field(None, description="Promedio histórico incremental de xG en contra")
     avg_corners_conceded: Optional[float] = Field(None, description="Promedio de córners concedidos al rival por partido")
+    rest_days: Optional[float] = Field(None, description="Días de descanso desde el último partido")
 
 class HeadToHeadStats(BaseModel):
     total_matches_analyzed: int = Field(0, description="Número de enfrentamientos directos previos encontrados (0 si no hay datos)")
@@ -64,9 +79,26 @@ class MatchRawFeatures(BaseModel):
     live_shots_on_target_away: Optional[int] = Field(None, description="Tiros a puerta del equipo visitante en directo")
     live_possession_home: Optional[float] = Field(None, description="Porcentaje de posesión local en directo (ej: 58.0)")
     live_possession_away: Optional[float] = Field(None, description="Porcentaje de posesión visitante en directo (ej: 42.0)")
+    live_xg_home: Optional[float] = Field(None, description="Expected Goals (xG) del equipo local capturado de Sofascore")
+    live_xg_away: Optional[float] = Field(None, description="Expected Goals (xG) del equipo visitante capturado de Sofascore")
+    referee_name: Optional[str] = Field(None, description="Nombre del árbitro principal del encuentro")
+    referee_avg_cards: Optional[float] = Field(None, description="Media histórica/carrera de tarjetas por partido del árbitro")
     market_home_odds: Optional[float] = Field(None, description="Cuota de mercado 1X2 para victoria local (si está disponible)")
     market_draw_odds: Optional[float] = Field(None, description="Cuota de mercado 1X2 para empate (si está disponible)")
     market_away_odds: Optional[float] = Field(None, description="Cuota de mercado 1X2 para victoria visitante (si está disponible)")
+    b365_open_home_odds: Optional[float] = Field(None, description="Cuota de apertura Bet365 1X2 Local")
+    b365_open_draw_odds: Optional[float] = Field(None, description="Cuota de apertura Bet365 1X2 Empate")
+    b365_open_away_odds: Optional[float] = Field(None, description="Cuota de apertura Bet365 1X2 Visitante")
+    ps_open_home_odds: Optional[float] = Field(None, description="Cuota de apertura Pinnacle 1X2 Local")
+    ps_open_draw_odds: Optional[float] = Field(None, description="Cuota de apertura Pinnacle 1X2 Empate")
+    ps_open_away_odds: Optional[float] = Field(None, description="Cuota de apertura Pinnacle 1X2 Visitante")
+    ps_close_home_odds: Optional[float] = Field(None, description="Cuota de cierre Pinnacle 1X2 Local")
+    ps_close_draw_odds: Optional[float] = Field(None, description="Cuota de cierre Pinnacle 1X2 Empate")
+    ps_close_away_odds: Optional[float] = Field(None, description="Cuota de cierre Pinnacle 1X2 Visitante")
+    b365_over_25_odds: Optional[float] = Field(None, description="Cuota Bet365 Over 2.5 goles")
+    b365_under_25_odds: Optional[float] = Field(None, description="Cuota Bet365 Under 2.5 goles")
+    p_over_25_odds: Optional[float] = Field(None, description="Cuota Pinnacle Over 2.5 goles")
+    p_under_25_odds: Optional[float] = Field(None, description="Cuota Pinnacle Under 2.5 goles")
     home_stats: TeamFormStats
     away_stats: TeamFormStats
     h2h: HeadToHeadStats

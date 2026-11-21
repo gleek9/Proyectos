@@ -8,7 +8,7 @@ import re
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from sqlalchemy import or_, and_, desc
-from backend.app.db import SessionLocal, League, Team, HistoricalMatch, TeamStatsCache
+from backend.app.db import SessionLocal, League, Team, HistoricalMatch, TeamStatsCache, RefereeCache, MatchTelemetryCache
 from backend.app.schemas.match import MatchRawFeatures, TeamFormStats, HeadToHeadStats, PreviousMatch
 
 logger = logging.getLogger(__name__)
@@ -578,6 +578,62 @@ class LeagueDatabaseService:
             if local_session:
                 db.close()
 
+    def search_teams(self, query: str = "", limit: int = 12) -> List[Dict]:
+        """Búsqueda instantánea (<10ms) de clubes por nombre, alias o liga con etiqueta femenil y Elo."""
+        self._ensure_seeded()
+        q = (query or "").strip()
+        q_clean = self._clean_str(q)
+        wants_women = self._is_womens_query(q) if q else False
+
+        db = SessionLocal()
+        try:
+            leagues_map = {lg.code: lg.name for lg in db.query(League).all()}
+            teams = db.query(Team).all()
+            scored = []
+            women_leagues = {"liga_f", "wsl", "uwcl", "liga_mx_femenil"}
+
+            for t in teams:
+                is_women = bool(self._is_womens_query(t.name) or t.league_code in women_leagues)
+                lg_name = leagues_map.get(t.league_code, t.league_code)
+                elo_val = round(float(t.elo_rating or 1500.0), 1)
+                if not q_clean:
+                    scored.append((0, elo_val, t, lg_name, is_women))
+                    continue
+
+                t_clean = self._clean_str(t.name)
+                lg_clean = self._clean_str(lg_name)
+                aliases = [self._clean_str(a) for a in (t.aliases or "").split(",") if a.strip()]
+
+                rank = None
+                if t_clean.startswith(q_clean):
+                    rank = 3
+                elif q_clean in t_clean or any(q_clean in a for a in aliases):
+                    rank = 2
+                elif q_clean in lg_clean:
+                    rank = 1
+
+                if rank is not None:
+                    if wants_women and not is_women:
+                        rank -= 2
+                    elif not wants_women and is_women and not q_clean.endswith(" f") and not q_clean.endswith(" w"):
+                        rank -= 0.25
+                    scored.append((rank, elo_val, t, lg_name, is_women))
+
+            scored.sort(key=lambda item: (item[0], item[1]), reverse=True)
+            return [
+                {
+                    "name": item[2].name,
+                    "canonical_name": item[2].canonical_name,
+                    "league_code": item[2].league_code,
+                    "league_name": item[3],
+                    "elo_rating": item[1],
+                    "is_women": item[4],
+                }
+                for item in scored[:max(1, min(int(limit), 30))]
+            ]
+        finally:
+            db.close()
+
     def get_match_raw_features(
         self,
         home_query: str,
@@ -619,35 +675,29 @@ class LeagueDatabaseService:
             if not h_cache or not a_cache:
                 return None
 
-            # Construir PreviousMatch para local
-            h_matches = [
-                PreviousMatch(
-                    opponent=m["opponent"],
-                    was_home=m["was_home"],
-                    goals_for=m["goals_for"],
-                    goals_against=m["goals_against"],
-                    result=m["result"],
-                    date=m.get("date"),
-                    corners_for=m.get("corners_for"),
-                    cards_total=m.get("cards_total")
-                )
-                for m in (h_cache.last_matches_json or [])
-            ]
+            def _to_prev_matches(rows: list) -> List[PreviousMatch]:
+                return [
+                    PreviousMatch(
+                        opponent=m["opponent"],
+                        was_home=m["was_home"],
+                        goals_for=m["goals_for"],
+                        goals_against=m["goals_against"],
+                        result=m["result"],
+                        date=m.get("date"),
+                        corners_for=m.get("corners_for"),
+                        shots_on_target_for=m.get("shots_on_target_for"),
+                        shots_for=m.get("shots_for"),
+                        fouls=m.get("fouls"),
+                        ht_diff=m.get("ht_diff"),
+                        xg_for=m.get("xg_for"),
+                        opponent_elo=m.get("opponent_elo"),
+                        cards_total=m.get("cards_total"),
+                    )
+                    for m in (rows or [])
+                ]
 
-            # Construir PreviousMatch para visitante
-            a_matches = [
-                PreviousMatch(
-                    opponent=m["opponent"],
-                    was_home=m["was_home"],
-                    goals_for=m["goals_for"],
-                    goals_against=m["goals_against"],
-                    result=m["result"],
-                    date=m.get("date"),
-                    corners_for=m.get("corners_for"),
-                    cards_total=m.get("cards_total")
-                )
-                for m in (a_cache.last_matches_json or [])
-            ]
+            h_matches = _to_prev_matches(h_cache.last_matches_json)
+            a_matches = _to_prev_matches(a_cache.last_matches_json)
 
             # Calcular historial H2H real entre ambos en la BD
             h2h_matches = db.query(HistoricalMatch).filter(
@@ -696,39 +746,54 @@ class LeagueDatabaseService:
                 avg_total_cards_h2h=avg_cr_h2h
             )
 
-            home_stats = TeamFormStats(
-                team_name=home_team_obj.name,
-                avg_goals_scored=h_cache.avg_goals_scored,
-                avg_goals_conceded=h_cache.avg_goals_conceded,
-                avg_corners=h_cache.avg_corners,
-                avg_corners_conceded=getattr(h_cache, "avg_corners_conceded", None),
-                avg_cards=h_cache.avg_cards,
-                win_rate_last_5=h_cache.win_rate_last_5,
-                key_absences=[],
-                last_matches=h_matches,
-                elo_rating=h_cache.elo_rating or home_team_obj.elo_rating,
-                home_goals_scored=h_cache.home_goals_scored,
-                home_goals_conceded=h_cache.home_goals_conceded,
-                avg_shots_target_for=h_cache.avg_shots_target_for,
-                avg_shots_target_against=h_cache.avg_shots_target_against
-            )
+            # Enriquecimiento incremental gratuito (si existe MatchTelemetryCache / RefereeCache)
+            telem_row = db.query(MatchTelemetryCache).filter(
+                MatchTelemetryCache.home_team == home_team_obj.name,
+                MatchTelemetryCache.away_team == away_team_obj.name,
+            ).order_by(MatchTelemetryCache.updated_at.desc()).first()
+            h_absences: List[str] = []
+            a_absences: List[str] = []
+            ref_name: Optional[str] = None
+            ref_avg_cards: Optional[float] = None
+            if telem_row:
+                mp = telem_row.missing_players_json or {}
+                h_absences = [str(p) for p in (mp.get("home") or []) if p]
+                a_absences = [str(p) for p in (mp.get("away") or []) if p]
+                ref_name = telem_row.referee_name
+                if ref_name:
+                    ref_row = db.query(RefereeCache).filter(RefereeCache.name == ref_name).first()
+                    if ref_row:
+                        ref_avg_cards = ref_row.avg_cards_per_game
 
-            away_stats = TeamFormStats(
-                team_name=away_team_obj.name,
-                avg_goals_scored=a_cache.avg_goals_scored,
-                avg_goals_conceded=a_cache.avg_goals_conceded,
-                avg_corners=a_cache.avg_corners,
-                avg_corners_conceded=getattr(a_cache, "avg_corners_conceded", None),
-                avg_cards=a_cache.avg_cards,
-                win_rate_last_5=a_cache.win_rate_last_5,
-                key_absences=[],
-                last_matches=a_matches,
-                elo_rating=a_cache.elo_rating or away_team_obj.elo_rating,
-                away_goals_scored=a_cache.away_goals_scored,
-                away_goals_conceded=a_cache.away_goals_conceded,
-                avg_shots_target_for=a_cache.avg_shots_target_for,
-                avg_shots_target_against=a_cache.avg_shots_target_against
-            )
+            def _build_team_stats(team_obj, cache_obj, matches_list, absences, is_home_side: bool) -> TeamFormStats:
+                return TeamFormStats(
+                    team_name=team_obj.name,
+                    avg_goals_scored=cache_obj.avg_goals_scored,
+                    avg_goals_conceded=cache_obj.avg_goals_conceded,
+                    avg_corners=cache_obj.avg_corners,
+                    avg_corners_conceded=getattr(cache_obj, "avg_corners_conceded", None),
+                    avg_cards=cache_obj.avg_cards,
+                    win_rate_last_5=cache_obj.win_rate_last_5,
+                    key_absences=absences,
+                    last_matches=matches_list,
+                    elo_rating=cache_obj.elo_rating or team_obj.elo_rating,
+                    home_goals_scored=cache_obj.home_goals_scored if is_home_side else None,
+                    home_goals_conceded=cache_obj.home_goals_conceded if is_home_side else None,
+                    away_goals_scored=cache_obj.away_goals_scored if not is_home_side else None,
+                    away_goals_conceded=cache_obj.away_goals_conceded if not is_home_side else None,
+                    avg_shots_target_for=cache_obj.avg_shots_target_for,
+                    avg_shots_target_against=cache_obj.avg_shots_target_against,
+                    avg_shots_for=getattr(cache_obj, "avg_shots_for", None),
+                    avg_shots_against=getattr(cache_obj, "avg_shots_against", None),
+                    avg_fouls_for=getattr(cache_obj, "avg_fouls_for", None),
+                    avg_fouls_against=getattr(cache_obj, "avg_fouls_against", None),
+                    ht_goal_diff_avg=getattr(cache_obj, "ht_goal_diff_avg", None),
+                    avg_xg_for=getattr(cache_obj, "avg_xg_for", None),
+                    avg_xg_against=getattr(cache_obj, "avg_xg_against", None),
+                )
+
+            home_stats = _build_team_stats(home_team_obj, h_cache, h_matches, h_absences, True)
+            away_stats = _build_team_stats(away_team_obj, a_cache, a_matches, a_absences, False)
 
             raw = MatchRawFeatures(
                 home_team=home_team_obj.name,
@@ -737,6 +802,8 @@ class LeagueDatabaseService:
                 home_stats=home_stats,
                 away_stats=away_stats,
                 h2h=h2h_obj,
+                referee_name=ref_name,
+                referee_avg_cards=ref_avg_cards,
                 is_live=False,
                 live_score=None,
                 live_minute=None,

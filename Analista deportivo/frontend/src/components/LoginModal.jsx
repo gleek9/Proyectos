@@ -173,7 +173,7 @@ export default function LoginModal({ onLoginSuccess }) {
 
         <div className="login-footer-meta">
           <span>Conexión segura JWT</span>
-          <span>Katakuri v4.0</span>
+          <span>Katakuri v5.0</span>
         </div>
       </div>
     </div>

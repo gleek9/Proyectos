@@ -109,6 +109,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ user, onLogout }) 
     }
   };
 
+  // Actualizar referencias y color del perfil
+  const handleUpdateProfile = async (id: number, references: string[], color: string) => {
+    const updated = await api.updateProfile(id, {
+      competitor_urls: references,
+      representative_color: color,
+    });
+    setSelectedProfileDetail(updated);
+    await loadData();
+  };
+
   // Eliminar perfil
   const handleDeleteProfile = async (id: number) => {
     await api.deleteProfile(id);
@@ -118,7 +128,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ user, onLogout }) 
   };
 
   return (
-    <div className="min-h-screen bg-[#090A0D] text-[#F8FAFC] flex flex-col">
+    <div className="min-h-screen bg-[#0B0C0E] text-[#E4E5E9] flex flex-col">
       {/* Topbar */}
       <Navbar
         health={health}
@@ -130,38 +140,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ user, onLogout }) 
       {/* Contenido Principal */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
         {/* Barra de Filtros y Búsqueda */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-4 border-b border-[#1E222B]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-4 border-b border-[#22242B]">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold tracking-tight text-[#F8FAFC]">
-              Tablero de Clientes
+            <h2 className="text-lg font-semibold tracking-tight text-[#E4E5E9]">
+              Clientes
             </h2>
-            <span className="text-xs font-mono bg-[#111318] border border-[#1E222B] text-[#94A3B8] px-2 py-0.5 rounded-full">
-              {profiles.length} {profiles.length === 1 ? "perfil" : "perfiles"}
+            <span className="text-[11px] font-mono bg-[#121316] border border-[#22242B] text-[#9499A6] px-2 py-0.5 rounded-md">
+              {profiles.length}
             </span>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Buscador */}
+          <div className="flex items-center gap-2.5 flex-wrap">
             <div className="relative flex-1 sm:w-64">
               <Search
                 size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#646975]"
               />
               <input
                 type="text"
-                placeholder="Buscar cliente o usuario..."
+                placeholder="Buscar cliente..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#111318] border border-[#1E222B] text-xs text-[#F8FAFC] rounded-lg pl-8 pr-3 py-2 placeholder:text-[#64748B] focus:outline-none focus:border-[#58FF9C]"
+                className="w-full bg-[#121316] border border-[#27272A] text-xs text-[#F4F4F5] rounded-lg pl-8 pr-3 py-2 placeholder:text-[#71717A] focus:outline-none focus:border-[#A1A1AA]"
               />
             </div>
 
-            {/* Filtro por Categoría */}
             {categories.length > 0 && (
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="bg-[#111318] border border-[#1E222B] text-xs text-[#94A3B8] rounded-lg px-3 py-2 focus:outline-none focus:border-[#58FF9C] font-mono cursor-pointer"
+                className="bg-[#121316] border border-[#27272A] text-xs text-[#A1A1AA] rounded-lg px-3 py-2 focus:outline-none focus:border-[#A1A1AA] font-mono cursor-pointer"
               >
                 <option value="all">Todas las categorías</option>
                 {categories.map((cat) => (
@@ -172,11 +180,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ user, onLogout }) 
               </select>
             )}
 
-            {/* Botón de Refresco */}
             <button
               onClick={loadData}
-              className="p-2 text-[#64748B] hover:text-[#58FF9C] rounded-lg hover:bg-[#111318] border border-[#1E222B] transition-colors"
+              className="p-2 text-[#646975] hover:text-[#E4E5E9] rounded-lg hover:bg-[#191B20] border border-[#22242B] transition-colors cursor-pointer"
               title="Actualizar datos"
+              aria-label="Actualizar datos"
             >
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             </button>
@@ -185,14 +193,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ user, onLogout }) 
 
         {/* Grid Modular Kanban de Perfiles */}
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-[#64748B] font-mono text-sm">
+          <div className="flex items-center justify-center py-20 text-[#646975] font-mono text-sm">
             <RefreshCw className="animate-spin mr-2" size={16} />
             Cargando tablero...
           </div>
         ) : profiles.length === 0 ? (
           <EmptyState onNewProfile={() => setIsCreateOpen(true)} />
         ) : filteredProfiles.length === 0 ? (
-          <div className="py-16 text-center text-[#94A3B8] font-mono text-sm border border-[#1E222B] rounded-xl bg-[#111318]/40">
+          <div className="py-16 text-center text-[#9499A6] font-mono text-sm border border-[#22242A] rounded-xl bg-[#121316]/50">
             No se encontraron clientes que coincidan con la búsqueda.
           </div>
         ) : (
@@ -224,6 +232,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ user, onLogout }) 
         }}
         profile={selectedProfileDetail}
         onAnalyze={handleAnalyze}
+        onUpdateProfile={handleUpdateProfile}
         onDelete={handleDeleteProfile}
         analyzing={analyzing}
       />

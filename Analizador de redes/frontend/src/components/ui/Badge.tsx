@@ -17,11 +17,11 @@ export const Badge: React.FC<BadgeProps> = ({
     return (
       <span
         style={{
-          backgroundColor: `${colorHex}18`, // 10-12% opacidad
+          backgroundColor: `${colorHex}20`,
           color: colorHex,
-          borderColor: `${colorHex}30`,
+          borderColor: `${colorHex}55`,
         }}
-        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono uppercase tracking-wider border ${className}`}
+        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-medium tracking-wide border ${className}`}
       >
         {children}
       </span>
@@ -29,15 +29,14 @@ export const Badge: React.FC<BadgeProps> = ({
   }
 
   const variantStyles: Record<string, string> = {
-    accent:
-      "bg-[#58FF9C]/10 text-[#58FF9C] border border-[#58FF9C]/25 shadow-[0_0_8px_rgba(88,255,156,0.08)]",
-    neutral: "bg-[#171A21] text-[#94A3B8] border border-[#1E222B]",
+    accent: "bg-[#27272A] text-[#F4F4F5] border border-[#3F3F46]",
+    neutral: "bg-[#18181B] text-[#A1A1AA] border border-[#27272A]",
     custom: "border",
   };
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono uppercase tracking-wider ${
+      className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono tracking-wide ${
         variantStyles[variant] || variantStyles.neutral
       } ${className}`}
     >

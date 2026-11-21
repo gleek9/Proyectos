@@ -1,10 +1,16 @@
 import React from 'react';
 import { Terminal } from 'lucide-react';
 
-export default function KeyFactorsPanel({ factors, analyzedAt }) {
+export default function KeyFactorsPanel({ factors, analyzedAt, healthInfo }) {
   const formattedDate = analyzedAt ? new Date(analyzedAt).toLocaleTimeString('es-ES', {
     hour: '2-digit', minute: '2-digit', second: '2-digit'
   }) : 'Reciente';
+
+  const ver = healthInfo?.version ? `v${healthInfo.version.replace(/^v/, '')}` : 'v5.0.0';
+  const pipelineStr = healthInfo?.models_local?.length
+    ? healthInfo.models_local.join(' + ')
+    : 'Dixon-Coles MLE + XGBoost/LightGBM 44F + RichLSTM 14F';
+  const rpsLabel = healthInfo?.rps_oos != null ? `RPS OOS: ${healthInfo.rps_oos}` : 'Calibrado OOF';
 
   return (
     <div className="factors-panel">
@@ -13,7 +19,7 @@ export default function KeyFactorsPanel({ factors, analyzedAt }) {
           <Terminal size={15} color="var(--emerald)" />
           <span>Factores clave y telemetría</span>
         </span>
-        <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+        <span className="v5-meta-dim">
           {formattedDate} UTC
         </span>
       </div>
@@ -35,9 +41,19 @@ export default function KeyFactorsPanel({ factors, analyzedAt }) {
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border-dim)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-          <span>Pipeline: Dixon-Coles (Elo Dinámico) + XGBoost 23F + LSTM · Katakuri v4.0</span>
-          <span style={{ color: 'var(--emerald)' }}>Calibrado (RPS: 0.188)</span>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.4rem',
+            fontSize: '0.7rem',
+            fontFamily: 'var(--font-mono)',
+            color: 'var(--text-muted)'
+          }}
+        >
+          <span>Pipeline: {pipelineStr} · Katakuri {ver}</span>
+          <span style={{ color: 'var(--emerald)' }}>{rpsLabel}</span>
         </div>
       </div>
     </div>

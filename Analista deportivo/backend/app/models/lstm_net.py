@@ -18,7 +18,7 @@ from backend.app.models.poisson import (
 logger = logging.getLogger(__name__)
 
 TIMESTEPS = 10
-FEATURES_PER_STEP = 8
+FEATURES_PER_STEP = 14
 
 class MatchSequenceLSTM(nn.Module):
     def __init__(self, input_dim: int = FEATURES_PER_STEP, hidden_dim: int = 32, num_layers: int = 2):
@@ -28,12 +28,13 @@ class MatchSequenceLSTM(nn.Module):
             hidden_size=hidden_dim,
             num_layers=num_layers,
             batch_first=True,
-            dropout=0.15 if num_layers > 1 else 0.0
+            dropout=0.25 if num_layers > 1 else 0.0
         )
-        # Capa densa que fusiona el vector latente de ambos equipos (hidden_dim * 2 = 64)
+        # Capa densa con LayerNorm + GELU que fusiona el vector latente de ambos equipos (hidden_dim * 2 = 64)
+        self.norm = nn.LayerNorm(hidden_dim * 2)
         self.fc1 = nn.Linear(hidden_dim * 2, 32)
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.1)
+        self.act = nn.GELU()
+        self.dropout = nn.Dropout(0.25)
         # 1X2 Logits (Home, Draw, Away)
         self.head_1x2 = nn.Linear(32, 3)
         # Estimador auxiliar de momentum ofensivo
@@ -45,8 +46,8 @@ class MatchSequenceLSTM(nn.Module):
         _, (h_away, _) = self.lstm(x_away)
 
         # Concatenar representaciones latentes de ambos equipos
-        combined = torch.cat((h_home[-1], h_away[-1]), dim=-1)  # [batch_size, hidden_dim * 2]
-        x = self.dropout(self.relu(self.fc1(combined)))
+        combined = self.norm(torch.cat((h_home[-1], h_away[-1]), dim=-1))  # [batch_size, hidden_dim * 2]
+        x = self.dropout(self.act(self.fc1(combined)))
 
         logits_1x2 = self.head_1x2(x)
         goal_momentum = self.head_goals(x)
@@ -129,22 +130,49 @@ class LSTMPredictor:
         torch.save(self.model.state_dict(), self.model_path)
         logger.info(f"Pesos de red LSTM guardados exitosamente en {self.model_path}")
 
-    def _build_sequence_tensor(self, matches: List[PreviousMatch], default_scored: float, default_conceded: float) -> torch.Tensor:
+    @staticmethod
+    def _neutral_step(
+        default_scored: float,
+        default_conceded: float,
+        default_sot: float,
+        time_weight: float,
+        elo_diff_scaled: float,
+    ) -> List[float]:
+        default_shots = max(0.35, default_sot * (5.0 * 2.65) / 15.0)
+        default_ht = float(default_scored - default_conceded) * 0.45 / 3.0
+        return [
+            default_scored, default_conceded, default_scored - default_conceded,
+            0.0, 0.5, 5.0 / 10.0, 2.5 / 5.0, time_weight,
+            default_sot, 0.0, elo_diff_scaled,
+            default_shots, 11.2 / 15.0, default_ht,
+        ]
+
+    def _build_sequence_tensor(
+        self,
+        matches: List[PreviousMatch],
+        default_scored: float,
+        default_conceded: float,
+        team_elo: float = 1600.0,
+        opp_matchup_elo: float = 1600.0,
+    ) -> torch.Tensor:
         """
-        Construye una matriz de tamaño [1, TIMESTEPS=10, FEATURES_PER_STEP=8]
-        con orden cronológico (índice 0 = más antiguo, índice 9 = más reciente).
-        Si hay menos de 10 partidos, rellena con la media del equipo.
+        Construye una matriz de tamaño [1, TIMESTEPS=10, FEATURES_PER_STEP=14]
+        con orden cronológico (índice 0 = más antiguo, índice 9 = más reciente),
+        enriquecida con tiros totales, faltas, diferencial HT, tiros a puerta, Elo del rival previo y asimetría Elo del duelo.
         """
         features_list = []
         n_available = len(matches)
+        elo_diff_scaled = float(team_elo - opp_matchup_elo) / 200.0
+        default_sot = max(1.5, float(default_scored) * 2.5 + 1.0) / 5.0
 
         # Si no hay partidos disponibles, rellenar con valores medios neutros (res_code = 0.0)
         if n_available == 0:
             for step in range(TIMESTEPS):
-                features_list.append([
-                    default_scored, default_conceded, default_scored - default_conceded,
-                    0.0, 0.5, 5.0 / 10.0, 2.5 / 5.0, (step + 1) / 10.0
-                ])
+                features_list.append(
+                    LSTMPredictor._neutral_step(
+                        default_scored, default_conceded, default_sot, (step + 1) / 10.0, elo_diff_scaled
+                    )
+                )
         else:
             # Revertir para orden cronológico si vienen ordenados del más reciente al más antiguo
             ordered_matches = list(reversed(matches[:TIMESTEPS]))
@@ -152,10 +180,11 @@ class LSTMPredictor:
             # Padding si hay menos de 10
             pad_needed = TIMESTEPS - len(ordered_matches)
             for p in range(pad_needed):
-                features_list.append([
-                    default_scored, default_conceded, default_scored - default_conceded,
-                    0.0, 0.5, 5.0 / 10.0, 2.5 / 5.0, (p + 1) / 10.0
-                ])
+                features_list.append(
+                    LSTMPredictor._neutral_step(
+                        default_scored, default_conceded, default_sot, (p + 1) / 10.0, elo_diff_scaled
+                    )
+                )
 
             for idx, m in enumerate(ordered_matches):
                 # Codificar resultado
@@ -166,6 +195,17 @@ class LSTMPredictor:
                 cards = float(m.cards_total if m.cards_total is not None else 2.5) / 5.0
                 # Decaimiento temporal lineal ascendente (el partido más reciente tiene peso 1.0)
                 time_weight = float(pad_needed + idx + 1) / TIMESTEPS
+                sot_raw = getattr(m, "shots_on_target_for", None)
+                sot = float(sot_raw) / 5.0 if sot_raw is not None else max(1.5, float(m.goals_for) * 2.5 + 1.0) / 5.0
+                opp_elo_raw = getattr(m, "opponent_elo", None)
+                opp_elo_sc = (float(opp_elo_raw) - 1600.0) / 200.0 if opp_elo_raw is not None else 0.0
+
+                shots_raw = getattr(m, "shots_for", None)
+                shots_sc = float(shots_raw) / 15.0 if shots_raw is not None else max(0.35, sot * (5.0 * 2.65) / 15.0)
+                fouls_raw = getattr(m, "fouls", None)
+                fouls_sc = float(fouls_raw) / 15.0 if fouls_raw is not None else 11.2 / 15.0
+                ht_raw = getattr(m, "ht_diff", None)
+                ht_sc = float(ht_raw) / 3.0 if ht_raw is not None else (diff * 0.45) / 3.0
 
                 features_list.append([
                     float(m.goals_for),
@@ -175,7 +215,13 @@ class LSTMPredictor:
                     is_home,
                     corners,
                     cards,
-                    time_weight
+                    time_weight,
+                    sot,
+                    opp_elo_sc,
+                    elo_diff_scaled,
+                    shots_sc,
+                    fouls_sc,
+                    ht_sc,
                 ])
 
         tensor = torch.tensor([features_list], dtype=torch.float32)
@@ -187,21 +233,26 @@ class LSTMPredictor:
         """
         self.model.eval()
         with torch.no_grad():
+            elo_h = float(getattr(raw.home_stats, "elo_rating", None) or 1600.0)
+            elo_a = float(getattr(raw.away_stats, "elo_rating", None) or 1600.0)
             x_h = self._build_sequence_tensor(
                 raw.home_stats.last_matches,
                 raw.home_stats.avg_goals_scored,
-                raw.home_stats.avg_goals_conceded
+                raw.home_stats.avg_goals_conceded,
+                team_elo=elo_h,
+                opp_matchup_elo=elo_a,
             ).to(self.device)
 
             x_a = self._build_sequence_tensor(
                 raw.away_stats.last_matches,
                 raw.away_stats.avg_goals_scored,
-                raw.away_stats.avg_goals_conceded
+                raw.away_stats.avg_goals_conceded,
+                team_elo=elo_a,
+                opp_matchup_elo=elo_h,
             ).to(self.device)
 
             logits_1x2, goal_momentum = self.model(x_h, x_a)
-            # Calibración de temperatura equilibrada para evitar compresión excesiva
-            temperature = 1.10
+            temperature = 1.00
             calibrated_logits = logits_1x2 / temperature
             probs = F.softmax(calibrated_logits, dim=-1).squeeze(0).cpu().numpy()
 

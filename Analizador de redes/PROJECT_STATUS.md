@@ -2,14 +2,61 @@
 
 ## 1. Estado General del Proyecto
 - **Nombre del Proyecto:** `Social Analyzer`
-- **Versión Actual:** `1.1`
-- **Porcentaje de Avance Global:** `100%` (Todas las Fases 1 a 6 completadas, renombradas a v1.1 y documentadas)
-- **Arquitectura:** Local-First (`FastAPI` + `SQLite` + motor multimodal `Gemini 3.0 gratuito` + `React / Vite` + `Tailwind CSS`).
-- **Estado Operativo:** Servidor Backend en `http://localhost:8000` y Frontend en `http://localhost:3000` ejecutándose con éxito.
+- **Versión Actual:** `2.0` (`v2`)
+- **Porcentaje de Avance Global:** `100%` (Todas las Fases completadas, pulidas bajo Dark Minimalist v2 y documentadas)
+- **Arquitectura:** Local-First (`FastAPI v2.0` + `SQLite` + motor multimodal `Gemini 3.0` + `React / Vite` + `Tailwind CSS`).
+- **Estado Operativo:** Lanzador automático `start_local.bat` con detección de puertos libres (`8000+` Backend / `3000+` Frontend).
 
 ---
 
 ## 2. Registro de Cambios (Changelog)
+
+### [2026-11-21 00:56] — Botón Primario Blanco y Mayor Distinción de Color por Cliente
+- **Botón Primario Blanco (`Button.tsx`):** Eliminado el morado `#5664C4`; botones primarios (`Nuevo perfil`, `Analizar`, `Guardar`, `Entrar`) restaurados en blanco limpio `#F4F4F5` sobre `#09090B`.
+- **Mayor Distinción Cromática por Cliente (`clientColors.ts`, `ProfileCard.tsx`, `Modal.tsx`, `ProfileDetailModal.tsx`):**
+  - Paleta de clientes renovada con colores nítidos y distinguibles sin neón (`#38BDF8`, `#34D399`, `#F59E0B`, `#A78BFA`, `#F472B6`, `#FB7185`, `#94A3B8`).
+  - Barras de `3px`, lavado superior de tarjeta y etiquetas/pestañas activas con mayor presencia cromática; actualizado el cliente `Andorra` en SQLite a `#38BDF8`.
+
+### [2026-11-21 00:50] — Lanzamiento v2: Eliminación Total de Neón, Paleta Editorial por Cliente y Pulido UX
+- **Eliminación Total de Neón (Backend + Frontend + Docs):**
+  - Reemplazado cualquier rastro restante de `#58FF9C` en `backend/models.py`, `backend/schemas.py`, `backend/routers/profiles.py`, `README.md` y componentes del frontend por la paleta mate Dark Minimalist.
+  - Añadido `frontend/src/utils/clientColors.ts` con `resolveClientColor()` para remapear automáticamente colores neón heredados en perfiles existentes de SQLite hacia la nueva paleta editorial.
+- **Pulido con Skills de Diseño (`frontend-design` + `ui-ux-pro-max`):**
+  - Nueva paleta curada de 7 tonos mates por cliente (*Grafito Azul*, *Musgo Mate*, *Ciruela Gris*, *Bronce Suave*, *Burdeos Polvo*, *Petróleo Mate*, *Taupe Mineral*), editable también inline desde `ProfileDetailModal.tsx`.
+  - Mejora de contraste AA (`>= 4.5:1`), foco visible WCAG (`focus-visible:outline-2`), atributos `aria-hidden` en iconos decorativos, medida legible `max-w-[70ch]` y contador de palabras en guiones de 60–90s.
+- **Actualización Global a Versión `v2` (`2.0`):**
+  - Actualizada la versión en `backend/main.py`, `frontend/package.json`, `frontend/index.html`, `App.tsx`, `Navbar.tsx`, `LoginView.tsx`, `start_local.bat`, `README.md` y `PROJECT_STATUS.md`.
+
+### [2026-11-21 00:45] — Pulido Editorial Dark Minimalist y Diferenciación Elegante por Cliente
+- **Equilibrio Cromático Sin Neón ni Blanco Estridente:**
+  - Ajustada la paleta a carbón mate (`#0B0C0E`, `#121316`, `#191B20`), bordes finos (`#22242B`), texto suave (`#E4E5E9` / `#9499A6` / `#646975`) y botones primarios en índigo pizarra sobrio (`#5664C4`).
+- **Diferenciación Elegante por Cliente (`ProfileCard.tsx`, `CreateProfileModal.tsx`, `ProfileDetailModal.tsx`, `Modal.tsx`):**
+  - Nueva paleta curada de tonos editoriales desaturados (Acero pizarra, Salvia, Lavanda apagado, Ocre arena, Rosa seco, Azul petróleo, Terracota).
+  - Cada tarjeta Kanban y su modal asociado integran el color del cliente con una línea superior sutil de `2px`, un lavado ambiental suave (~7% de opacidad) y etiquetas de tiempo/categoría personalizadas.
+
+### [2026-11-21 00:39] — Ajuste Final: Dark Minimalist sin Neón, Guiones 60–90s y Escaleta Unificada por Sección
+- **Dark Minimalist Moderno (Sin Neón):**
+  - Reemplazada toda la paleta neón (`#58FF9C` / `#42E686`) por un sistema monocromático oscuro tipo IDE moderno (`#09090B` canvas, `#111114` superficie, `#18181B` elevado, `#27272A` bordes de 1px y `#FAFAFA` texto/acción primaria).
+- **Guiones 60–90s y Escaleta Unificada por Sección:**
+  - Ajustada la duración objetivo de los guiones a **60–90 segundos** (160–225 palabras habladas en 5 actos) en `gemini_service.py` y `analyzer_service.py`.
+  - Agregado `_ensure_unified_timeline` en el backend y `getUnifiedSections` en `ProfileDetailModal.tsx` para garantizar que **cada sección de la escaleta muestre exactamente qué decir en esa sección**, incluso en reportes anteriores.
+
+### [2026-11-21 00:35] — Estética Dark Minimalist, Guiones Virales 30–90s Unificados y 10 Referencias
+- **Rediseño Dark Minimalist (`frontend/src/`):**
+  - Aplicadas las directrices de `frontend-design` y `ui-ux-pro-max` (*Minimalism & Swiss Style*): eliminados resplandores neón, desenfoques radiales y bordes recargados; jerarquía limpia con `#090A0D`, `#0F1115`, `#161920`, bordes de `1px` (`#1C2029`), `prefers-reduced-motion` y foco visible por teclado.
+- **Guiones Virales 30–90s con Hooks y Escaleta Unificada (`gemini_service.py`, `analyzer_service.py`, `ProfileDetailModal.tsx`):**
+  - Ampliado el largo objetivo de cada guion a **30–90 segundos** (115–210 palabras habladas en estructura de 5 actos: *Hook → Contexto y Tensión → Re-Hook → Payoff → Remate y CTA*, aplicando arquetipos de `viral-short-form` y ritmo natural de `guion`).
+  - Unificada la **Escaleta + Guion Completo** bloque por bloque (`time_range`, `phase`, `on_screen_text`, `description` y `spoken_text`), con análisis explícito de la referencia original y botones para copiar *"escaleta + guion"* o *"solo locución"*.
+- **Capacidad de hasta 10 Referencias (`CreateProfileModal.tsx`, `ProfileDetailModal.tsx`, `apify_service.py`, `schemas.py`):**
+  - Incrementado el límite de cuentas/Reels de referencia a **10 por cliente**, con edición inline en el modal de detalle y extracción ampliada en Apify (`direct_urls[:10]`, `resultsLimit` dinámico hasta 30).
+
+### [2026-11-12 16:40] — Corrección de `start_local.bat` y Detección Automática de Puertos Libres
+- **Corrección de Arranque en `start_local.bat`:**
+  - Añadido `cd /d "%~dp0"` para asegurar la ejecución desde la raíz del proyecto incluso al ejecutar como Administrador o desde otra ruta.
+  - Reemplazado el lanzamiento de ventanas por `start "..." /D "%~dp0backend"` y `start "..." /D "%~dp0frontend"` para evitar conflictos de comillas anidadas en rutas con espacios y asegurar formato `CRLF`.
+- **Detección Dinámica de Puertos Libres (`start_local.bat` + `frontend/vite.config.ts`):**
+  - Verificación automática con `netstat` de puertos libres comenzando en `8000` (Backend) y `3000` (Frontend).
+  - Sincronización mediante `VITE_PORT` y `VITE_API_PORT` en `frontend/vite.config.ts` para que el proxy `/api` apunte al puerto real asignado al Backend.
 
 ### [2026-11-10 02:26] — Lanzamiento v1.1: Renombrado a Social Analyzer y Documentación README.md
 - **Renombrado Integral a `Social Analyzer v1.1`:**

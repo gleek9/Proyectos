@@ -2,7 +2,7 @@
 Schemas Pydantic para el Motor Predictivo y la Respuesta de la API de Katakuri AI.
 Cumple estrictamente con el contrato estipulado en AGENTS.md.
 """
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -20,6 +20,10 @@ class PredictRequest(BaseModel):
     live_red_cards_away: Optional[int] = Field(0, description="Tarjetas rojas activas del visitante en vivo")
     live_shots_on_target_home: Optional[int] = Field(None, description="Tiros a puerta del local en vivo")
     live_shots_on_target_away: Optional[int] = Field(None, description="Tiros a puerta del visitante en vivo")
+    market_home_odds: Optional[float] = Field(None, gt=1.0, description="Cuota decimal de mercado para victoria local")
+    market_draw_odds: Optional[float] = Field(None, gt=1.0, description="Cuota decimal de mercado para empate")
+    market_away_odds: Optional[float] = Field(None, gt=1.0, description="Cuota decimal de mercado para victoria visitante")
+    use_market_prior: Optional[bool] = Field(True, description="Si es True ancla las cuotas como prior Bayesiano (w=0.85); si es False evalúa Edge/Kelly con la proyección pura del modelo")
 
 class DoubleChancePrediction(BaseModel):
     home_or_draw_pct: float = Field(..., description="1X: Victoria local o Empate (%)")
@@ -123,6 +127,9 @@ class MatchMeta(BaseModel):
     live_shots_on_target_away: Optional[int] = None
     live_possession_home: Optional[float] = None
     live_possession_away: Optional[float] = None
+    live_xg_home: Optional[float] = None
+    live_xg_away: Optional[float] = None
+    referee_name: Optional[str] = None
     analyzed_at: datetime = Field(default_factory=datetime.utcnow)
 
 class PredictionResponse(BaseModel):
@@ -130,4 +137,6 @@ class PredictionResponse(BaseModel):
     prediction: MatchPredictionDetails
     chart_data: ChartData
     key_factors: List[str] = Field(default_factory=list)
+    sub_models: Optional[Dict[str, Any]] = None
+    comparison: Optional[Dict[str, Any]] = None
 

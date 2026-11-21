@@ -12,11 +12,13 @@ class AuthLoginResponse(BaseModel):
     token_type: str = "bearer"
     username: str
 
-# Bloque de Escaleta por Tiempo
+# Bloque de Escaleta por Tiempo (Unificado con Guion Hablado)
 class TimelineBlock(BaseModel):
-    time_range: str = Field(..., example="00:00 - 00:03")
-    phase: str = Field(..., example="Gancho Visual y Auditivo")
-    description: str = Field(..., example="Muestra un titular en pantalla y lanza una pregunta incómoda.")
+    time_range: str = Field(..., example="00:00 - 00:04")
+    phase: str = Field(..., example="Gancho (Contrarian)")
+    description: str = Field(..., example="Plano cerrado a cámara, corte rápido con texto en pantalla.")
+    on_screen_text: Optional[str] = Field(default=None, example="Nadie te dice esto")
+    spoken_text: Optional[str] = Field(default=None, example="Si sigues haciendo esto, estás perdiendo clientes cada semana.")
 
 # Propuesta de Guion
 class ScriptProposalBase(BaseModel):
@@ -51,9 +53,9 @@ class AnalysisReportResponse(BaseModel):
 class ProfileCreate(BaseModel):
     client_name: str = Field(..., min_length=1, max_length=255)
     category: str = Field(..., min_length=1, max_length=100)
-    representative_color: str = Field(default="#58FF9C", max_length=20)
-    client_instagram_url: str = Field(..., min_length=5, max_length=500)
-    competitor_urls: List[str] = Field(default_factory=list)
+    representative_color: str = Field(default="#38BDF8", max_length=20)
+    client_instagram_url: str = Field(..., min_length=2, max_length=500)
+    competitor_urls: List[str] = Field(default_factory=list, max_length=10)
 
 class ProfileUpdate(BaseModel):
     client_name: Optional[str] = None

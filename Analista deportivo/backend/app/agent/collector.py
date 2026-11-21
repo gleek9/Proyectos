@@ -68,6 +68,55 @@ class MatchDataCollector:
             db.close()
         return None
 
+    @staticmethod
+    def _apply_url_telemetry(raw_features: MatchRawFeatures, telem: dict, update_teams: bool = False) -> None:
+        """Aplica telemetría en vivo/pre-match de URL (Sofascore/Flashscore) sin duplicar lógica."""
+        if not telem:
+            return
+        if update_teams and telem.get("home_team") and telem.get("away_team"):
+            raw_features.home_team = str(telem["home_team"]).strip()
+            raw_features.away_team = str(telem["away_team"]).strip()
+        if telem.get("score"):
+            raw_features.live_score = str(telem["score"]).strip()
+        if telem.get("minute"):
+            raw_features.live_minute = str(telem["minute"]).strip()
+        if telem.get("corners") is not None:
+            raw_features.live_corners = int(telem["corners"])
+        if telem.get("red_cards_home") is not None:
+            raw_features.live_red_cards_home = int(telem["red_cards_home"])
+        if telem.get("red_cards_away") is not None:
+            raw_features.live_red_cards_away = int(telem["red_cards_away"])
+        if telem.get("shots_on_target_home") is not None:
+            raw_features.live_shots_on_target_home = int(telem["shots_on_target_home"])
+        if telem.get("shots_on_target_away") is not None:
+            raw_features.live_shots_on_target_away = int(telem["shots_on_target_away"])
+        if telem.get("possession_home") is not None:
+            raw_features.live_possession_home = float(telem["possession_home"])
+        if telem.get("possession_away") is not None:
+            raw_features.live_possession_away = float(telem["possession_away"])
+        if telem.get("xg_home") is not None:
+            raw_features.live_xg_home = float(telem["xg_home"])
+        if telem.get("xg_away") is not None:
+            raw_features.live_xg_away = float(telem["xg_away"])
+        if telem.get("referee_name"):
+            raw_features.referee_name = str(telem["referee_name"]).strip()
+        if telem.get("referee_avg_cards") is not None:
+            raw_features.referee_avg_cards = float(telem["referee_avg_cards"])
+        missing = telem.get("missing_players")
+        if isinstance(missing, dict):
+            if missing.get("home") and raw_features.home_stats:
+                existing_h = list(raw_features.home_stats.key_absences or [])
+                for player_str in missing["home"]:
+                    if player_str not in existing_h:
+                        existing_h.append(player_str)
+                raw_features.home_stats.key_absences = existing_h[:8]
+            if missing.get("away") and raw_features.away_stats:
+                existing_a = list(raw_features.away_stats.key_absences or [])
+                for player_str in missing["away"]:
+                    if player_str not in existing_a:
+                        existing_a.append(player_str)
+                raw_features.away_stats.key_absences = existing_a[:8]
+
     def collect(
         self,
         home_team: str,
@@ -135,29 +184,9 @@ class MatchDataCollector:
                 raw_features = base_live_features.model_copy(deep=True)
                 raw_features.is_live = True
                 raw_features.match_url = clean_url
-                if fast_telem.get("home_team") and fast_telem.get("away_team"):
-                    raw_features.home_team = str(fast_telem["home_team"]).strip()
-                    raw_features.away_team = str(fast_telem["away_team"]).strip()
-                if fast_telem.get("score"):
-                    raw_features.live_score = str(fast_telem["score"]).strip()
-                if fast_telem.get("minute"):
-                    raw_features.live_minute = str(fast_telem["minute"]).strip()
-                if fast_telem.get("corners") is not None:
-                    raw_features.live_corners = int(fast_telem["corners"])
-                elif previous_features and previous_features.live_corners is not None:
+                self._apply_url_telemetry(raw_features, fast_telem, update_teams=True)
+                if raw_features.live_corners is None and previous_features and previous_features.live_corners is not None:
                     raw_features.live_corners = previous_features.live_corners
-                if fast_telem.get("red_cards_home") is not None:
-                    raw_features.live_red_cards_home = int(fast_telem["red_cards_home"])
-                if fast_telem.get("red_cards_away") is not None:
-                    raw_features.live_red_cards_away = int(fast_telem["red_cards_away"])
-                if fast_telem.get("shots_on_target_home") is not None:
-                    raw_features.live_shots_on_target_home = int(fast_telem["shots_on_target_home"])
-                if fast_telem.get("shots_on_target_away") is not None:
-                    raw_features.live_shots_on_target_away = int(fast_telem["shots_on_target_away"])
-                if fast_telem.get("possession_home") is not None:
-                    raw_features.live_possession_home = float(fast_telem["possession_home"])
-                if fast_telem.get("possession_away") is not None:
-                    raw_features.live_possession_away = float(fast_telem["possession_away"])
                 if not raw_features.live_score:
                     raw_features.live_score = (previous_features.live_score if previous_features and previous_features.live_score else "0 - 0")
                 if not raw_features.live_minute:
@@ -184,27 +213,7 @@ class MatchDataCollector:
         url_telem = self.scraper.get_last_url_telemetry()
         if (raw_features.is_live or effective_live) and url_telem:
             raw_features.is_live = True
-            if url_telem.get("score"):
-                logger.info(f"Aplicando marcador oficial en directo: {url_telem['score']}")
-                raw_features.live_score = str(url_telem["score"]).strip()
-            if url_telem.get("minute"):
-                logger.info(f"Aplicando minuto oficial en directo: {url_telem['minute']}")
-                raw_features.live_minute = str(url_telem["minute"]).strip()
-            if url_telem.get("corners") is not None:
-                logger.info(f"Aplicando córners oficiales en directo: {url_telem['corners']}")
-                raw_features.live_corners = int(url_telem["corners"])
-            if url_telem.get("red_cards_home") is not None:
-                raw_features.live_red_cards_home = int(url_telem["red_cards_home"])
-            if url_telem.get("red_cards_away") is not None:
-                raw_features.live_red_cards_away = int(url_telem["red_cards_away"])
-            if url_telem.get("shots_on_target_home") is not None:
-                raw_features.live_shots_on_target_home = int(url_telem["shots_on_target_home"])
-            if url_telem.get("shots_on_target_away") is not None:
-                raw_features.live_shots_on_target_away = int(url_telem["shots_on_target_away"])
-            if url_telem.get("possession_home") is not None:
-                raw_features.live_possession_home = float(url_telem["possession_home"])
-            if url_telem.get("possession_away") is not None:
-                raw_features.live_possession_away = float(url_telem["possession_away"])
+            self._apply_url_telemetry(raw_features, url_telem, update_teams=False)
 
         # Si en un refresco en vivo la fuente web no reportó minuto nuevo y quedó anclado al minuto numérico previo, avanzar +5'
         if effective_live and previous_features and getattr(previous_features, "live_minute", None):

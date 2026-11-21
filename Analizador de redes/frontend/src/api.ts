@@ -2,6 +2,8 @@ export interface TimelineBlock {
   time_range: string;
   phase: string;
   description: string;
+  on_screen_text?: string;
+  spoken_text?: string;
 }
 
 export interface ScriptProposal {
@@ -114,6 +116,19 @@ export const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || "Error al crear perfil");
+    }
+    return res.json();
+  },
+
+  async updateProfile(id: number, data: Partial<ProfileCreateInput>): Promise<ProfileDetail> {
+    const res = await fetch(`${API_BASE}/api/profiles/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Error al actualizar perfil");
     }
     return res.json();
   },

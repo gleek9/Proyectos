@@ -86,6 +86,27 @@ class HistoricalMatch(Base):
     b365_home_odds = Column(Float, nullable=True)
     b365_draw_odds = Column(Float, nullable=True)
     b365_away_odds = Column(Float, nullable=True)
+    ht_home_goals = Column(Integer, nullable=True)
+    ht_away_goals = Column(Integer, nullable=True)
+    ht_result = Column(String(2), nullable=True)
+    home_shots = Column(Integer, nullable=True)
+    away_shots = Column(Integer, nullable=True)
+    home_fouls = Column(Integer, nullable=True)
+    away_fouls = Column(Integer, nullable=True)
+    referee = Column(String(120), nullable=True)
+    b365_open_home_odds = Column(Float, nullable=True)
+    b365_open_draw_odds = Column(Float, nullable=True)
+    b365_open_away_odds = Column(Float, nullable=True)
+    ps_open_home_odds = Column(Float, nullable=True)
+    ps_open_draw_odds = Column(Float, nullable=True)
+    ps_open_away_odds = Column(Float, nullable=True)
+    ps_close_home_odds = Column(Float, nullable=True)
+    ps_close_draw_odds = Column(Float, nullable=True)
+    ps_close_away_odds = Column(Float, nullable=True)
+    b365_over_25_odds = Column(Float, nullable=True)
+    b365_under_25_odds = Column(Float, nullable=True)
+    p_over_25_odds = Column(Float, nullable=True)
+    p_under_25_odds = Column(Float, nullable=True)
 
 class TeamStatsCache(Base):
     __tablename__ = "team_stats_cache"
@@ -102,12 +123,65 @@ class TeamStatsCache(Base):
     away_goals_conceded = Column(Float, nullable=True)
     avg_shots_target_for = Column(Float, nullable=True)
     avg_shots_target_against = Column(Float, nullable=True)
+    avg_shots_for = Column(Float, nullable=True)
+    avg_shots_against = Column(Float, nullable=True)
+    avg_fouls_for = Column(Float, nullable=True)
+    avg_fouls_against = Column(Float, nullable=True)
+    ht_goal_diff_avg = Column(Float, nullable=True)
+    avg_xg_for = Column(Float, nullable=True)
+    avg_xg_against = Column(Float, nullable=True)
     avg_corners = Column(Float, default=5.0)
     avg_corners_conceded = Column(Float, nullable=True)
     avg_cards = Column(Float, default=2.0)
     win_rate_last_5 = Column(Float, default=0.50)
     last_matches_json = Column(JSON, default=list)
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class RefereeCache(Base):
+    """Caché incremental de árbitros (EPL histórico + carrera real Sofascore)."""
+    __tablename__ = "referee_cache"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(120), unique=True, index=True, nullable=False)
+    yellow_cards = Column(Integer, default=0)
+    red_cards = Column(Integer, default=0)
+    yellow_red_cards = Column(Integer, default=0)
+    games = Column(Integer, default=0)
+    avg_cards_per_game = Column(Float, default=4.0)
+    source = Column(String(40), default="csv_e0")
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class MatchTelemetryCache(Base):
+    """Caché incremental gratuita de telemetría enriquecida por evento (xG, árbitro, bajas)."""
+    __tablename__ = "match_telemetry_cache"
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_event_id = Column(String(64), unique=True, index=True, nullable=False)
+    provider = Column(String(30), default="sofascore")
+    match_date = Column(String(20), default="")
+    home_team = Column(String(120), index=True, default="")
+    away_team = Column(String(120), index=True, default="")
+    xg_home = Column(Float, nullable=True)
+    xg_away = Column(Float, nullable=True)
+    referee_name = Column(String(120), nullable=True)
+    missing_players_json = Column(JSON, default=dict)
+    lineups_json = Column(JSON, default=dict)
+    stats_json = Column(JSON, default=dict)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+def _ensure_sqlite_columns(conn, table_name: str, columns_spec: list[tuple[str, str]]) -> None:
+    """Agrega columnas faltantes en tablas SQLite existentes sin destruir datos."""
+    from sqlalchemy import text
+    result = conn.execute(text(f"PRAGMA table_info({table_name})"))
+    existing = {row[1] for row in result.fetchall()}
+    for col_name, col_type in columns_spec:
+        if col_name not in existing:
+            conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}"))
+            conn.commit()
+
 
 def init_db():
     """Crea las tablas en el archivo SQLite analista.db si no existen y realiza migraciones"""
@@ -118,25 +192,51 @@ def init_db():
             from sqlalchemy import text
             conn.execute(text("PRAGMA journal_mode=WAL"))
             conn.execute(text("PRAGMA synchronous=NORMAL"))
-            result = conn.execute(text("PRAGMA table_info(match_predictions)"))
-            cols_preds = [row[1] for row in result.fetchall()]
-            if "match_url" not in cols_preds:
-                conn.execute(text("ALTER TABLE match_predictions ADD COLUMN match_url VARCHAR(500)"))
-                conn.commit()
-
-            result = conn.execute(text("PRAGMA table_info(historical_matches)"))
-            cols_hm = [row[1] for row in result.fetchall()]
-            for col in ["b365_home_odds", "b365_draw_odds", "b365_away_odds"]:
-                if col not in cols_hm:
-                    conn.execute(text(f"ALTER TABLE historical_matches ADD COLUMN {col} FLOAT"))
-                    conn.commit()
-
-            result = conn.execute(text("PRAGMA table_info(team_stats_cache)"))
-            cols_tc = [row[1] for row in result.fetchall()]
-            for col in ["home_goals_scored", "home_goals_conceded", "away_goals_scored", "away_goals_conceded", "avg_shots_target_for", "avg_shots_target_against", "avg_corners_conceded"]:
-                if col not in cols_tc:
-                    conn.execute(text(f"ALTER TABLE team_stats_cache ADD COLUMN {col} FLOAT"))
-                    conn.commit()
+            _ensure_sqlite_columns(conn, "match_predictions", [
+                ("match_url", "VARCHAR(500)"),
+            ])
+            _ensure_sqlite_columns(conn, "historical_matches", [
+                ("b365_home_odds", "FLOAT"),
+                ("b365_draw_odds", "FLOAT"),
+                ("b365_away_odds", "FLOAT"),
+                ("ht_home_goals", "INTEGER"),
+                ("ht_away_goals", "INTEGER"),
+                ("ht_result", "VARCHAR(2)"),
+                ("home_shots", "INTEGER"),
+                ("away_shots", "INTEGER"),
+                ("home_fouls", "INTEGER"),
+                ("away_fouls", "INTEGER"),
+                ("referee", "VARCHAR(120)"),
+                ("b365_open_home_odds", "FLOAT"),
+                ("b365_open_draw_odds", "FLOAT"),
+                ("b365_open_away_odds", "FLOAT"),
+                ("ps_open_home_odds", "FLOAT"),
+                ("ps_open_draw_odds", "FLOAT"),
+                ("ps_open_away_odds", "FLOAT"),
+                ("ps_close_home_odds", "FLOAT"),
+                ("ps_close_draw_odds", "FLOAT"),
+                ("ps_close_away_odds", "FLOAT"),
+                ("b365_over_25_odds", "FLOAT"),
+                ("b365_under_25_odds", "FLOAT"),
+                ("p_over_25_odds", "FLOAT"),
+                ("p_under_25_odds", "FLOAT"),
+            ])
+            _ensure_sqlite_columns(conn, "team_stats_cache", [
+                ("home_goals_scored", "FLOAT"),
+                ("home_goals_conceded", "FLOAT"),
+                ("away_goals_scored", "FLOAT"),
+                ("away_goals_conceded", "FLOAT"),
+                ("avg_shots_target_for", "FLOAT"),
+                ("avg_shots_target_against", "FLOAT"),
+                ("avg_shots_for", "FLOAT"),
+                ("avg_shots_against", "FLOAT"),
+                ("avg_fouls_for", "FLOAT"),
+                ("avg_fouls_against", "FLOAT"),
+                ("ht_goal_diff_avg", "FLOAT"),
+                ("avg_xg_for", "FLOAT"),
+                ("avg_xg_against", "FLOAT"),
+                ("avg_corners_conceded", "FLOAT"),
+            ])
     except Exception:
         pass
 

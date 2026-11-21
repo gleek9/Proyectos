@@ -8,7 +8,7 @@ export default function WinnerCard({ match, winner, isLive }) {
   const showLive = isLive !== undefined ? isLive : match.is_live;
   const minClean = (match.live_minute || '').toUpperCase().trim();
   const isFinal = showLive && (
-    ['FT', 'FINAL', 'FINALIZADO', 'TERMINADO', 'FIN', 'ENDED'].some(k => minClean.includes(k)) ||
+    ['FT', 'FINAL', 'FINALIZADO', 'TERMINADO', 'FIN', 'ENDED'].some((k) => minClean.includes(k)) ||
     (parseInt(minClean, 10) >= 90)
   );
 
@@ -30,29 +30,38 @@ export default function WinnerCard({ match, winner, isLive }) {
             <span className="vs-badge">VS</span>
           )}
           <span className="team-name away">{match.away_team}</span>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: 400 }}>
-            [{match.competition || 'General'}]
-          </span>
+          {match.competition && (
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)', fontWeight: 400 }}>
+              [{match.competition}]
+            </span>
+          )}
           {showLive && (
             isFinal ? (
-              <span className="live-badge-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)', color: 'var(--emerald)' }}>
-                <span>Finalizado {match.live_score ? `[${match.live_score}]` : ''}</span>
+              <span
+                className="live-badge-tag"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  borderColor: 'rgba(16, 185, 129, 0.4)',
+                  color: 'var(--emerald)'
+                }}
+              >
+                <span>Finalizado</span>
               </span>
             ) : (
               <span className="live-badge-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                 <span className="pulse-dot-red"></span>
-                <span>En vivo {match.live_score ? `[${match.live_score}]` : ''}</span>
-                <span style={{ fontSize: '0.65rem', background: 'rgba(244, 63, 94, 0.22)', padding: '0.1rem 0.35rem', borderRadius: '3px', marginLeft: '0.2rem' }}>
-                  Prioridad activa
-                </span>
+                <span>En vivo</span>
               </span>
             )
           )}
         </div>
 
         <div className="human-verdict-box">
-          <Trophy size={16} color="var(--emerald)" />
-          <span>Veredicto: <strong>{human_verdict}</strong></span>
+          <Trophy size={15} color="var(--emerald)" />
+          <span><strong>{human_verdict}</strong></span>
         </div>
       </div>
 
@@ -78,55 +87,26 @@ export default function WinnerCard({ match, winner, isLive }) {
         <div className="probs-labels-grid">
           <div className="prob-item">
             <span className="prob-title" title={`Victoria de ${match.home_team}`}>
-              1. {match.home_team || 'Local'}
+              1 · {match.home_team || 'Local'}
             </span>
             <span className="prob-value home">{home_win_pct}%</span>
           </div>
 
           <div className="prob-item" style={{ textAlign: 'center' }}>
             <span className="prob-title" title="Empate">
-              X. Empate
+              X · Empate
             </span>
             <span className="prob-value draw">{draw_pct}%</span>
           </div>
 
           <div className="prob-item" style={{ textAlign: 'right' }}>
             <span className="prob-title" title={`Victoria de ${match.away_team}`}>
-              2. {match.away_team || 'Visitante'}
+              2 · {match.away_team || 'Visitante'}
             </span>
             <span className="prob-value away">{away_win_pct}%</span>
           </div>
         </div>
       </div>
-
-      {(winner.double_chance || winner.draw_no_bet) && (
-        <div className="derived-markets-container">
-          {winner.double_chance && (
-            <div className="derived-market-card">
-              <div className="derived-market-title">
-                Doble oportunidad (1X / X2 / 12)
-              </div>
-              <div className="derived-market-row">
-                <span className="derived-stat-pill">1X: <strong style={{ color: 'var(--cyan)' }}>{winner.double_chance.home_or_draw_pct}%</strong></span>
-                <span className="derived-stat-pill">X2: <strong style={{ color: 'var(--purple)' }}>{winner.double_chance.draw_or_away_pct}%</strong></span>
-                <span className="derived-stat-pill">12: <strong style={{ color: 'var(--lime)' }}>{winner.double_chance.home_or_away_pct}%</strong></span>
-              </div>
-            </div>
-          )}
-
-          {winner.draw_no_bet && (
-            <div className="derived-market-card">
-              <div className="derived-market-title">
-                Empate apuesta no válida (DNB)
-              </div>
-              <div className="derived-market-row">
-                <span className="derived-stat-pill">Local DNB: <strong style={{ color: 'var(--cyan)' }}>{winner.draw_no_bet.home_dnb_pct}%</strong></span>
-                <span className="derived-stat-pill">Visitante DNB: <strong style={{ color: 'var(--purple)' }}>{winner.draw_no_bet.away_dnb_pct}%</strong></span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </section>
   );
 }

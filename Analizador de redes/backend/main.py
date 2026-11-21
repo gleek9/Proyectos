@@ -10,22 +10,22 @@ from services.media_extractor import media_extractor
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Inicialización de la base de datos local SQLite
-    print("[Social Analyzer v1.1] Inicializando base de datos local SQLite...")
+    print("[Social Analyzer v2] Inicializando base de datos local SQLite...")
     init_db()
     # Purgar cualquier archivo temporal residual previo
     media_extractor.purge_all_tmp()
-    print("[Social Analyzer v1.1] Base de datos lista en ./data/citi_analyzer.db")
-    print(f"[Social Analyzer v1.1] Modelo Gemini activo: {settings.GEMINI_MODEL}")
-    print(f"[Social Analyzer v1.1] Apify Token configurado: {settings.is_apify_ready()}")
+    print("[Social Analyzer v2] Base de datos lista en ./data/citi_analyzer.db")
+    print(f"[Social Analyzer v2] Modelo Gemini activo: {settings.GEMINI_MODEL}")
+    print(f"[Social Analyzer v2] Apify Token configurado: {settings.is_apify_ready()}")
     yield
     # Limpieza final al detener el servidor
     media_extractor.purge_all_tmp()
-    print("[Social Analyzer v1.1] Deteniendo servidor y purgando archivos temporales...")
+    print("[Social Analyzer v2] Deteniendo servidor y purgando archivos temporales...")
 
 app = FastAPI(
     title="Social Analyzer API",
-    description="Motor de inteligencia de guiones virales y análisis de competidores (MVP Local-First)",
-    version="1.1",
+    description="Motor de inteligencia de guiones virales y análisis de competidores (Local-First)",
+    version="2.0",
     lifespan=lifespan
 )
 
@@ -52,7 +52,7 @@ app.include_router(health.router, prefix="/api")
 def root():
     return {
         "app": "Social Analyzer API",
-        "version": "1.1",
+        "version": "2.0",
         "status": "online",
         "gemini_model": settings.GEMINI_MODEL,
         "docs_url": "/docs"

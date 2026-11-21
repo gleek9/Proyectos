@@ -13,7 +13,7 @@ import urllib.request
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
-from backend.app.db import SessionLocal, League, Team, HistoricalMatch, TeamStatsCache
+from backend.app.db import SessionLocal, League, Team, HistoricalMatch, TeamStatsCache, RefereeCache, MatchTelemetryCache
 
 logger = logging.getLogger(__name__)
 
@@ -144,8 +144,8 @@ def calculate_elo_update(
     elo_away: float,
     home_goals: int,
     away_goals: int,
-    home_adv: float = 65.0,
-    k_base: float = 30.0
+    home_adv: float = 50.0,
+    k_base: float = 20.0
 ) -> Tuple[float, float]:
     """
     Calcula la variación de Elo con K dinámico proporcional a la diferencia de goles.
@@ -298,6 +298,38 @@ CURATED_WOMENS_MATCHES = [
     {"league": "liga_mx_femenil", "season": "2024-25", "date": "2024-11-25", "home": "Monterrey F", "away": "Tigres UANL F", "hg": 3, "ag": 2, "hst": 7, "ast": 6, "hc": 6, "ac": 5, "hy": 3, "ay": 2, "hr": 0, "ar": 0, "b365h": 2.35, "b365d": 3.30, "b365a": 2.80},
 ]
 
+def _to_opt_int(val) -> Optional[int]:
+    if val is None:
+        return None
+    s = str(val).strip()
+    if not s or s.upper() in ("NA", "NAN", "NULL"):
+        return None
+    try:
+        return int(float(s))
+    except Exception:
+        return None
+
+
+def _to_opt_float(val) -> Optional[float]:
+    if val is None:
+        return None
+    s = str(val).strip()
+    if not s or s.upper() in ("NA", "NAN", "NULL"):
+        return None
+    try:
+        f = float(s)
+        return f if not math.isnan(f) else None
+    except Exception:
+        return None
+
+
+def _safe_avg(values: List[Optional[float]], digits: int = 2) -> Optional[float]:
+    valid = [float(v) for v in values if v is not None]
+    if not valid:
+        return None
+    return round(sum(valid) / len(valid), digits)
+
+
 def load_all_real_matches() -> List[Dict]:
     """Carga y parsea todos los partidos oficiales de las fuentes reales."""
     all_matches = []
@@ -335,9 +367,37 @@ def load_all_real_matches() -> List[Dict]:
                     hr = int(r.get("HR") or 0)
                     ar = int(r.get("AR") or 0)
 
-                    b365h = float(r["B365H"]) if r.get("B365H") else None
-                    b365d = float(r["B365D"]) if r.get("B365D") else None
-                    b365a = float(r["B365A"]) if r.get("B365A") else None
+                    hthg = _to_opt_int(r.get("HTHG"))
+                    htag = _to_opt_int(r.get("HTAG"))
+                    htr = (r.get("HTR") or "").strip() or None
+                    hs = _to_opt_int(r.get("HS"))
+                    as_ = _to_opt_int(r.get("AS"))
+                    hf = _to_opt_int(r.get("HF"))
+                    af = _to_opt_int(r.get("AF"))
+                    referee = (r.get("Referee") or "").strip() or None
+
+                    b365_open_h = _to_opt_float(r.get("B365H"))
+                    b365_open_d = _to_opt_float(r.get("B365D"))
+                    b365_open_a = _to_opt_float(r.get("B365A"))
+                    b365_close_h = _to_opt_float(r.get("B365CH"))
+                    b365_close_d = _to_opt_float(r.get("B365CD"))
+                    b365_close_a = _to_opt_float(r.get("B365CA"))
+
+                    b365h = b365_close_h if b365_close_h is not None else b365_open_h
+                    b365d = b365_close_d if b365_close_d is not None else b365_open_d
+                    b365a = b365_close_a if b365_close_a is not None else b365_open_a
+
+                    ps_open_h = _to_opt_float(r.get("PSH"))
+                    ps_open_d = _to_opt_float(r.get("PSD"))
+                    ps_open_a = _to_opt_float(r.get("PSA"))
+                    ps_close_h = _to_opt_float(r.get("PSCH"))
+                    ps_close_d = _to_opt_float(r.get("PSCD"))
+                    ps_close_a = _to_opt_float(r.get("PSCA"))
+
+                    b365_o25 = _to_opt_float(r.get("B365>2.5"))
+                    b365_u25 = _to_opt_float(r.get("B365<2.5"))
+                    p_o25 = _to_opt_float(r.get("P>2.5"))
+                    p_u25 = _to_opt_float(r.get("P<2.5"))
 
                     all_matches.append({
                         "league": league_code,
@@ -356,11 +416,32 @@ def load_all_real_matches() -> List[Dict]:
                         "ay": ay,
                         "hr": hr,
                         "ar": ar,
+                        "hthg": hthg,
+                        "htag": htag,
+                        "htr": htr,
+                        "hs": hs,
+                        "as": as_,
+                        "hf": hf,
+                        "af": af,
+                        "referee": referee,
                         "b365h": b365h,
                         "b365d": b365d,
-                        "b365a": b365a
+                        "b365a": b365a,
+                        "b365_open_h": b365_open_h,
+                        "b365_open_d": b365_open_d,
+                        "b365_open_a": b365_open_a,
+                        "ps_open_h": ps_open_h,
+                        "ps_open_d": ps_open_d,
+                        "ps_open_a": ps_open_a,
+                        "ps_close_h": ps_close_h,
+                        "ps_close_d": ps_close_d,
+                        "ps_close_a": ps_close_a,
+                        "b365_o25": b365_o25,
+                        "b365_u25": b365_u25,
+                        "p_o25": p_o25,
+                        "p_u25": p_u25,
                     })
-                except Exception as e:
+                except Exception:
                     continue
 
     # Añadir partidos oficiales curados de Champions League y Liga MX
@@ -544,6 +625,8 @@ def populate_real_database_and_compute_elo(db=None):
             cards_a = m["ay"] + m["ar"] * 2
             cn_tot = m["hc"] + m["ac"]
             cr_tot = cards_h + cards_a
+            ht_diff_h = (m["hthg"] - m["htag"]) if (m.get("hthg") is not None and m.get("htag") is not None) else None
+            ht_diff_a = (-ht_diff_h) if ht_diff_h is not None else None
 
             hm = HistoricalMatch(
                 league_code=m["league"],
@@ -560,27 +643,54 @@ def populate_real_database_and_compute_elo(db=None):
                 corners_away=m["ac"],
                 cards_home=cards_h,
                 cards_away=cards_a,
-                b365_home_odds=m["b365h"],
-                b365_draw_odds=m["b365d"],
-                b365_away_odds=m["b365a"]
+                b365_home_odds=m.get("b365h"),
+                b365_draw_odds=m.get("b365d"),
+                b365_away_odds=m.get("b365a"),
+                ht_home_goals=m.get("hthg"),
+                ht_away_goals=m.get("htag"),
+                ht_result=m.get("htr"),
+                home_shots=m.get("hs"),
+                away_shots=m.get("as"),
+                home_fouls=m.get("hf"),
+                away_fouls=m.get("af"),
+                referee=m.get("referee"),
+                b365_open_home_odds=m.get("b365_open_h"),
+                b365_open_draw_odds=m.get("b365_open_d"),
+                b365_open_away_odds=m.get("b365_open_a"),
+                ps_open_home_odds=m.get("ps_open_h"),
+                ps_open_draw_odds=m.get("ps_open_d"),
+                ps_open_away_odds=m.get("ps_open_a"),
+                ps_close_home_odds=m.get("ps_close_h"),
+                ps_close_draw_odds=m.get("ps_close_d"),
+                ps_close_away_odds=m.get("ps_close_a"),
+                b365_over_25_odds=m.get("b365_o25"),
+                b365_under_25_odds=m.get("b365_u25"),
+                p_over_25_odds=m.get("p_o25"),
+                p_under_25_odds=m.get("p_u25"),
             )
             db_match_objects.append(hm)
 
             # Guardar en historial móvil para reconstrucción unificada de stats
             if h_name in team_match_history:
                 team_match_history[h_name].append({
-                    "opp": a_name, "was_home": True, "date": m["date"],
+                    "opp": a_name, "opp_elo": cur_elo_a, "was_home": True, "date": m["date"],
                     "gf": m["hg"], "ga": m["ag"], "res": m["res"],
                     "hst": m["hst"], "ast": m["ast"],
+                    "hs": m.get("hs"), "as": m.get("as"),
+                    "hf": m.get("hf"), "af": m.get("af"),
+                    "ht_diff": ht_diff_h,
                     "cn": m["hc"], "cn_opp": m["ac"], "cr": cards_h,
                     "cn_tot": cn_tot, "cr_tot": cr_tot
                 })
             if a_name in team_match_history:
                 team_match_history[a_name].append({
-                    "opp": h_name, "was_home": False, "date": m["date"],
+                    "opp": h_name, "opp_elo": cur_elo_h, "was_home": False, "date": m["date"],
                     "gf": m["ag"], "ga": m["hg"],
                     "res": "W" if m["res"] == "L" else ("L" if m["res"] == "W" else "D"),
                     "hst": m["ast"], "ast": m["hst"],
+                    "hs": m.get("as"), "as": m.get("hs"),
+                    "hf": m.get("af"), "af": m.get("hf"),
+                    "ht_diff": ht_diff_a,
                     "cn": m["ac"], "cn_opp": m["hc"], "cr": cards_a,
                     "cn_tot": cn_tot, "cr_tot": cr_tot
                 })
@@ -589,16 +699,51 @@ def populate_real_database_and_compute_elo(db=None):
         db.commit()
         logger.info(f"Guardados {len(db_match_objects)} partidos reales oficiales en SQLite.")
 
-        # 6.5. Actualizar promedios empíricos reales por liga desde los partidos oficiales cargados
+        # 6.2. Poblar / actualizar RefereeCache con árbitros históricos de los CSVs (EPL)
+        ref_agg: Dict[str, Dict[str, int]] = {}
+        for m in real_matches:
+            ref_n = (m.get("referee") or "").strip()
+            if not ref_n:
+                continue
+            acc = ref_agg.setdefault(ref_n, {"yc": 0, "rc": 0, "games": 0})
+            acc["yc"] += int(m.get("hy", 0)) + int(m.get("ay", 0))
+            acc["rc"] += int(m.get("hr", 0)) + int(m.get("ar", 0))
+            acc["games"] += 1
+        existing_refs = {r.name: r for r in db.query(RefereeCache).all()}
+        for ref_n, acc in ref_agg.items():
+            avg_c = round((acc["yc"] + acc["rc"] * 2.0) / max(1, acc["games"]), 2)
+            row = existing_refs.get(ref_n)
+            if row is None:
+                db.add(RefereeCache(
+                    name=ref_n,
+                    yellow_cards=acc["yc"],
+                    red_cards=acc["rc"],
+                    yellow_red_cards=0,
+                    games=acc["games"],
+                    avg_cards_per_game=avg_c,
+                    source="csv_e0",
+                    updated_at=datetime.utcnow(),
+                ))
+            elif row.source != "sofascore":
+                row.yellow_cards = acc["yc"]
+                row.red_cards = acc["rc"]
+                row.games = acc["games"]
+                row.avg_cards_per_game = avg_c
+                row.updated_at = datetime.utcnow()
+        db.commit()
+
+        # 6.5. Actualizar promedios empíricos reales por liga usando corte pre-2025 cuando haya muestra suficiente (evita fuga OOS)
         for l_obj in db.query(League).all():
-            lg_matches = [m for m in real_matches if m["league"] == l_obj.code]
+            lg_matches_all = [m for m in real_matches if m["league"] == l_obj.code]
+            lg_matches_pre = [m for m in lg_matches_all if (m.get("date") or "") < "2025-01-01"]
+            lg_matches = lg_matches_pre if len(lg_matches_pre) >= 30 else lg_matches_all
             if len(lg_matches) >= 30:
                 tot_g = sum(m["hg"] + m["ag"] for m in lg_matches) / len(lg_matches)
                 l_obj.avg_goals = round(tot_g / 2.0, 2)
                 cn_valid = [m["hc"] + m["ac"] for m in lg_matches if (m["hc"] + m["ac"]) > 0]
                 if cn_valid:
                     l_obj.avg_corners = round(sum(cn_valid) / len(cn_valid), 1)
-                cr_valid = [(m["hy"] + m["hr"] * 2 + m["ay"] + m["ar"] * 2) for m in lg_matches if (m["hy"] + m["ay"]) > 0]
+                cr_valid = [(m["hy"] + m["hr"] + m["ay"] + m["ar"]) for m in lg_matches if (m["hy"] + m["ay"]) > 0]
                 if cr_valid:
                     l_obj.avg_cards = round(sum(cr_valid) / len(cr_valid), 1)
         db.commit()
@@ -655,14 +800,34 @@ def populate_real_database_and_compute_elo(db=None):
             for x in reversed(last_10):  # Más reciente primero
                 matches_json.append({
                     "opponent": x["opp"],
+                    "opponent_elo": round(float(x.get("opp_elo", 1600.0)), 1),
                     "was_home": x["was_home"],
                     "goals_for": x["gf"],
                     "goals_against": x["ga"],
                     "result": x["res"],
                     "date": x["date"],
                     "corners_for": x["cn"],
+                    "shots_on_target_for": x.get("hst", 4),
+                    "shots_for": x.get("hs"),
+                    "fouls": x.get("hf"),
+                    "ht_diff": x.get("ht_diff"),
                     "cards_total": x.get("cr_tot", x["cr"] * 2)
                 })
+
+            # Recuperar promedio xG incremental acumulado si existen eventos en MatchTelemetryCache
+            telem_rows = db.query(MatchTelemetryCache).filter(
+                (MatchTelemetryCache.home_team == t.name) | (MatchTelemetryCache.away_team == t.name)
+            ).all()
+            xg_for_vals, xg_ag_vals = [], []
+            for tr in telem_rows:
+                if tr.home_team == t.name and tr.xg_home is not None:
+                    xg_for_vals.append(tr.xg_home)
+                    if tr.xg_away is not None:
+                        xg_ag_vals.append(tr.xg_away)
+                elif tr.away_team == t.name and tr.xg_away is not None:
+                    xg_for_vals.append(tr.xg_away)
+                    if tr.xg_home is not None:
+                        xg_ag_vals.append(tr.xg_home)
 
             cache_obj = TeamStatsCache(
                 team_name=t.name,
@@ -676,6 +841,13 @@ def populate_real_database_and_compute_elo(db=None):
                 away_goals_conceded=a_ga,
                 avg_shots_target_for=round(sum(sot_for_all) / len(sot_for_all), 1),
                 avg_shots_target_against=round(sum(sot_against_all) / len(sot_against_all), 1),
+                avg_shots_for=_safe_avg([x.get("hs") for x in last_15], 1),
+                avg_shots_against=_safe_avg([x.get("as") for x in last_15], 1),
+                avg_fouls_for=_safe_avg([x.get("hf") for x in last_15], 1),
+                avg_fouls_against=_safe_avg([x.get("af") for x in last_15], 1),
+                ht_goal_diff_avg=_safe_avg([x.get("ht_diff") for x in last_15], 2),
+                avg_xg_for=_safe_avg(xg_for_vals, 2),
+                avg_xg_against=_safe_avg(xg_ag_vals, 2),
                 avg_corners=round(sum(cn_all) / len(cn_all), 1),
                 avg_corners_conceded=round(sum(cn_opp_all) / len(cn_opp_all), 1),
                 avg_cards=round(sum(cr_all) / len(cr_all), 1),
@@ -709,6 +881,20 @@ def get_honest_initial_elo_map() -> Dict[str, float]:
     return base_map
 
 
+def _compute_rest_days(hist: List[Dict], match_date: Optional[str]) -> float:
+    if not match_date or not hist:
+        return 7.0
+    last_date = hist[-1].get("date")
+    if not last_date:
+        return 7.0
+    try:
+        d1 = datetime.strptime(str(match_date)[:10], "%Y-%m-%d")
+        d0 = datetime.strptime(str(last_date)[:10], "%Y-%m-%d")
+        return float(max(2, min(14, (d1 - d0).days)))
+    except Exception:
+        return 7.0
+
+
 def build_point_in_time_match_features(
     h_name: str,
     a_name: str,
@@ -720,6 +906,9 @@ def build_point_in_time_match_features(
     def_goals: float = 1.35,
     def_corners: float = 9.5,
     def_cards: float = 4.0,
+    match_date: Optional[str] = None,
+    referee_name: Optional[str] = None,
+    referee_avg_cards: Optional[float] = None,
 ):
     """
     Constructor canónico unificado de MatchRawFeatures Point-in-Time.
@@ -773,13 +962,23 @@ def build_point_in_time_match_features(
     h_prev_objs = [
         PreviousMatch(
             opponent=x["opp"], was_home=x["was_home"], goals_for=int(x["gf"]), goals_against=int(x["ga"]),
-            result=x["res"], corners_for=float(x["cn"]), cards_total=float(x.get("cr_tot", x["cr"] * 2))
+            result=x["res"], corners_for=float(x["cn"]), cards_total=float(x.get("cr_tot", x["cr"] * 2)),
+            date=x.get("date"), shots_on_target_for=float(x.get("hst", 4.0)),
+            shots_for=float(x["hs"]) if x.get("hs") is not None else None,
+            fouls=float(x["hf"]) if x.get("hf") is not None else None,
+            ht_diff=float(x["ht_diff"]) if x.get("ht_diff") is not None else None,
+            opponent_elo=float(x.get("opp_elo", 1600.0)),
         ) for x in reversed(last_10_h)
     ]
     a_prev_objs = [
         PreviousMatch(
             opponent=x["opp"], was_home=x["was_home"], goals_for=int(x["gf"]), goals_against=int(x["ga"]),
-            result=x["res"], corners_for=float(x["cn"]), cards_total=float(x.get("cr_tot", x["cr"] * 2))
+            result=x["res"], corners_for=float(x["cn"]), cards_total=float(x.get("cr_tot", x["cr"] * 2)),
+            date=x.get("date"), shots_on_target_for=float(x.get("hst", 4.0)),
+            shots_for=float(x["hs"]) if x.get("hs") is not None else None,
+            fouls=float(x["hf"]) if x.get("hf") is not None else None,
+            ht_diff=float(x["ht_diff"]) if x.get("ht_diff") is not None else None,
+            opponent_elo=float(x.get("opp_elo", 1600.0)),
         ) for x in reversed(last_10_a)
     ]
 
@@ -802,6 +1001,8 @@ def build_point_in_time_match_features(
         away_team=a_name,
         competition=comp_name,
         is_live=False,
+        referee_name=referee_name,
+        referee_avg_cards=referee_avg_cards,
         home_stats=TeamFormStats(
             team_name=h_name,
             avg_goals_scored=h_gf,
@@ -815,7 +1016,13 @@ def build_point_in_time_match_features(
             home_goals_scored=h_home_gf,
             home_goals_conceded=h_home_ga,
             avg_shots_target_for=round(sum(x["hst"] for x in last_15_h) / len(last_15_h), 1),
-            avg_shots_target_against=round(sum(x["ast"] for x in last_15_h) / len(last_15_h), 1)
+            avg_shots_target_against=round(sum(x["ast"] for x in last_15_h) / len(last_15_h), 1),
+            avg_shots_for=_safe_avg([x.get("hs") for x in last_15_h], 1),
+            avg_shots_against=_safe_avg([x.get("as") for x in last_15_h], 1),
+            avg_fouls_for=_safe_avg([x.get("hf") for x in last_15_h], 1),
+            avg_fouls_against=_safe_avg([x.get("af") for x in last_15_h], 1),
+            ht_goal_diff_avg=_safe_avg([x.get("ht_diff") for x in last_15_h], 2),
+            rest_days=_compute_rest_days(h_hist, match_date)
         ),
         away_stats=TeamFormStats(
             team_name=a_name,
@@ -830,7 +1037,13 @@ def build_point_in_time_match_features(
             away_goals_scored=a_away_gf,
             away_goals_conceded=a_away_ga,
             avg_shots_target_for=round(sum(x["hst"] for x in last_15_a) / len(last_15_a), 1),
-            avg_shots_target_against=round(sum(x["ast"] for x in last_15_a) / len(last_15_a), 1)
+            avg_shots_target_against=round(sum(x["ast"] for x in last_15_a) / len(last_15_a), 1),
+            avg_shots_for=_safe_avg([x.get("hs") for x in last_15_a], 1),
+            avg_shots_against=_safe_avg([x.get("as") for x in last_15_a], 1),
+            avg_fouls_for=_safe_avg([x.get("hf") for x in last_15_a], 1),
+            avg_fouls_against=_safe_avg([x.get("af") for x in last_15_a], 1),
+            ht_goal_diff_avg=_safe_avg([x.get("ht_diff") for x in last_15_a], 2),
+            rest_days=_compute_rest_days(a_hist, match_date)
         ),
         h2h=HeadToHeadStats(
             total_matches_analyzed=len(past_h2h),

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Sparkles, Lock, User, ArrowRight } from "lucide-react";
+import { Lock, User, ArrowRight } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { api } from "../../api";
@@ -31,37 +31,31 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-[#090A0D] bg-tech-grid overflow-hidden">
-      {/* Resplandor técnico central muy sutil */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#58FF9C]/5 blur-[120px] rounded-full pointer-events-none" />
-
-      {/* Tarjeta de Acceso Sobria */}
-      <div className="relative w-full max-w-sm bg-[#111318] border border-[#1E222B] rounded-2xl p-7 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.7)] flex flex-col gap-6">
-        {/* Identidad */}
-        <div className="flex flex-col items-center text-center">
-          <div className="w-12 h-12 rounded-xl bg-[#171A21] border border-[#1E222B] flex items-center justify-center text-[#58FF9C] shadow-[0_0_16px_rgba(88,255,156,0.12)] mb-4">
-            <Sparkles size={22} strokeWidth={1.5} />
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[#0B0C0E]">
+      <div className="w-full max-w-sm bg-[#121316] border border-[#22242B] rounded-xl p-7 flex flex-col gap-6">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between text-[11px] font-mono text-[#828794]">
+            <span>Social Analyzer</span>
+            <span>v2</span>
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-[#F8FAFC]">
-            Social Analyzer
+          <h1 className="text-lg font-semibold tracking-tight text-[#E4E5E9] mt-2">
+            Iniciar sesión
           </h1>
-          <p className="text-xs text-[#94A3B8] mt-1 font-mono">
-            Acceso al Sistema de Inteligencia Viral • v1.1
+          <p className="text-xs text-[#9499A6]">
+            Inteligencia competitiva y guiones 60–90s.
           </p>
         </div>
 
-        {/* Mensaje de error */}
         {error && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/25 text-xs text-red-400 text-center">
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
             {error}
           </div>
         )}
 
-        {/* Formulario */}
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <Input
             label="Usuario"
-            placeholder="Usuario del sistema"
+            placeholder="Usuario"
             icon={<User size={15} strokeWidth={1.5} />}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -78,23 +72,21 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSuccess }) => {
             required
           />
 
-          <div className="pt-2">
-            <Button
-              variant="primary"
-              size="md"
-              type="submit"
-              className="w-full"
-              loading={loading}
-              icon={<ArrowRight size={16} strokeWidth={2} />}
-            >
-              Entrar al Hub
-            </Button>
-          </div>
+          <Button
+            variant="primary"
+            size="md"
+            type="submit"
+            className="w-full mt-1"
+            loading={loading}
+            icon={<ArrowRight size={15} strokeWidth={2} />}
+          >
+            Entrar
+          </Button>
         </form>
 
-        {/* Credenciales sugeridas por defecto */}
-        <div className="pt-3 border-t border-[#1E222B] text-center text-[11px] font-mono text-[#64748B]">
-          Credenciales predeterminadas: <span className="text-[#94A3B8]">Admin / Admin</span>
+        <div className="pt-3 border-t border-[#22242B] text-[11px] font-mono text-[#646975] flex items-center justify-between">
+          <span>Local</span>
+          <span className="text-[#9499A6]">Admin / Admin</span>
         </div>
       </div>
     </div>

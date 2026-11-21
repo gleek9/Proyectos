@@ -1,6 +1,6 @@
-# 🎬 Social Analyzer v1.1 — Inteligencia Competitiva de Reels & Generador de Guiones con IA
+# 🎬 Social Analyzer v2 — Inteligencia Competitiva de Reels & Generador de Guiones con IA
 
-[![Version](https://img.shields.io/badge/Version-v1.1-58FF9C?style=flat-square&labelColor=090A0D)]()
+[![Version](https://img.shields.io/badge/Version-v2-F4F4F5?style=flat-square&labelColor=0B0C0E)]()
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
@@ -8,17 +8,17 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Gemini Multimodal](https://img.shields.io/badge/Google%20Gemini-3.0%20Flash-8E75B2?style=flat-square&logo=google&logoColor=white)](https://aistudio.google.com/)
 
-> **Social Analyzer v1.1** es una plataforma *Local-First* de inteligencia competitiva para Instagram y generación automatizada de contenido audiovisual corto (Reels) basada en el **Método ACE® (Analizar, Crear, Escalar)**. Extrae la voz de marca de tus clientes, rastrea los Reels más virales de sus competidores mediante **Apify**, transcribe el audio real con **`yt-dlp` + Google Gemini 3.0 Multimodal** y redacta **3 propuestas de guiones listas para grabar** con escaleta técnica segundo a segundo.
+> **Social Analyzer v2** es una plataforma *Local-First* de inteligencia competitiva para Instagram y generación automatizada de contenido audiovisual corto (Reels). Extrae la voz de marca de tus clientes, analiza hasta **10 cuentas o Reels de referencia** mediante **Apify**, transcribe el audio real con **`yt-dlp` + Google Gemini 3.0 Multimodal** y redacta **3 propuestas de guiones de 60 a 90 segundos** listas para grabar, con cada sección de escaleta unida directamente a su locución.
 
 ---
 
 ## 📑 Tabla de Contenidos
 
 - [¿Qué Problema Resuelve?](#-qué-problema-resuelve)
-- [Novedades de la Versión 1.1](#-novedades-de-la-versión-11)
+- [Novedades de la Versión 2](#-novedades-de-la-versión-2)
 - [Flujo del Pipeline de IA (4 Fases)](#-flujo-del-pipeline-de-ia-4-fases)
 - [Características Principales](#-características-principales)
-- [Sistema de Diseño "Anti-IA" (Swiss Grid & Verde Eléctrico)](#-sistema-de-diseño-anti-ia-swiss-grid--verde-eléctrico)
+- [Sistema de Diseño Dark Minimalist](#-sistema-de-diseño-dark-minimalist)
 - [Stack Tecnológico](#-stack-tecnológico)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
 - [Requisitos e Instalación](#-requisitos-e-instalación)
@@ -32,27 +32,28 @@
 
 Las agencias de marketing, creadores de contenido y estrategas digitales suelen invertir horas buscando qué contenido le está funcionando a la competencia en Instagram, transcribiendo videos manualmente y tratando de adaptarlos al tono de cada cliente.
 
-**Social Analyzer v1.1** automatiza todo el ciclo desde un tablero Kanban centralizado:
-1. Gestiona múltiples perfiles de clientes categorizados por industria y color identificativo.
+**Social Analyzer v2** automatiza todo el ciclo desde un tablero Kanban centralizado:
+1. Gestiona múltiples perfiles de clientes diferenciados con una paleta editorial sobria por marca.
 2. Analiza el perfil del cliente para sintetizar su *Brand Voice Profile* (tono, oferta y audiencia).
-3. Detecta matemáticamente el **Top 3 de Reels más virales** entre todos los competidores vinculados.
-4. Extrae y transcribe el audio hablado de esos videos y genera **3 guiones adaptados palabra por palabra** con gancho (`00:00 - 00:03`), retención (`00:03 - 00:15`) y llamado a la acción (`00:15 - 00:30`).
+3. Rastrea hasta **10 referencias** por cliente y detecta matemáticamente el **Top 3 de Reels más virales**.
+4. Extrae y transcribe el audio hablado de esos videos y genera **3 guiones de 60–90 segundos** adaptados palabra por palabra, uniendo cada bloque de escaleta con lo que debe decirse en esa sección.
 
 ---
 
-## 🆕 Novedades de la Versión 1.1
+## 🆕 Novedades de la Versión 2
 
-- **Renombrado Oficial a Social Analyzer v1.1**: Identidad unificada en interfaz web (Login, Navbar, Títulos HTML), servidor API (`FastAPI v1.1`) y scripts de automatización local.
-- **Normalización Universal de Entradas de Instagram**: Soporte transparente para `@usuario`, `usuario`, URLs completas (`https://www.instagram.com/usuario/`), enlaces directos a Reels o URLs con parámetros de seguimiento.
-- **Consumo 0 Bytes de Almacenamiento Persistente en Apify**: Purga inmediata de datasets y registros de ejecución en la nube (`dataset.delete()` y `run.delete()`) tras cada análisis.
-- **Higiene Atómica en Disco (`tmp_media`)**: Limpieza instantánea garantizada de pistas de audio temporales descargadas por `yt-dlp`.
+- **Diseño Dark Minimalist Refinado (Sin Neón):** Estética monocromática en carbón mate (`#0B0C0E`, `#121316`, `#191B20`), botones primarios en blanco limpio (`#F4F4F5`) y diferenciación clara por cliente con paleta definida (`#38BDF8`, `#34D399`, `#F59E0B`, `#A78BFA`, `#F472B6`, `#FB7185`, `#94A3B8`).
+- **Guiones de 60 a 90 Segundos con Hooks Virales:** Estructura causal de 5 actos (*Hook → Contexto y Tensión → Re-Hook → Payoff → Remate y CTA*) optimizada para retención y lectura natural (160–225 palabras).
+- **Escaleta Unificada con Guion por Sección:** Cada sección temporal muestra juntos el tiempo, la fase/hook, el texto en pantalla, la dirección de escena y el texto exacto que decir, con copiado completo o solo locución.
+- **Hasta 10 Referencias por Cliente:** Creación y edición inline de hasta 10 cuentas de competencia o URLs directas de Reels.
+- **Lanzador Inteligente con Puertos Libres (`start_local.bat`):** Detecta automáticamente puertos libres en Windows y sincroniza el proxy de Vite con FastAPI.
 
 ---
 
 ## 🧠 Flujo del Pipeline de IA (4 Fases)
 
 ```text
-   [ URL de Instagram del Cliente ]        [ URLs de Competidores ]
+   [ URL de Instagram del Cliente ]        [ Hasta 10 Referencias ]
                   │                                    │
                   ▼                                    ▼
       ┌───────────────────────┐            ┌───────────────────────┐
@@ -70,9 +71,9 @@ Las agencias de marketing, creadores de contenido y estrategas digitales suelen 
                                     ▼
                   ┌────────────────────────────────────┐
                   │ 4. Ingeniería Inversa (Gemini 3.0) │
-                  │  ├─ A. Título Magnético + Métrica  │
-                  │  ├─ B. Escaleta por Segundos       │
-                  │  └─ C. Guion Literal Adaptado      │
+                  │  ├─ A. Arquetipo de Hook + Métrica │
+                  │  ├─ B. Escaleta 5 Actos (60–90s)   │
+                  │  └─ C. Locución Unificada por Paso │
                   └─────────────────┬──────────────────┘
                                     ▼
                   [ Persistencia SQLite + Modal Kanban ]
@@ -82,22 +83,19 @@ Las agencias de marketing, creadores de contenido y estrategas digitales suelen 
 
 ## ✨ Características Principales
 
-- **Normalización Universal de Entradas (`apify_service.py`)**: Acepta cualquier formato de entrada para clientes y competidores (`@usuario`, `usuario`, `https://instagram.com/usuario/`, enlaces directos a Reels o URLs con parámetros).
-- **Consumo 0 Bytes de Almacenamiento en Apify**: Tras cada extracción (`memory_mbytes=256`), el sistema purga automáticamente los datasets y ejecuciones en la nube de Apify (`dataset.delete()` / `run.delete()`), protegiendo la cuota gratuita de la cuenta.
-- **Higiene Atómica de Archivos Multimedia (`media_extractor.py`)**: Los audios descargados por `yt-dlp` en `/tmp_media/` se eliminan inmediatamente en bloques `try...finally` tras su transcripción, además de contar con purga completa al iniciar y apagar el servidor.
-- **Tablero Kanban de Perfiles con Tiempo Dinámico**: Tarjetas cuadradas modulares con buscador instantáneo, filtro por categoría de negocio y cálculo en tiempo real desde la última auditoría (*"Sin análisis previo"*, *"hace 12m"*, *"hace 4h"*).
-- **Mini-Ventana Modal Interactiva (`6xl`)**: Visualización de alta densidad sin recargar ni cambiar de página, con *stepper* de progreso en vivo y botón de copiado de guiones con feedback instantáneo.
+- **Normalización Universal de Entradas (`apify_service.py`)**: Acepta cualquier formato de entrada para clientes y referencias (`@usuario`, `usuario`, `https://instagram.com/usuario/`, enlaces directos a Reels o URLs con parámetros).
+- **Consumo 0 Bytes de Almacenamiento en Apify**: Tras cada extracción (`memory_mbytes=256`), el sistema purga automáticamente los datasets y ejecuciones en la nube de Apify (`dataset.delete()` / `run.delete()`).
+- **Higiene Atómica de Archivos Multimedia (`media_extractor.py`)**: Los audios descargados por `yt-dlp` en `/tmp_media/` se eliminan inmediatamente en bloques `try...finally` tras su transcripción.
+- **Tablero Kanban con Diferenciación por Cliente**: Tarjetas modulares con buscador instantáneo, filtro por categoría y tiempo dinámico desde la última auditoría.
+- **Modal de Alta Legibilidad (`6xl`)**: Edición inline de referencias y color de cliente, selector de las 3 propuestas y lectura unificada de escaleta + locución sección por sección.
 
 ---
 
-## 🎨 Sistema de Diseño "Anti-IA" (Swiss Grid & Verde Eléctrico)
+## 🎨 Sistema de Diseño Dark Minimalist
 
-Inspirado en la estética ejecutiva del **Método ACE®** y herramientas de precisión como Linear, Vercel y Raycast:
-
-- **Fondos Obsidiana y Carbón**: Lienzo profundo `#090A0D`, superficies `#111318` y contenedores elevados `#171A21` con cuadrícula técnica sutil (`bg-tech-grid`).
-- **Acento Verde Eléctrico (`#58FF9C`)**: Reservado para llamadas a la acción primarias, indicadores de conexión API, estados activos y bordes en foco.
-- **Tipografía con Carácter**: `Plus Jakarta Sans` para titulares y lectura de guiones, combinada con `JetBrains Mono` para badges de categoría, contadores de tiempo, métricas de vistas y marcas de tiempo de escaleta (`[00:00 - 00:03]`).
-- **Bordes Técnicos de `1px`**: Cero gradientes neón genéricos ni sombras difusas exageradas; indicadores de color de cliente aplicados con elegancia en barras de `3px` y badges al `12%` de opacidad.
+- **Fondos Carbón Mate**: Lienzo `#0B0C0E`, superficies `#121316` y controles `#191B20` con bordes finos de `1px` (`#22242B`).
+- **Paleta Editorial por Cliente**: 7 tonos desaturados (*Grafito Azul*, *Musgo Mate*, *Ciruela Gris*, *Bronce Suave*, *Burdeos Polvo*, *Petróleo Mate*, *Taupe Mineral*) aplicados en una línea superior de `2px`, un degradado ambiental sutil y etiquetas personalizadas.
+- **Tipografía y Accesibilidad**: `Plus Jakarta Sans` para lectura cómoda (`max-w-[70ch]` en guiones) y `JetBrains Mono` para tiempos y metadatos, respetando `prefers-reduced-motion` y foco visible por teclado.
 
 ---
 
@@ -107,9 +105,9 @@ Inspirado en la estética ejecutiva del **Método ACE®** y herramientas de prec
 | :--- | :--- | :--- |
 | **Backend** | `Python 3.11+` · `FastAPI` · `Uvicorn` | API REST asíncrona, orquestación del pipeline y validación estricta con Pydantic. |
 | **Base de Datos** | `SQLite` · `SQLAlchemy ORM` | Persistencia local en `./data/` lista para migrar a PostgreSQL vía `.env`. |
-| **Scraping Social** | `apify-client` | Extracción de perfiles, publicaciones y métricas de Reels en Instagram con fallback seguro. |
-| **Multimedia & IA** | `yt-dlp` · `Google Gemini 3.0 Flash` | Extracción temporal de pistas de audio, transcripción multimodal e ingeniería inversa de guiones. |
-| **Frontend** | `React` · `TypeScript` · `Vite` · `Tailwind CSS` | Interfaz SPA de alto rendimiento con iconografía `Lucide Icons` (`strokeWidth={1.5}`). |
+| **Scraping Social** | `apify-client` | Extracción de perfiles, publicaciones y métricas de hasta 10 referencias en Instagram. |
+| **Multimedia & IA** | `yt-dlp` · `Google Gemini 3.0 Flash` | Extracción temporal de audio, transcripción multimodal y guiones de 60–90 segundos. |
+| **Frontend** | `React` · `TypeScript` · `Vite` · `Tailwind CSS` | Interfaz SPA minimalista con iconografía `Lucide Icons` (`strokeWidth={1.5}`). |
 
 ---
 
@@ -119,43 +117,45 @@ Inspirado en la estética ejecutiva del **Método ACE®** y herramientas de prec
 Analizador de redes/
 ├── .env.example              # Plantilla de configuración y claves de API
 ├── .gitignore                # Reglas de exclusión (.env, .venv, *.db, tmp_media/)
-├── AGENTS.md                 # Especificación maestra de arquitectura y diseño
+├── AGENTS.md                 # Especificación base del proyecto
 ├── PROJECT_STATUS.md         # Bitácora de versiones, changelog y estado de módulos
-├── README.md                 # Documentación principal de Social Analyzer v1.1
-├── start_local.bat           # Lanzador automático en 1 clic para Windows
+├── README.md                 # Documentación principal de Social Analyzer v2
+├── start_local.bat           # Lanzador automático con detección de puertos libres
 ├── data/                     # Directorio de base de datos SQLite local autogenerada
 ├── tmp_media/                # Directorio temporal autolimpiable para yt-dlp
 │
 ├── backend/
 │   ├── requirements.txt      # Dependencias de Python
-│   ├── main.py               # Punto de entrada FastAPI, CORS y ciclo de vida
+│   ├── main.py               # Punto de entrada FastAPI v2, CORS y ciclo de vida
 │   ├── config.py             # Carga centralizada de variables de entorno
 │   ├── database.py           # Motor SQLAlchemy y sesión de base de datos
 │   ├── models.py             # Modelos ORM (Profile, AnalysisReport, ScriptProposal)
-│   ├── schemas.py            # Esquemas Pydantic y cálculo de tiempo relativo
+│   ├── schemas.py            # Esquemas Pydantic (hasta 10 referencias y TimelineBlock unificado)
 │   ├── routers/
 │   │   ├── auth.py           # Autenticación administrativa (/api/auth/login)
 │   │   ├── profiles.py       # CRUD de perfiles y disparo de análisis (/api/profiles)
 │   │   └── health.py         # Estado del motor y conectividad API (/api/health)
 │   └── services/
-│       ├── apify_service.py  # Extracción de Instagram y purga de almacenamiento Apify
+│       ├── apify_service.py  # Extracción de Instagram (hasta 10 referencias) y purga Apify
 │       ├── media_extractor.py# Descarga de audio con yt-dlp y limpieza atómica
-│       ├── gemini_service.py # Transcripción multimodal y generación de los 3 guiones
-│       └── analyzer_service.py # Orquestador integral de las 4 fases del pipeline
+│       ├── gemini_service.py # Transcripción multimodal y guiones 60–90s con hooks virales
+│       └── analyzer_service.py # Orquestador integral de las 4 fases
 │
 └── frontend/
-    ├── package.json          # Dependencias React, TypeScript y Tailwind CSS (v1.1.0)
-    ├── vite.config.ts        # Configuración de Vite (puerto 3000)
-    ├── tailwind.config.js    # Tokens de diseño Swiss Grid y paleta #58FF9C
+    ├── package.json          # Dependencias React, TypeScript y Tailwind CSS (v2.0.0)
+    ├── vite.config.ts        # Configuración dinámica de puertos y proxy /api
+    ├── tailwind.config.js    # Tokens Dark Minimalist
     └── src/
         ├── App.tsx           # Enrutamiento de vistas y control de sesión
         ├── api.ts            # Cliente HTTP hacia el backend FastAPI
-        ├── index.css         # Variables CSS, cuadrícula técnica y scrollbars
+        ├── index.css         # Variables CSS, scrollbars y reduced-motion
+        ├── utils/
+        │   └── clientColors.ts # Paleta editorial curada y normalización de colores
         └── components/
             ├── views/        # LoginView.tsx y DashboardView.tsx
             ├── kanban/       # ProfileCard.tsx y EmptyState.tsx
             ├── modals/       # CreateProfileModal.tsx y ProfileDetailModal.tsx
-            ├── layout/       # Navbar.tsx con monitor de salud en vivo
+            ├── layout/       # Navbar.tsx
             └── ui/           # Button.tsx, Badge.tsx, Input.tsx, Modal.tsx, InstagramIcon.tsx
 ```
 
@@ -180,7 +180,7 @@ Analizador de redes/
 
 ## 🚀 Ejecución en 1 Clic (`start_local.bat`)
 
-Para iniciar todo el entorno local de **Social Analyzer v1.1** en Windows sin ejecutar comandos manuales, haz doble clic en **`start_local.bat`** o ejecútalo desde la terminal:
+Para iniciar **Social Analyzer v2** en Windows sin ejecutar comandos manuales, haz doble clic en **`start_local.bat`** o ejecútalo desde la terminal:
 
 ```bat
 .\start_local.bat
@@ -190,8 +190,8 @@ El script realiza automáticamente:
 1. Verificación/creación del entorno virtual `.venv` e instalación de `backend/requirements.txt`.
 2. Verificación e instalación de `frontend/node_modules`.
 3. Creación de `.env` desde `.env.example` si no existe.
-4. Arranque concurrente del **Backend FastAPI** (`http://localhost:8000`) y **Frontend Vite** (`http://localhost:3000`).
-5. Apertura automática del navegador en `http://localhost:3000`.
+4. Detección automática de puertos libres para Backend (`8000+`) y Frontend (`3000+`).
+5. Arranque concurrente y apertura automática del navegador en el puerto asignado.
 
 - **Credenciales por defecto en pantalla de Login**:
   - **Usuario**: `Admin`
@@ -206,8 +206,9 @@ El script realiza automáticamente:
 | `POST` | `/api/auth/login` | Valida las credenciales administrativas y devuelve el token de sesión. |
 | `GET` | `/api/health` | Verifica el estado del servidor y la presencia de las claves Apify y Gemini. |
 | `GET` | `/api/profiles` | Lista todos los perfiles del tablero Kanban con leyenda dinámica de tiempo. |
-| `POST` | `/api/profiles` | Registra un nuevo cliente con su categoría, color, Instagram y competidores. |
-| `GET` | `/api/profiles/{id}` | Obtiene el detalle del perfil junto con su último reporte y los 3 guiones generados. |
+| `POST` | `/api/profiles` | Registra un nuevo cliente con su categoría, color editorial y hasta 10 referencias. |
+| `GET` | `/api/profiles/{id}` | Obtiene el detalle del perfil junto con su último reporte y los 3 guiones unificados. |
+| `PUT` | `/api/profiles/{id}` | Actualiza los datos, color y referencias del perfil. |
 | `DELETE` | `/api/profiles/{id}` | Elimina un perfil y su historial de análisis asociado. |
 | `POST` | `/api/profiles/{id}/analyze` | Ejecuta el pipeline completo de 4 fases (Apify $\to$ `yt-dlp` $\to$ Gemini 3.0 $\to$ SQLite). |
 

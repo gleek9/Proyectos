@@ -67,12 +67,12 @@ class TestV41ExpandedLeaguesAndCalibration(unittest.TestCase):
         )
 
     def test_03_tabular_23_features_alignment(self):
-        """Garantiza que el extractor tabular opere estrictamente con las 23 features de v4.1."""
-        self.assertEqual(len(FEATURE_NAMES), 23)
+        """Garantiza que el extractor tabular opere estrictamente con las 44 features enriquecidas."""
+        self.assertEqual(len(FEATURE_NAMES), 44)
         raw = league_db.get_match_raw_features("PSV Eindhoven", "Ajax", "Eredivisie")
         self.assertIsNotNone(raw)
         vec = tabular_predictor.extract_features(raw)
-        self.assertEqual(vec.shape, (1, 23))
+        self.assertEqual(vec.shape, (1, 44))
 
     def test_04_card_bias_calibration(self):
         """Verifica que la corrección de sesgo de tarjetas evite sobreestimación sistemática en ligas europeas."""

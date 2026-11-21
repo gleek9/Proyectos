@@ -20,28 +20,28 @@ ChartJS.register(
   Legend
 );
 
-export default function DistributionChart({ chartData }) {
+export default function DistributionChart({ chartData, theme = 'dark' }) {
   if (!chartData) return null;
 
   const { goals_distribution, top_scores } = chartData;
+  const isLight = theme === 'light';
 
-  const labels = goals_distribution.map(item => item.goals);
-  const dataValues = goals_distribution.map(item => item.probability);
+  const labels = goals_distribution.map((item) => item.goals);
+  const dataValues = goals_distribution.map((item) => item.probability);
   const maxProbability = Math.max(...dataValues, 1);
 
-  // Aurora UI: El rango modal se ilumina con emerald glow, los adyacentes en azure y las colas en slate
-  const backgroundColors = dataValues.map(val => {
-    if (val === maxProbability) return 'rgba(16, 185, 129, 0.85)';
-    if (val >= maxProbability * 0.65) return 'rgba(14, 165, 233, 0.70)';
-    if (val >= maxProbability * 0.35) return 'rgba(56, 189, 248, 0.45)';
-    return 'rgba(148, 163, 184, 0.30)';
-  });
-
-  const borderColors = dataValues.map(val => {
-    if (val === maxProbability) return '#10b981';
-    if (val >= maxProbability * 0.65) return '#0ea5e9';
-    if (val >= maxProbability * 0.35) return '#38bdf8';
-    return 'rgba(148, 163, 184, 0.55)';
+  // Paleta Warm Stealth / Warm Light mate sin bordes fluorescentes
+  const backgroundColors = dataValues.map((val) => {
+    if (val === maxProbability) {
+      return isLight ? '#9f7240' : '#d6b484';
+    }
+    if (val >= maxProbability * 0.65) {
+      return isLight ? 'rgba(159, 114, 64, 0.55)' : 'rgba(214, 180, 132, 0.52)';
+    }
+    if (val >= maxProbability * 0.35) {
+      return isLight ? 'rgba(120, 113, 108, 0.38)' : 'rgba(168, 162, 158, 0.32)';
+    }
+    return isLight ? 'rgba(120, 113, 108, 0.20)' : 'rgba(168, 162, 158, 0.16)';
   });
 
   const data = {
@@ -51,12 +51,16 @@ export default function DistributionChart({ chartData }) {
         label: 'Probabilidad (%)',
         data: dataValues,
         backgroundColor: backgroundColors,
-        borderColor: borderColors,
-        borderWidth: 1.5,
-        borderRadius: 5,
+        borderWidth: 0,
+        borderRadius: 6,
+        barPercentage: 0.6,
+        categoryPercentage: 0.78,
       }
     ]
   };
+
+  const gridColor = isLight ? 'rgba(28, 25, 23, 0.06)' : 'rgba(245, 245, 244, 0.05)';
+  const tickColor = isLight ? '#78716c' : '#a8a29e';
 
   const options = {
     responsive: true,
@@ -66,10 +70,10 @@ export default function DistributionChart({ chartData }) {
         display: false
       },
       tooltip: {
-        backgroundColor: 'rgba(15, 18, 25, 0.94)',
-        titleColor: '#f8fafc',
-        bodyColor: '#38bdf8',
-        borderColor: 'rgba(255, 255, 255, 0.12)',
+        backgroundColor: isLight ? '#1c1917' : '#1b1a17',
+        titleColor: '#f5f5f4',
+        bodyColor: '#d6b484',
+        borderColor: isLight ? 'rgba(28, 25, 23, 0.15)' : 'rgba(245, 245, 244, 0.12)',
         borderWidth: 1,
         padding: 10,
         displayColors: false,
@@ -82,10 +86,9 @@ export default function DistributionChart({ chartData }) {
       x: {
         grid: {
           display: false,
-          color: 'rgba(255, 255, 255, 0.05)'
         },
         ticks: {
-          color: '#94a3b8',
+          color: tickColor,
           font: {
             family: "'JetBrains Mono', monospace",
             size: 11
@@ -94,10 +97,10 @@ export default function DistributionChart({ chartData }) {
       },
       y: {
         grid: {
-          color: 'rgba(255, 255, 255, 0.04)'
+          color: gridColor,
         },
         ticks: {
-          color: '#64748b',
+          color: tickColor,
           font: {
             family: "'JetBrains Mono', monospace",
             size: 10
@@ -113,10 +116,10 @@ export default function DistributionChart({ chartData }) {
     <div className="chart-panel">
       <div className="panel-header">
         <span className="panel-title">
-          <BarChart3 size={15} color="var(--cyan)" />
+          <BarChart3 size={15} color="var(--sand)" />
           <span>Distribución de goles (0 a 5+)</span>
         </span>
-        <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+        <span className="v5-meta-dim">
           Probabilidad conjunta
         </span>
       </div>
@@ -125,8 +128,8 @@ export default function DistributionChart({ chartData }) {
         <Bar data={data} options={options} />
       </div>
 
-      <div style={{ marginTop: '0.65rem' }}>
-        <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+      <div style={{ marginTop: '0.45rem' }}>
+        <span className="v5-meta-dim">
           Marcadores más probables:
         </span>
         <div className="top-scores-container">

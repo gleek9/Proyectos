@@ -10,7 +10,7 @@ class Profile(Base):
     id = Column(Integer, primary_key=True, index=True)
     client_name = Column(String(255), nullable=False)
     category = Column(String(100), nullable=False)
-    representative_color = Column(String(20), default="#58FF9C", nullable=False)
+    representative_color = Column(String(20), default="#38BDF8", nullable=False)
     client_instagram_url = Column(String(500), nullable=False)
     # Lista de URLs de competidores almacenada como JSON string
     competitor_urls = Column(Text, nullable=False, default="[]")

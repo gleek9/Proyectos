@@ -9,6 +9,7 @@ Recopila datos en tiempo real mediante:
 import logging
 import time
 import re
+from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 from ddgs import DDGS
 
@@ -135,6 +136,32 @@ class SportsWebScraper:
 
                 telemetry["home_team"] = h_name
                 telemetry["away_team"] = a_name
+                start_ts = ev.get("startTimestamp")
+                if start_ts:
+                    try:
+                        telemetry["match_date"] = datetime.utcfromtimestamp(int(start_ts)).strftime("%Y-%m-%d")
+                    except Exception:
+                        pass
+
+                ref_info = ev.get("referee")
+                if isinstance(ref_info, dict) and ref_info.get("name"):
+                    ref_name = str(ref_info["name"]).strip()
+                    yc = int(ref_info.get("yellowCards") or 0)
+                    rc = int(ref_info.get("redCards") or 0)
+                    yrc = int(ref_info.get("yellowRedCards") or 0)
+                    games = int(ref_info.get("games") or 0)
+                    avg_cards = round((yc + yrc + rc * 2.0) / games, 2) if games > 0 else 4.0
+                    telemetry["referee_name"] = ref_name
+                    telemetry["referee_avg_cards"] = avg_cards
+                    telemetry["referee_stats"] = {
+                        "name": ref_name,
+                        "yellow_cards": yc,
+                        "red_cards": rc,
+                        "yellow_red_cards": yrc,
+                        "games": games,
+                        "avg_cards_per_game": avg_cards,
+                    }
+                    text_lines.append(f"• Árbitro: {ref_name} ({avg_cards:.2f} tarj/partido en {games} juegos)")
 
                 text_lines.append(f"--- [DATOS EN VIVO DIRECTOS DE SOFASCORE API (EVENTO #{eid})] ---")
                 text_lines.append(f"• Encuentro: {h_name} vs {a_name}")
@@ -144,7 +171,7 @@ class SportsWebScraper:
                 if minute_str:
                     text_lines.append(f"• MINUTO DE JUEGO ACTUAL: {minute_str}")
 
-                # 2. Estadísticas de Córners y Tiros
+                # 2. Estadísticas de Córners, xG y Tiros
                 r_st = client.get(f"https://api.sofascore.com/api/v1/event/{eid}/statistics")
                 if r_st.status_code == 200:
                     for period in r_st.json().get("statistics", []):
@@ -152,7 +179,16 @@ class SportsWebScraper:
                             for grp in period.get("groups", []):
                                 for item in grp.get("statisticsItems", []):
                                     name_low = item.get("name", "").lower()
-                                    if "corner" in name_low:
+                                    if "expected goals" in name_low or name_low == "xg":
+                                        try:
+                                            xgh = float(str(item.get("home", 0)).replace(",", "."))
+                                            xga = float(str(item.get("away", 0)).replace(",", "."))
+                                            telemetry["xg_home"] = round(xgh, 2)
+                                            telemetry["xg_away"] = round(xga, 2)
+                                            text_lines.append(f"• Expected Goals (xG): {xgh:.2f} - {xga:.2f}")
+                                        except Exception:
+                                            pass
+                                    elif "corner" in name_low:
                                         ch = int(item.get("home", 0))
                                         ca = int(item.get("away", 0))
                                         tot_corn = ch + ca
@@ -176,6 +212,18 @@ class SportsWebScraper:
                                         except Exception:
                                             pass
                                         text_lines.append(f"• Tiros a puerta: {sh} - {sa}")
+                                    elif name_low == "total shots":
+                                        try:
+                                            telemetry["shots_home"] = int(item.get("home", 0))
+                                            telemetry["shots_away"] = int(item.get("away", 0))
+                                        except Exception:
+                                            pass
+                                    elif name_low == "fouls":
+                                        try:
+                                            telemetry["fouls_home"] = int(item.get("home", 0))
+                                            telemetry["fouls_away"] = int(item.get("away", 0))
+                                        except Exception:
+                                            pass
                                     elif "red card" in name_low:
                                         rh = item.get("home", 0)
                                         ra = item.get("away", 0)
@@ -216,10 +264,139 @@ class SportsWebScraper:
                         text_lines.append("• Tarjetas registradas:")
                         text_lines.extend([f"  - {c}" for c in card_lines[:4]])
 
+                # 4. Alineaciones confirmadas y bajas (missingPlayers)
+                try:
+                    r_lin = client.get(f"https://api.sofascore.com/api/v1/event/{eid}/lineups")
+                    if r_lin.status_code == 200:
+                        lin_data = r_lin.json() or {}
+                        missing_map: Dict[str, List[str]] = {"home": [], "away": []}
+                        starters_map: Dict[str, List[str]] = {"home": [], "away": []}
+                        for side in ("home", "away"):
+                            side_obj = lin_data.get(side) or {}
+                            for mp in (side_obj.get("missingPlayers") or [])[:8]:
+                                pname = (mp.get("player") or {}).get("name")
+                                reason = mp.get("type") or mp.get("reason") or "baja"
+                                if pname:
+                                    missing_map[side].append(f"{pname} ({reason})")
+                            for pl in (side_obj.get("players") or []):
+                                if not pl.get("substitute", False):
+                                    pname = (pl.get("player") or {}).get("name")
+                                    if pname:
+                                        starters_map[side].append(pname)
+                            starters_map[side] = starters_map[side][:11]
+                        if missing_map["home"] or missing_map["away"]:
+                            telemetry["missing_players"] = missing_map
+                            if missing_map["home"]:
+                                text_lines.append(f"• Bajas {h_name}: {', '.join(missing_map['home'][:5])}")
+                            if missing_map["away"]:
+                                text_lines.append(f"• Bajas {a_name}: {', '.join(missing_map['away'][:5])}")
+                        if starters_map["home"] or starters_map["away"]:
+                            telemetry["lineups"] = starters_map
+                except Exception as lin_err:
+                    logger.debug(f"Lineups Sofascore no disponibles para evento #{eid}: {lin_err}")
+
+                # 5. Persistencia incremental gratuita en SQLite (cero bloqueo)
+                if telemetry.get("home_team") and telemetry.get("away_team"):
+                    self.persist_incremental_sofascore_cache(str(eid), telemetry)
+
         except Exception as e:
             logger.warning(f"Error consultando Sofascore API para evento #{eid}: {e}")
 
         return "\n".join(text_lines), telemetry
+
+    def persist_incremental_sofascore_cache(self, event_id: str, telemetry: Dict[str, Any]) -> bool:
+        """Guarda incrementalmente xG, árbitro y bajas capturadas en Sofascore dentro de SQLite."""
+        try:
+            from backend.app.db import SessionLocal, MatchTelemetryCache, RefereeCache
+            try:
+                from backend.app.services.real_data_loader import canonicalize_team_name
+                h_canon = canonicalize_team_name(telemetry.get("home_team", ""))
+                a_canon = canonicalize_team_name(telemetry.get("away_team", ""))
+            except Exception:
+                h_canon = str(telemetry.get("home_team", "")).strip()
+                a_canon = str(telemetry.get("away_team", "")).strip()
+
+            db = SessionLocal()
+            try:
+                now = datetime.utcnow()
+                row = db.query(MatchTelemetryCache).filter(
+                    MatchTelemetryCache.source_event_id == str(event_id)
+                ).first()
+                stats_payload = {
+                    k: telemetry[k] for k in (
+                        "corners", "shots_on_target_home", "shots_on_target_away",
+                        "shots_home", "shots_away", "fouls_home", "fouls_away",
+                        "possession_home", "possession_away", "score", "minute"
+                    ) if k in telemetry
+                }
+                if row is None:
+                    row = MatchTelemetryCache(
+                        source_event_id=str(event_id),
+                        provider="sofascore",
+                        match_date=telemetry.get("match_date", ""),
+                        home_team=h_canon,
+                        away_team=a_canon,
+                        xg_home=telemetry.get("xg_home"),
+                        xg_away=telemetry.get("xg_away"),
+                        referee_name=telemetry.get("referee_name"),
+                        missing_players_json=telemetry.get("missing_players") or {},
+                        lineups_json=telemetry.get("lineups") or {},
+                        stats_json=stats_payload,
+                        updated_at=now,
+                    )
+                    db.add(row)
+                else:
+                    row.match_date = telemetry.get("match_date") or row.match_date
+                    row.home_team = h_canon or row.home_team
+                    row.away_team = a_canon or row.away_team
+                    if telemetry.get("xg_home") is not None:
+                        row.xg_home = telemetry["xg_home"]
+                    if telemetry.get("xg_away") is not None:
+                        row.xg_away = telemetry["xg_away"]
+                    if telemetry.get("referee_name"):
+                        row.referee_name = telemetry["referee_name"]
+                    if telemetry.get("missing_players"):
+                        row.missing_players_json = telemetry["missing_players"]
+                    if telemetry.get("lineups"):
+                        row.lineups_json = telemetry["lineups"]
+                    if stats_payload:
+                        merged_stats = dict(row.stats_json or {})
+                        merged_stats.update(stats_payload)
+                        row.stats_json = merged_stats
+                    row.updated_at = now
+
+                ref_stats = telemetry.get("referee_stats")
+                if isinstance(ref_stats, dict) and ref_stats.get("name"):
+                    rname = str(ref_stats["name"]).strip()
+                    ref_row = db.query(RefereeCache).filter(RefereeCache.name == rname).first()
+                    if ref_row is None:
+                        db.add(RefereeCache(
+                            name=rname,
+                            yellow_cards=int(ref_stats.get("yellow_cards") or 0),
+                            red_cards=int(ref_stats.get("red_cards") or 0),
+                            yellow_red_cards=int(ref_stats.get("yellow_red_cards") or 0),
+                            games=int(ref_stats.get("games") or 0),
+                            avg_cards_per_game=float(ref_stats.get("avg_cards_per_game") or 4.0),
+                            source="sofascore",
+                            updated_at=now,
+                        ))
+                    else:
+                        if int(ref_stats.get("games") or 0) >= (ref_row.games or 0):
+                            ref_row.yellow_cards = int(ref_stats.get("yellow_cards") or 0)
+                            ref_row.red_cards = int(ref_stats.get("red_cards") or 0)
+                            ref_row.yellow_red_cards = int(ref_stats.get("yellow_red_cards") or 0)
+                            ref_row.games = int(ref_stats.get("games") or 0)
+                            ref_row.avg_cards_per_game = float(ref_stats.get("avg_cards_per_game") or ref_row.avg_cards_per_game)
+                            ref_row.source = "sofascore"
+                            ref_row.updated_at = now
+
+                db.commit()
+                return True
+            finally:
+                db.close()
+        except Exception as err:
+            logger.debug(f"No se pudo persistir caché incremental Sofascore #{event_id}: {err}")
+            return False
 
     def _get_team_recent_history_from_sofascore(self, team_name: str) -> List[Dict[str, Any]]:
         """Busca un equipo en Sofascore y obtiene sus últimos 5 resultados reales."""

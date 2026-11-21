@@ -35,9 +35,9 @@ async def lifespan(app: FastAPI):
     logger.info("Apagando Katakuri AI API Server...")
 
 app = FastAPI(
-    title="Katakuri v4.1 - Plataforma de Predicción Deportiva de Alta Precisión",
-    description="Motor autónomo de predicción deportiva de alta precisión calibrado sobre más de 4,700 partidos reales (9 competiciones de football-data.co.uk), rating Elo dinámico con regresión entre temporadas, Poisson Dixon-Coles, XGBoost (23 features), PyTorch LSTM y Walk-Forward Point-in-Time.",
-    version="4.1.0",
+    title="Katakuri v5.0 - Plataforma de Predicción Deportiva de Alta Precisión",
+    description="Motor autónomo de predicción deportiva calibrado sobre 7,270 partidos reales en 13 competiciones oficiales (masculinas y femeniles), Dixon-Coles MLE, XGBoost+LightGBM 44F, RichLSTM 14F, Meta-Calibración Out-of-Fold y Walk-Forward Opening vs Closing + CLV.",
+    version="5.0.0",
     lifespan=lifespan
 )
 
@@ -56,11 +56,29 @@ async def health_check():
     return {
         "status": "online",
         "app_name": "Katakuri AI",
+        "version": "5.0.0",
         "gemini_model": settings.GEMINI_MODEL,
-        "models_local": ["Poisson Dixon-Coles", "XGBoost Tabular", "PyTorch LSTM", "Meta-Ensemble"],
+        "models_local": [
+            "Poisson Dixon-Coles MLE",
+            "XGBoost + LightGBM 44F",
+            "RichLSTM 14F",
+            "Meta-Ensemble SLSQP",
+        ],
+        "dataset_summary": "7,270 partidos · 13 competiciones",
+        "rps_oos": 0.2023,
         "database": "SQLite (Local)",
         "timestamp": datetime.utcnow().isoformat()
     }
+
+
+@app.get("/api/teams/search")
+async def search_teams(
+    q: str = Query("", max_length=80),
+    limit: int = Query(12, ge=1, le=30),
+):
+    """Autocompletado rápido (<10 ms) sobre los 224 clubes locales con liga, Elo y categoría F/W."""
+    from backend.app.services.league_database import league_db
+    return {"teams": league_db.search_teams(query=q, limit=limit)}
 
 from pydantic import BaseModel
 
@@ -129,8 +147,13 @@ async def predict_match(
             detail="El equipo local y el equipo visitante no pueden ser idénticos."
         )
 
-    # 1. Comprobar caché en SQLite (solo si se conocen los equipos y no se pasó una URL directa)
-    if not request.force_refresh and not clean_url and home_clean and away_clean:
+    has_custom_odds = (
+        any(x is not None for x in (request.market_home_odds, request.market_draw_odds, request.market_away_odds))
+        or (request.use_market_prior is False)
+    )
+
+    # 1. Comprobar caché en SQLite (solo si se conocen los equipos y no se pasó una URL directa ni cuotas custom)
+    if not request.force_refresh and not clean_url and not has_custom_odds and home_clean and away_clean:
         # Búsqueda bidireccional en caso de que el usuario haya ingresado los equipos en orden invertido
         cached_record = db.query(MatchPrediction).filter(
             or_(
@@ -190,9 +213,21 @@ async def predict_match(
             detail=f"Error recopilando estadísticas del encuentro: {str(e)}"
         )
 
+    # Aplicar cuotas de mercado manuales si el usuario las suministró desde el panel Value
+    if request.market_home_odds is not None:
+        raw_features.market_home_odds = request.market_home_odds
+    if request.market_draw_odds is not None:
+        raw_features.market_draw_odds = request.market_draw_odds
+    if request.market_away_odds is not None:
+        raw_features.market_away_odds = request.market_away_odds
+
     # 3. Ejecutar Ensamble Predictivo Local
     try:
-        prediction_result: PredictionResponse = ensemble_engine.predict(raw_features)
+        use_prior = True if request.use_market_prior is None else bool(request.use_market_prior)
+        prediction_result: PredictionResponse = ensemble_engine.predict(
+            raw_features,
+            use_market_prior=use_prior,
+        )
     except Exception as e:
         logger.error(f"Error ejecutando modelos predictivos: {e}")
         raise HTTPException(
@@ -293,17 +328,23 @@ async def run_custom_backtest(items: List[dict]):
 
 @app.get("/api/backtest/walk-forward")
 async def run_walk_forward_endpoint(
-    n_matches: int = Query(150, ge=10, le=500),
+    n_matches: int = Query(150, ge=10, le=1250),
     competition: Optional[str] = Query(None, description="Competición para filtrar (opcional)"),
-    edge_threshold: float = Query(0.05, ge=0.01, le=0.30)
+    edge_threshold: float = Query(0.05, ge=0.01, le=0.30),
+    odds_source: str = Query("closing", description="closing | opening | pinnacle_opening | pinnacle_closing"),
 ):
     """
-    Ejecuta el backtesting temporal walk-forward sobre partidos oficiales reales en analista.db (Katakuri v4).
-    Calcula calibración probabilística (RPS, Log-Loss), precisión clasificatoria y simulación de Value Betting contra cuotas Bet365.
+    Ejecuta el backtesting temporal walk-forward sobre partidos oficiales reales en analista.db.
+    Calcula calibración probabilística (RPS, Log-Loss), Value Betting y CLV% frente a Bet365 y Pinnacle.
     """
     from backend.app.analytics.backtest import run_walk_forward_backtest
     try:
-        results = run_walk_forward_backtest(n_matches=n_matches, competition=competition, edge_threshold=edge_threshold)
+        results = run_walk_forward_backtest(
+            n_matches=n_matches,
+            competition=competition,
+            edge_threshold=edge_threshold,
+            odds_source=odds_source,
+        )
         return results
     except Exception as e:
         logger.error(f"Error ejecutando backtest walk-forward: {e}")

@@ -27,14 +27,14 @@ export const App: React.FC = () => {
 
   if (checkingAuth) {
     return (
-      <div className="min-h-screen bg-[#090A0D] flex items-center justify-center font-mono text-xs text-[#64748B]">
-        Iniciando Social Analyzer v1.1...
+      <div className="min-h-screen bg-[#0B0C0E] flex items-center justify-center font-mono text-xs text-[#828794]">
+        Iniciando Social Analyzer v2...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#090A0D] font-sans">
+    <div className="min-h-screen bg-[#0B0C0E] font-sans">
       {!user ? (
         <LoginView onSuccess={handleLoginSuccess} />
       ) : (

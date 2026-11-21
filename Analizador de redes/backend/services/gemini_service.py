@@ -33,9 +33,9 @@ class GeminiService:
                 }
             ],
             "generationConfig": {
-                "temperature": 0.7,
+                "temperature": 0.72,
                 "topP": 0.95,
-                "maxOutputTokens": 4096
+                "maxOutputTokens": 8192
             }
         }
 
@@ -107,58 +107,99 @@ class GeminiService:
         competitor_reels: List[dict]
     ) -> List[dict]:
         """
-        Recibe el perfil del cliente y los 3 Reels virales de competidores.
-        Devuelve un JSON estructurado con las 3 propuestas adaptadas (Título, Escaleta por tiempos y Guion completo).
+        Recibe el perfil del cliente y los Reels virales de referencia (hasta 10 referencias analizadas).
+        Aplica frameworks de retención y hooks virales (60-90 segundos) unificando cada sección de la escaleta con su guion exacto.
         """
         prompt = f"""
-Actúa como un Director Creativo Senior y Guionista Experto en Contenido Vertical de Alta Conversión (Método ACE: Analizar, Crear, Escalar).
+Actúa como un Director Creativo Senior y Estratega de Contenido Vertical de Alta Retención (TikTok / Instagram Reels / Shorts).
 
 INFORMACIÓN DEL CLIENTE:
 - Nombre de la Marca: {client_name}
 - Categoría / Industria: {category}
 - Perfil de Voz y Audiencia (Brand Voice): {brand_voice}
 
-REELS VIRALES DE LA COMPETENCIA A ADAPTAR:
+REELS VIRALES DE REFERENCIA EXTRAÍDOS DE LA COMPETENCIA:
 {json.dumps(competitor_reels, indent=2, ensure_ascii=False)}
 
-INSTRUCCIÓN:
-Para cada uno de los Reels virales (máximo 3), realiza ingeniería inversa:
-1. Extrae el principio psicológico del gancho original y el formato narrativo que lo hizo viral.
-2. Adapta completamente la idea para {client_name}, usando su tono, su jerga y sus servicios.
-3. Genera una ESCALETA TÉCNICA detallada desglosada en bloques de tiempo exactos:
-   - [00:00 - 00:03] Gancho Visual y Auditivo (impacto, patrón disruptivo)
-   - [00:03 - 00:15] Retención / Desarrollo (conflicto, dato revelador, prueba)
-   - [00:15 - 00:30+] Resolución y Llamada a la Acción (CTA específico)
-4. Redacta el GUION COMPLETO palabra por palabra, listo para leer en teleprompter o memorizar y grabar.
+REGLAS OBLIGATORIAS DE VIRALIDAD, RETENCIÓN Y FORMATO (60 A 90 SEGUNDOS):
+1. USO PROFUNDO DE LA REFERENCIA:
+   - Analiza a fondo la transcripción, el caption y las métricas de cada Reel de referencia.
+   - Identifica exactamente POR QUÉ retuvo a la audiencia (el mecanismo psicológico de su hook, el conflicto que plantea, el ritmo de revelación y su cierre) y trasládalo al contexto real de {client_name} sin copiar genéricamente.
+   - Si una referencia habla de un tema o ángulo específico, usa ese ángulo real y supéralo en claridad y gancho.
+
+2. HOOKS DE ALTA RETENCIÓN (00:00 - 00:04):
+   - PROHIBIDO empezar con saludos ("Hola a todos", "En este video...", "¿Sabías qué..." tibio) o presentando la marca primero.
+   - Cada una de las 3 propuestas DEBE usar un arquetipo de hook distinto entre estos:
+     * Curiosity Gap (abre un bucle concreto sin regalar la respuesta aún)
+     * Contrarian Claim (desmiente una creencia popular del sector con "pero")
+     * Stakes / Consequence (enmarca un costo o pérdida real si siguen igual)
+     * Mistake / Cost Confession (cifra o error específico que cuesta dinero/tiempo)
+     * Direct Call-Out (nombra exactamente a la audiencia y su situación)
+     * Withhold / Result-First (muestra el resultado primero y retiene el método un instante)
+   - Incluye texto en pantalla de 3 a 5 palabras de alto contraste para que funcione incluso en silencio.
+
+3. DURACIÓN ESTRICTA DE 60 A 90 SEGUNDOS Y RITMO DE LECTURA NATURAL:
+   - Cada guion completo DEBE durar entre **65 y 85 segundos** (rango obligatorio **60–90 segundos**, equivalente a **160 a 225 palabras habladas** a ritmo natural).
+   - Frases cortas y naturales de 8 a 16 palabras para leer fluido en voz alta frente a cámara o teleprompter, usando conectores de quiebre ("Pero espera", "Por eso", "El problema es que", "Y aquí viene lo clave").
+   - Estructura obligatoria de 5 secciones con relación causal ("pero / por eso", nunca "y luego"):
+     1) `[00:00 - 00:04]` Hook (Visual + Auditivo + Texto en pantalla) — ~12-18 palabras
+     2) `[00:04 - 00:20]` Contexto y Tensión (escenario cotidiano y problema real) — ~35-45 palabras
+     3) `[00:20 - 00:36]` Re-Hook / Quiebre (reinicia la atención con un giro, mito desmontado o cuello de botella) — ~30-40 palabras
+     4) `[00:36 - 01:08]` Desarrollo y Payoff Paso a Paso (cierra el bucle abierto con pasos claros, ejemplos reales y cortes cada 3-4s) — ~65-90 palabras
+     5) `[01:08 - 01:22]` Remate + CTA Limpio (cierre contundente o loop al inicio + una sola acción de baja fricción) — ~20-30 palabras
+
+4. CADA SECCIÓN DE LA ESCALETA UNIDA CON SU GUION:
+   - Cada objeto en `escalation_timeline` DEBE incluir tanto la dirección visual (`description` + `on_screen_text`) como el texto exacto palabra por palabra que el usuario debe decir en esa sección (`spoken_text`).
+   - `full_script` debe reunir el guion completo unificado con marcas de tiempo, indicaciones visuales y locución completa.
 
 FORMATO DE SALIDA ESTRICTO:
-Debes responder ÚNICAMENTE con un JSON válido (sin bloques de código markdown tipo ```json, solo el JSON puro) con la siguiente estructura de lista:
+Responde ÚNICAMENTE con un JSON válido (sin markdown ```json) con una lista de 3 objetos:
 
 [
   {{
-    "title": "Título magnético para el cliente",
-    "competitor_source_info": "Inspirado en Reel de @competidor con 185K vistas",
-    "virality_badge": "185K vistas • 14K likes",
+    "title": "Título magnético adaptado al cliente",
+    "competitor_source_info": "Ref: @competidor (185K vistas) • Hook: Contrarian Claim",
+    "virality_badge": "185K vistas • ~75s",
     "original_reel_url": "https://instagram.com/reel/...",
-    "original_transcript": "Transcripción o resumen de lo que decía el video original",
+    "original_transcript": "Mecanismo extraído de la referencia: qué gancho/estructura usó el competidor y por qué se adaptó así para el cliente.",
     "escalation_timeline": [
       {{
-        "time_range": "00:00 - 00:03",
-        "phase": "Gancho Visual y Auditivo",
-        "description": "Qué hace la persona ante cámara, plano, texto en pantalla y primera frase de choque."
+        "time_range": "00:00 - 00:04",
+        "phase": "Hook · Contrarian Claim",
+        "on_screen_text": "Esto te cuesta clientes",
+        "description": "Plano medio cercano con movimiento rápido de cámara al frente y corte seco.",
+        "spoken_text": "Frase de impacto inicial palabra por palabra..."
       }},
       {{
-        "time_range": "00:03 - 00:15",
-        "phase": "Retención y Problema Real",
-        "description": "Desarrollo del concepto central, desmontando un mito común."
+        "time_range": "00:04 - 00:20",
+        "phase": "Contexto y Tensión",
+        "on_screen_text": "El error común",
+        "description": "Cambio de ángulo o B-roll mostrando el problema cotidiano del cliente.",
+        "spoken_text": "Desarrollo de la tensión y escenario de 35-45 palabras..."
       }},
       {{
-        "time_range": "00:15 - 00:30",
-        "phase": "Resolución y Llamada a la Acción",
-        "description": "Conclusión de alto valor y llamado a comentar una palabra clave."
+        "time_range": "00:20 - 00:36",
+        "phase": "Re-Hook y Quiebre",
+        "on_screen_text": "Pero hay un problema",
+        "description": "Zoom-in ligero y cambio de ritmo visual para reiniciar la retención.",
+        "spoken_text": "Frase de quiebre que abre un nuevo bucle de 30-40 palabras..."
+      }},
+      {{
+        "time_range": "00:36 - 01:08",
+        "phase": "Payoff y Solución",
+        "on_screen_text": "3 pasos reales",
+        "description": "Cortes dinámicos cada 3-4s mostrando cada punto clave o resultado.",
+        "spoken_text": "Explicación concreta paso a paso de 65-90 palabras que cumple la promesa del hook..."
+      }},
+      {{
+        "time_range": "01:08 - 01:22",
+        "phase": "Remate y CTA",
+        "on_screen_text": "Guarda esto",
+        "description": "Plano limpio a cámara con cierre directo.",
+        "spoken_text": "Conclusión redonda y llamado único a la acción de 20-30 palabras..."
       }}
     ],
-    "full_script": "Texto exacto palabra por palabra que el creador debe decir ante cámara."
+    "full_script": "[00:00 - 00:04 | Hook]\\n(Visual: ...)\\nTexto hablado...\\n\\n[00:04 - 00:20 | Contexto]\\n..."
   }}
 ]
 """

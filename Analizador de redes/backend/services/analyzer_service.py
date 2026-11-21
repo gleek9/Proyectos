@@ -35,7 +35,8 @@ def run_analysis_pipeline(profile: Profile, db: Session) -> AnalysisReport:
     for item in top_virals:
         video_url = item.get("video_url")
         reel_url = item.get("url")
-        transcript = item.get("caption", "")
+        caption = item.get("caption", "")
+        transcript = caption
 
         # Intentar extraer audio si existe URL directa de video
         if video_url:
@@ -55,6 +56,7 @@ def run_analysis_pipeline(profile: Profile, db: Session) -> AnalysisReport:
             "views": item.get("views", 0),
             "likes": item.get("likes", 0),
             "comments": item.get("comments", 0),
+            "caption": caption,
             "transcript_or_hook": transcript
         })
 
@@ -80,16 +82,21 @@ def run_analysis_pipeline(profile: Profile, db: Session) -> AnalysisReport:
     db.flush()  # Para obtener report.id
 
     for prop in proposals_data[:3]:
+        timeline = _ensure_unified_timeline(
+            prop.get("escalation_timeline", []),
+            prop.get("full_script", "")
+        )
+        full_script = _format_unified_script(timeline) if timeline else (prop.get("full_script") or "Guion en generación.")
         script_item = ScriptProposal(
             report_id=report.id,
             title=prop.get("title", f"Oportunidad Viral para {profile.client_name}"),
             competitor_source_info=prop.get("competitor_source_info", "Inspirado en tendencia viral del sector"),
             virality_badge=prop.get("virality_badge", "Alto impacto"),
-            full_script=prop.get("full_script", "Guion en generación."),
+            full_script=full_script,
             original_reel_url=prop.get("original_reel_url", ""),
             original_transcript=prop.get("original_transcript", "")
         )
-        script_item.set_timeline_list(prop.get("escalation_timeline", []))
+        script_item.set_timeline_list(timeline)
         db.add(script_item)
 
     db.commit()
@@ -97,24 +104,98 @@ def run_analysis_pipeline(profile: Profile, db: Session) -> AnalysisReport:
     return report
 
 
+def _ensure_unified_timeline(timeline: list, fallback_script: str) -> list:
+    """Garantiza que cada bloque de la escaleta tenga su texto hablado (spoken_text)."""
+    if not timeline:
+        return timeline
+    missing = [b for b in timeline if not (b.get("spoken_text") or "").strip()]
+    if missing and fallback_script:
+        chunks = [c.strip() for c in fallback_script.split("\n\n") if c.strip()]
+        if len(chunks) < len(timeline):
+            sentences = [s.strip() for s in fallback_script.replace("\n", " ").split(". ") if s.strip()]
+            step = max(1, len(sentences) // len(timeline))
+            chunks = [
+                ". ".join(sentences[i * step : (i + 1) * step if i < len(timeline) - 1 else len(sentences)])
+                for i in range(len(timeline))
+            ]
+        for idx, block in enumerate(timeline):
+            if not (block.get("spoken_text") or "").strip() and idx < len(chunks):
+                block["spoken_text"] = chunks[idx]
+    return timeline
+
+
+def _format_unified_script(timeline: list) -> str:
+    """Construye un guion unificado legible combinando tiempos, dirección visual y texto hablado."""
+    parts = []
+    for block in timeline:
+        tr = block.get("time_range", "00:00")
+        phase = block.get("phase", "")
+        desc = block.get("description", "")
+        screen = block.get("on_screen_text")
+        spoken = block.get("spoken_text", "")
+        header = f"[{tr} | {phase}]"
+        meta = f"(Visual: {desc}" + (f" · Texto en pantalla: \"{screen}\"" if screen else "") + ")"
+        parts.append(f"{header}\n{meta}\n{spoken}".strip())
+    return "\n\n".join(parts)
+
+
 def _build_default_proposals(client_name: str, category: str, processed_reels: list) -> list:
-    """Genera propuestas estructuradas de respaldo de alta calidad en caso de que la respuesta de red de IA sea incompleta."""
+    """Genera propuestas estructuradas de respaldo (60-90s) con hooks virales y cada sección de escaleta unida a su guion."""
     proposals = []
     templates = [
         {
-            "hook": f"Si buscas servicios de {category}, cometer este error te puede costar miles de dólares.",
-            "title": f"El error #1 que debes evitar en {category}",
-            "badge": "195K vistas • 14K likes"
+            "archetype": "Contrarian Claim",
+            "title": f"Lo que casi nadie corrige en {category} (y te frena cada mes)",
+            "hook": f"Todo el mundo cree que el problema en {category} es falta de presupuesto, pero casi siempre es el orden en que ejecutan el primer paso.",
+            "on_screen_hook": "El error invisible",
+            "context": (
+                f"Imagina invertir tiempo, equipo y dinero cada semana esperando resultados constantes, pero saltarte justo la base que decide si tu cliente confía o pasa de largo. "
+                f"La mayoría empieza por la oferta o por el precio sin haber dejado claro qué problema específico resuelve hoy, y por eso el mensaje se diluye en los primeros segundos."
+            ),
+            "rehook": "¡Espera! Antes de cambiar de estrategia o bajar precios, mira dónde se está fugando realmente la atención de tus clientes.",
+            "payoff": (
+                f"Primero, define en una sola frase qué resultado concreto entregas y para quién es exactamente. "
+                f"Segundo, muestra una prueba real, un antes y después o un caso tangible antes de hablar de características técnicas. "
+                f"Tercero, elimina los pasos innecesarios entre el primer contacto y la conversación real. "
+                f"En {client_name} aplicamos exactamente esta secuencia en {category} para transformar visitas frías en oportunidades calificadas todas las semanas sin improvisar."
+            ),
+            "cta": "Guarda este video para revisarlo antes de tu próxima grabación y comenta 'GUIA' si quieres que te compartamos la estructura paso a paso.",
+            "duration_label": "~75s"
         },
         {
-            "hook": f"3 cosas que nadie te dice sobre {category} y que las grandes empresas no quieren que sepas.",
-            "title": f"3 verdades incómodas sobre {category}",
-            "badge": "142K vistas • 9.8K likes"
+            "archetype": "Mistake / Cost Confession",
+            "title": f"3 errores que cuestan caro en {category} (y cómo evitarlos)",
+            "hook": f"Si estás buscando resultados consistentes en {category}, repetir este patrón común te puede costar meses de retraso y oportunidades perdidas.",
+            "on_screen_hook": "3 errores caros",
+            "context": (
+                f"Casi todos copian lo que ven en superficie porque parece rápido y fácil de replicar. "
+                f"El problema es que lo que funciona para una cuenta con años de posicionamiento quema el alcance y la credibilidad de un negocio que necesita convertir hoy."
+            ),
+            "rehook": "Pero hay una salida mucho más simple, y empieza por corregir dos decisiones antes de publicar un solo video más.",
+            "payoff": (
+                f"Error uno: hablarle a todo el mundo con frases genéricas que no generan urgencia ni identificación inmediata. "
+                f"Error dos: explicar diez ideas distintas en un mismo contenido en lugar de profundizar en una sola objeción real del cliente. "
+                f"Error tres: cerrar sin una dirección clara. Cuando conviertes cada duda frecuente en un ejemplo práctico de sesenta segundos, como hacemos en {client_name}, tu audiencia entiende tu valor desde el primer minuto."
+            ),
+            "cta": "Comparte este video con alguien de tu equipo que necesite verlo hoy y comenta 'PLAN' para enviarte el checklist completo.",
+            "duration_label": "~80s"
         },
         {
-            "hook": f"Cómo conseguir los mejores resultados en {category} en tiempo récord sin complicarte la vida.",
-            "title": f"La fórmula definitiva para dominar {category}",
-            "badge": "118K vistas • 8.1K likes"
+            "archetype": "Curiosity Gap",
+            "title": f"El método silencioso que está cambiando {category}",
+            "hook": f"Nadie te explica el detalle de diez segundos que separa una estrategia promedio en {category} de una que convierte todos los días.",
+            "on_screen_hook": "El detalle clave",
+            "context": (
+                f"Puedes tener el mejor servicio o producto de tu ciudad, pero si los primeros cuatro segundos no abren una pregunta clara en la mente del espectador, nadie se queda a escuchar tu propuesta. "
+                f"La atención no se pide con saludos largos ni presentaciones lentas; se gana planteando un contraste real."
+            ),
+            "rehook": "Y aquí está lo interesante: no necesitas publicar el doble ni gastar más, necesitas cambiar el orden en que cuentas tu historia.",
+            "payoff": (
+                f"Empieza mostrando el resultado o el cuello de botella real. Luego explica por qué la solución obvia falla, introduce el ajuste clave y demuestra cómo funciona en la práctica. "
+                f"Eso es justo lo que implementamos en {client_name}: claridad directa desde el segundo cero para que cada pieza de contenido construya autoridad y confianza."
+            ),
+            "cta": "Guarda esta estructura para tu siguiente guion y síguenos para ver el desglose del próximo caso real.",
+            "duration_label": "~70s"
         }
     ]
 
@@ -123,37 +204,60 @@ def _build_default_proposals(client_name: str, category: str, processed_reels: l
         comp = reel_info.get("competitor_username", "competidor")
         views = reel_info.get("views", 150000)
         likes = reel_info.get("likes", 12000)
-        badge = f"{views//1000}K vistas • {likes//1000}K likes" if views >= 1000 else t["badge"]
+        views_label = f"{views // 1000}K vistas" if views >= 1000 else f"{views} vistas"
+        badge = f"{views_label} • {t['duration_label']}"
+        ref_excerpt = (reel_info.get("transcript_or_hook") or "").strip()
+        ref_note = (
+            f"Referencia de @{comp} ({views_label}, {likes} likes): "
+            f"{ref_excerpt[:220] + ('...' if len(ref_excerpt) > 220 else '') if ref_excerpt else 'Estructura de alto contraste y retención aplicada al tono del cliente.'}"
+        )
+
+        timeline = [
+            {
+                "time_range": "00:00 - 00:04",
+                "phase": f"Hook · {t['archetype']}",
+                "on_screen_text": t["on_screen_hook"],
+                "description": "Plano cerrado a cámara con movimiento dinámico inicial y corte seco.",
+                "spoken_text": t["hook"]
+            },
+            {
+                "time_range": "00:04 - 00:20",
+                "phase": "Contexto y Tensión",
+                "on_screen_text": "Por qué pasa esto",
+                "description": "Cambio de ángulo o B-roll de apoyo ilustrando el problema real.",
+                "spoken_text": t["context"]
+            },
+            {
+                "time_range": "00:20 - 00:36",
+                "phase": "Re-Hook y Quiebre",
+                "on_screen_text": "Pero espera...",
+                "description": "Zoom sutil de énfasis para reiniciar la atención en mitad del video.",
+                "spoken_text": t["rehook"]
+            },
+            {
+                "time_range": "00:36 - 01:08",
+                "phase": "Payoff y Solución",
+                "on_screen_text": "Paso a paso",
+                "description": "Cortes cada 3-4 segundos destacando cada clave visualmente en pantalla.",
+                "spoken_text": t["payoff"]
+            },
+            {
+                "time_range": "01:08 - 01:20",
+                "phase": "Remate y CTA",
+                "on_screen_text": "Guarda esto",
+                "description": "Plano limpio a cámara con cierre directo y palabra clave visible.",
+                "spoken_text": t["cta"]
+            }
+        ]
+
         proposals.append({
             "title": t["title"],
-            "competitor_source_info": f"Inspirado en Reel de @{comp} ({badge.split(' • ')[0]})",
+            "competitor_source_info": f"Ref: @{comp} ({views_label}) • Hook: {t['archetype']}",
             "virality_badge": badge,
             "original_reel_url": reel_info.get("url", f"https://instagram.com/{comp}"),
-            "original_transcript": reel_info.get("transcript_or_hook", f"Estrategia de contenido de @{comp} enfocada en desmontar mitos y educar a la audiencia."),
-            "escalation_timeline": [
-                {
-                    "time_range": "00:00 - 00:03",
-                    "phase": "Gancho Visual y Auditivo",
-                    "description": f"Plano cerrado a cámara, texto blanco de impacto en pantalla: '{t['hook'][:40]}...'"
-                },
-                {
-                    "time_range": "00:03 - 00:15",
-                    "phase": "Retención / Desarrollo",
-                    "description": f"Explicación dinámica en 3 puntos clave adaptados a la propuesta de valor de {client_name}."
-                },
-                {
-                    "time_range": "00:15 - 00:30",
-                    "phase": "Resolución y Llamada a la Acción",
-                    "description": f"Solución contundente y llamado a comentar la palabra CLAVE para recibir más información de {client_name}."
-                }
-            ],
-            "full_script": (
-                f"{t['hook']} \n\n"
-                f"La mayoría de personas creen que para tener éxito en {category} necesitan complicarse o gastar de más. "
-                f"Pero la realidad es otra: cuando aplicas el enfoque correcto, todo cambia. "
-                f"En {client_name} hemos comprobado que priorizar la claridad y la estrategia adecuada te ahorra meses de frustración. "
-                f"Comenta la palabra 'INFO' aquí abajo y te enviamos nuestra guía paso a paso directamente por mensaje privado."
-            )
+            "original_transcript": ref_note,
+            "escalation_timeline": timeline,
+            "full_script": _format_unified_script(timeline)
         })
 
     return proposals

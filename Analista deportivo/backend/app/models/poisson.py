@@ -8,6 +8,7 @@ import re
 from typing import Dict, Tuple, List, Optional, Any
 from scipy.stats import poisson, nbinom
 from backend.app.schemas.match import MatchRawFeatures
+from backend.app.models.dixon_coles_mle import dixon_coles_mle
 
 def nbinom_survival(k: int, mean_val: float, overdispersion: float = 1.35) -> float:
     """
@@ -375,6 +376,28 @@ class DixonColesPoissonModel:
         blended_ga = 0.50 * decay_ga + 0.50 * float(team_stats.avg_goals_conceded)
         return float(blended_gf), float(blended_ga)
 
+    @staticmethod
+    def _blend_shot_xg(
+        rate_val: float,
+        sot_val: Optional[float],
+        shots_val: Optional[float],
+        real_xg_val: Optional[float],
+        league_ref: float,
+    ) -> float:
+        """Combina tasa de goles con xG real (Sofascore) o proxy SoT + tiros totales."""
+        blended = float(rate_val)
+        if real_xg_val is not None and float(real_xg_val) > 0:
+            blended = 0.70 * blended + 0.30 * float(real_xg_val)
+        elif sot_val is not None and float(sot_val) > 0:
+            sot_f = float(sot_val)
+            if shots_val is not None and float(shots_val) >= sot_f:
+                non_sot = max(0.0, float(shots_val) - sot_f)
+                xg_proxy = (0.24 * sot_f + 0.032 * non_sot) * (league_ref / 1.38)
+            else:
+                xg_proxy = sot_f * (league_ref / 4.45)
+            blended = 0.76 * blended + 0.24 * xg_proxy
+        return blended
+
     def _calculate_lambdas(self, features: MatchRawFeatures) -> Tuple[float, float]:
         """
         Calcula las expectativas de gol esperadas (lambda_home, mu_away)
@@ -405,19 +428,35 @@ class DixonColesPoissonModel:
 
         league_ref = league_avg_goals
 
-        # 2.5. Proxy xG mediante Tiros a Puerta (SoT): amortigua la varianza de definición en muestras cortas
-        if getattr(home, "avg_shots_target_for", None) is not None and float(home.avg_shots_target_for) > 0:
-            sot_xg_h = float(home.avg_shots_target_for) * (league_ref / 4.45)
-            home_gf = 0.78 * home_gf + 0.22 * sot_xg_h
-        if getattr(home, "avg_shots_target_against", None) is not None and float(home.avg_shots_target_against) > 0:
-            sot_xga_h = float(home.avg_shots_target_against) * (league_ref / 4.45)
-            home_ga = 0.78 * home_ga + 0.22 * sot_xga_h
-        if getattr(away, "avg_shots_target_for", None) is not None and float(away.avg_shots_target_for) > 0:
-            sot_xg_a = float(away.avg_shots_target_for) * (league_ref / 4.45)
-            away_gf = 0.78 * away_gf + 0.22 * sot_xg_a
-        if getattr(away, "avg_shots_target_against", None) is not None and float(away.avg_shots_target_against) > 0:
-            sot_xga_a = float(away.avg_shots_target_against) * (league_ref / 4.45)
-            away_ga = 0.78 * away_ga + 0.22 * sot_xga_a
+        # 2.5. xG Híbrido (xG Real incremental o proxy calibrado de SoT + Tiros Totales)
+        home_gf = self._blend_shot_xg(
+            home_gf,
+            getattr(home, "avg_shots_target_for", None),
+            getattr(home, "avg_shots_for", None),
+            getattr(home, "avg_xg_for", None),
+            league_ref,
+        )
+        home_ga = self._blend_shot_xg(
+            home_ga,
+            getattr(home, "avg_shots_target_against", None),
+            getattr(home, "avg_shots_against", None),
+            getattr(home, "avg_xg_against", None),
+            league_ref,
+        )
+        away_gf = self._blend_shot_xg(
+            away_gf,
+            getattr(away, "avg_shots_target_for", None),
+            getattr(away, "avg_shots_for", None),
+            getattr(away, "avg_xg_for", None),
+            league_ref,
+        )
+        away_ga = self._blend_shot_xg(
+            away_ga,
+            getattr(away, "avg_shots_target_against", None),
+            getattr(away, "avg_shots_against", None),
+            getattr(away, "avg_xg_against", None),
+            league_ref,
+        )
 
         w_shrink = 0.70
         h_att_shrunk = w_shrink * home_gf + (1.0 - w_shrink) * league_ref
@@ -462,10 +501,23 @@ class DixonColesPoissonModel:
         h_att_mult, h_def_mult = self._evaluate_absences_impact(home.key_absences)
         a_att_mult, a_def_mult = self._evaluate_absences_impact(away.key_absences)
 
-        # 5. Expectativa base modulada por el promedio real de la competición y localía simétrica:
+        # 5. Expectativa base modulada por el promedio real de la competición y localía simétrica,
+        # fusionada suavemente con Dixon-Coles MLE ajustado por fuerza de calendario cuando ambos clubes existen en MLE
         home_boost = math.sqrt(home_advantage)
-        lambda_home = league_ref * home_boost * att_ratio_h * def_ratio_a * elo_mult_h * h_att_mult * a_def_mult
-        mu_away = (league_ref / home_boost) * att_ratio_a * def_ratio_h * elo_mult_a * a_att_mult * h_def_mult
+        lambda_emp = league_ref * home_boost * att_ratio_h * def_ratio_a * elo_mult_h
+        mu_emp = (league_ref / home_boost) * att_ratio_a * def_ratio_h * elo_mult_a
+
+        mle_res = dixon_coles_mle.get_match_lambdas(comp_name, features.home_team, features.away_team)
+        if mle_res is not None:
+            mle_lh, mle_ma, _ = mle_res
+            lambda_base = 0.88 * lambda_emp + 0.12 * mle_lh
+            mu_base = 0.88 * mu_emp + 0.12 * mle_ma
+        else:
+            lambda_base = lambda_emp
+            mu_base = mu_emp
+
+        lambda_home = lambda_base * h_att_mult * a_def_mult
+        mu_away = mu_base * a_att_mult * h_def_mult
 
         # 6. Ajuste por histórico H2H con shrinkage proporcional a la muestra.
         # Solo escala el VOLUMEN total; conserva la proporción lambda/mu para no aplanar el 1X2 hacia la paridad.
@@ -816,7 +868,7 @@ class DixonColesPoissonModel:
             delta_rate = (h_cn_rate + a_cn_rate) - league_avg_corners
             tot_match_corners = league_avg_corners + (delta_rate * 0.52)
 
-        tot_match_corners = float(np.clip(tot_match_corners, 7.2, 12.4))
+        tot_match_corners = float(np.clip(tot_match_corners - 0.25, 7.2, 12.4))
 
         # 3. Balanza territorial y cuota de posesión de suma constante
         tot_lambdas = max(0.2, lambda_base_h + mu_base_a)
@@ -962,17 +1014,50 @@ class DixonColesPoissonModel:
         home_cards = features.home_stats.avg_cards
         away_cards = features.away_stats.avg_cards
         comp_name = getattr(features, "competition", "General") or "General"
-        league_ref_cards = 4.2 if any(k in comp_name.lower() for k in ["liga mx", "copa", "conmebol", "libertadores", "primeira", "portugal"]) else 3.7
+        comp_l = comp_name.lower()
+        if any(k in comp_l for k in ["primeira", "portugal"]):
+            league_ref_cards = 5.81
+        elif "laliga 2" in comp_l or "hypermotion" in comp_l or "segunda" in comp_l:
+            league_ref_cards = 5.10
+        elif "laliga" in comp_l:
+            league_ref_cards = 5.42
+        elif "serie a" in comp_l:
+            league_ref_cards = 4.71
+        elif "bundesliga" in comp_l:
+            league_ref_cards = 4.46
+        elif "premier" in comp_l:
+            league_ref_cards = 4.25
+        elif "ligue 1" in comp_l:
+            league_ref_cards = 4.15
+        elif "eredivisie" in comp_l:
+            league_ref_cards = 3.28
+        elif any(k in comp_l for k in ["liga mx", "copa", "conmebol", "libertadores"]):
+            league_ref_cards = 4.65
+        else:
+            league_ref_cards = 4.40
 
-        # Corrección de sobles puntos de rojas en el promedio crudo (factor 0.92 para alinear con conteo real de tarjetas)
+        # Corrección de dobles puntos de rojas en el promedio crudo (factor 0.92 para alinear con conteo real de tarjetas)
         raw_cards_sum = (home_cards + away_cards) * 0.92
         if features.h2h.total_matches_analyzed > 0 and features.h2h.avg_total_cards_h2h > 0:
             observed_cards = raw_cards_sum * 0.65 + (features.h2h.avg_total_cards_h2h * 0.92) * 0.35
         else:
             observed_cards = raw_cards_sum
 
-        # Regularización Bayesiana hacia la media disciplinaria de la competición
-        expected_cards = 0.60 * observed_cards + 0.40 * league_ref_cards
+        # Modulación disciplinaria por volumen real de faltas (HF + AF) cuando están disponibles
+        h_fouls_f = getattr(features.home_stats, "avg_fouls_for", None)
+        a_fouls_f = getattr(features.away_stats, "avg_fouls_for", None)
+        if h_fouls_f is not None and a_fouls_f is not None and (float(h_fouls_f) + float(a_fouls_f)) > 0:
+            fouls_tot = float(h_fouls_f) + float(a_fouls_f)
+            foul_mod = float(np.clip((fouls_tot / 22.5) ** 0.35, 0.88, 1.15))
+            observed_cards *= foul_mod
+
+        # Regularización Bayesiana hacia la media disciplinaria de la competición y severidad del árbitro
+        ref_cards = getattr(features, "referee_avg_cards", None)
+        if ref_cards is not None and float(ref_cards) > 0:
+            ref_shrunk = 0.60 * float(ref_cards) + 0.40 * league_ref_cards
+            expected_cards = 0.50 * observed_cards + 0.25 * league_ref_cards + 0.25 * ref_shrunk
+        else:
+            expected_cards = 0.60 * observed_cards + 0.40 * league_ref_cards
 
         over_3_5_cards = nbinom_survival(3, expected_cards, overdispersion=1.40) * 100.0
         over_4_5_cards = nbinom_survival(4, expected_cards, overdispersion=1.40) * 100.0
